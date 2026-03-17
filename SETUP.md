@@ -25,6 +25,7 @@ This file is for your agent. Point your agent here first:
 | **Confluence** | "Share any Confluence page URL" + "Paste your API token (Confluence → Profile → Personal Access Tokens)" | Base URL from the page link |
 | **Grafana** | "Share your Grafana URL" | Run `playwright_sso.py --grafana-only` to capture session automatically |
 | **PagerDuty** | "Paste your PagerDuty API key (My Profile → User Settings → API Access)" | Base URL is always `https://api.pagerduty.com` |
+| **Microsoft Teams Free** | Nothing — just run the script | Run `playwright_sso.py --teams-only`; browser opens, user logs in once with Microsoft personal account |
 | **Google Drive** | Nothing — just run the script | Run `playwright_sso.py --gdrive-only`; browser opens, user logs in once |
 
 ---
@@ -229,8 +230,39 @@ print(r.get('login'), r.get('name'))
 
 ---
 
-#### 5. Microsoft Teams *(if used — placeholder)*
-> **Coming soon.** Teams supports a Graph API via Azure AD app registration. Contribution welcome — see `add-new-connection/SKILL.md`.
+#### 5. Microsoft Teams Free *(teams.live.com)*
+
+> **Note:** This covers **Teams Free** (personal/consumer) at `https://teams.live.com/v2/`. Enterprise Teams (work/school) via Microsoft Graph API is a separate connection not yet in core — contribution welcome via `add-new-connection/SKILL.md`.
+
+Auth uses your live browser session (Skype-derived `x-skypetoken`) — no API token page exists. Run the SSO script and log in with your Microsoft personal account:
+
+```bash
+source .venv/bin/activate
+python3 tool_connections/assets/playwright_sso.py --teams-only
+```
+
+The script opens a Chromium window, captures `TEAMS_SKYPETOKEN` and `TEAMS_SESSION_ID` from network headers, and writes them to `.env` automatically.
+
+**Verify:**
+```python
+from pathlib import Path
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+import urllib.request, json, ssl
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+req = urllib.request.Request(
+    f"{env['TEAMS_BASE_URL']}/api/csa/api/v1/teams/users/me/updates"
+    "?isPrefetch=false&enableMembershipSummary=true",
+    headers={"x-skypetoken": env["TEAMS_SKYPETOKEN"],
+             "x-ms-session-id": env["TEAMS_SESSION_ID"]})
+r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+chats = r.get("chats", [])
+print(f"{len(chats)} chats found")
+# Should print: 5 chats found (or similar)
+# If 401/403: token expired — run playwright_sso.py --teams-only to refresh
+```
+
+Full connection details: `tool_connections/microsoft-teams.md`
 
 ---
 

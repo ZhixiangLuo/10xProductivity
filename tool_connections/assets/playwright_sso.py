@@ -8,6 +8,7 @@ machines via enterprise SSO extensions), and captures session tokens/cookies for
   - Grafana session cookie (~8h TTL)          → GRAFANA_SESSION in .env
   - Slack session token (~8h TTL)             → SLACK_XOXC + SLACK_D_COOKIE in .env
   - Google Drive session (days/weeks)         → ~/.browser_automation/gdrive_auth.json
+  - Microsoft Teams Free session (~24h TTL)   → TEAMS_SKYPETOKEN + TEAMS_SESSION_ID in .env
 
 By default, existing tokens are validated first — the browser only opens if one
 or more have expired. Use --force to always refresh.
@@ -17,12 +18,14 @@ Usage (CLI):
     python3 playwright_sso.py --slack-only    # refresh only Slack credentials
     python3 playwright_sso.py --gdrive-only   # refresh only Google Drive session
     python3 playwright_sso.py --grafana-only  # refresh only Grafana session
+    python3 playwright_sso.py --teams-only    # refresh only Microsoft Teams Free session
 
 Usage (library):
-    from playwright_sso import check_tokens, get_grafana_session, get_slack_session
+    from playwright_sso import check_tokens, get_grafana_session, get_slack_session, get_teams_session
     status = check_tokens(grafana_session=..., slack_xoxc=...)
     tokens = get_grafana_session()   # {"grafana_session": "..."}
     tokens = get_slack_session()     # {"slack_xoxc": "...", "slack_d_cookie": "..."}
+    tokens = get_teams_session()     # {"teams_skypetoken": "...", "teams_session_id": "..."}
 
 Configuration:
     Set these in your .env file (see env.sample):
@@ -68,6 +71,7 @@ def _load_env_var(key: str, default: str) -> str:
 
 GRAFANA_BASE_URL    = _load_env_var("GRAFANA_BASE_URL", "https://grafana.yourcompany.com")
 SLACK_WORKSPACE_URL = _load_env_var("SLACK_WORKSPACE_URL", "https://yourcompany.slack.com/")
+TEAMS_URL           = "https://teams.live.com/v2/"
 GDRIVE_URL          = "https://drive.google.com/drive/my-drive"
 GDRIVE_AUTH_FILE    = Path.home() / ".browser_automation" / "gdrive_auth.json"
 DEFAULT_ENV_FILE    = Path(__file__).parents[2] / ".env"
@@ -120,15 +124,17 @@ def check_tokens(
     slack_xoxc: str | None = None,
     gdrive_sapisid: str | None = None,
     gdrive_cookies: str | None = None,
+    teams_skypetoken: str | None = None,
 ) -> dict[str, bool]:
     """
     Validate existing tokens with lightweight API calls (no browser).
-    Returns validity flags: {"grafana_session": bool, "slack_xoxc": bool, "gdrive": bool}
+    Returns validity flags: {"grafana_session": bool, "slack_xoxc": bool, "gdrive": bool, "teams": bool}
     """
     result = {
         "grafana_session": False,
         "slack_xoxc": False,
         "gdrive": False,
+        "teams": False,
     }
 
     if grafana_session:
@@ -165,6 +171,13 @@ def check_tokens(
         )
         result["gdrive"] = status == 200
 
+    if teams_skypetoken and not teams_skypetoken.startswith("your-"):
+        status = _http_get(
+            "https://teams.live.com/api/csa/api/v1/teams/users/me",
+            {"x-skypetoken": teams_skypetoken},
+        )
+        result["teams"] = status == 200
+
     return result
 
 
@@ -176,6 +189,8 @@ def load_tokens_from_env(env_path: Path) -> dict[str, str | None]:
         "slack_d_cookie": None,
         "gdrive_cookies": None,
         "gdrive_sapisid": None,
+        "teams_skypetoken": None,
+        "teams_session_id": None,
     }
     if not env_path.exists():
         return tokens
@@ -190,6 +205,10 @@ def load_tokens_from_env(env_path: Path) -> dict[str, str | None]:
             tokens["gdrive_cookies"] = line.split("=", 1)[1].strip()
         elif line.startswith("GDRIVE_SAPISID="):
             tokens["gdrive_sapisid"] = line.split("=", 1)[1].strip()
+        elif line.startswith("TEAMS_SKYPETOKEN="):
+            tokens["teams_skypetoken"] = line.split("=", 1)[1].strip()
+        elif line.startswith("TEAMS_SESSION_ID="):
+            tokens["teams_session_id"] = line.split("=", 1)[1].strip()
     return tokens
 
 
@@ -398,6 +417,104 @@ def get_gdrive_session() -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
+# Microsoft Teams Free session (teams.live.com)
+# ---------------------------------------------------------------------------
+
+def _extract_teams_session(page, ctx) -> tuple[str, str]:
+    """
+    Navigate to Teams Free, complete Microsoft account login, and extract
+    the skypetoken (from localStorage/network request headers) + x-ms-session-id.
+
+    Teams Free uses a private API at teams.live.com/api/ authenticated via
+    x-skypetoken (not a standard Bearer token). Both tokens are short-lived (~24h).
+    """
+    page.goto(TEAMS_URL, wait_until="commit", timeout=30_000)
+    print("    Waiting for Teams login to complete (up to 3 min)...", flush=True)
+
+    skypetoken = None
+    session_id = None
+    deadline = time.time() + 180
+
+    captured_headers: list[dict] = []
+
+    def _on_request(req):
+        hdrs = req.headers
+        if "x-skypetoken" in hdrs:
+            captured_headers.append(hdrs)
+
+    page.on("request", _on_request)
+
+    while time.time() < deadline:
+        time.sleep(2)
+
+        # Try extracting from captured network headers first
+        for hdrs in captured_headers:
+            t = hdrs.get("x-skypetoken", "")
+            s = hdrs.get("x-ms-session-id", "")
+            if t and not t.startswith("your-"):
+                skypetoken = t
+                session_id = s or session_id
+                break
+
+        if skypetoken:
+            break
+
+        # Fallback: check localStorage for skypetoken
+        try:
+            skypetoken = page.evaluate("""() => {
+                try {
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const raw = localStorage.getItem(localStorage.key(i)) || '';
+                        const m = raw.match(/"skypeToken":"([^"]+)"/);
+                        if (m) return m[1];
+                        const m2 = raw.match(/"SkypeToken":"([^"]+)"/);
+                        if (m2) return m2[1];
+                    }
+                } catch(e) {}
+                return null;
+            }""")
+        except Exception:
+            continue
+
+        if skypetoken:
+            break
+
+    if not skypetoken:
+        raise RuntimeError("No x-skypetoken captured — login may not have completed within 3 minutes.")
+
+    if not session_id:
+        # Generate a UUID as session ID if not captured from headers
+        import uuid
+        session_id = str(uuid.uuid4())
+        print("    x-ms-session-id not captured from headers — generated a new UUID.")
+
+    return skypetoken, session_id
+
+
+def get_teams_session() -> dict[str, str]:
+    """
+    Open Microsoft Teams Free (teams.live.com) in a headed browser, complete
+    Microsoft account login, and return {"teams_skypetoken": "...", "teams_session_id": "..."}.
+
+    On managed machines with Azure AD SSO, this completes automatically.
+    On personal machines, complete Microsoft login once through the browser.
+    Token lifetime: ~24h.
+    """
+    print(f"  [1/1] Getting Microsoft Teams session (navigating to {TEAMS_URL})...")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=False,
+            args=["--window-size=1200,800", "--window-position=100,100"],
+        )
+        ctx = browser.new_context(ignore_https_errors=True)
+        page = ctx.new_page()
+        skypetoken, session_id = _extract_teams_session(page, ctx)
+        browser.close()
+    print(f"    Teams skypetoken captured ({len(skypetoken)} chars)")
+    return {"teams_skypetoken": skypetoken, "teams_session_id": session_id}
+
+
+# ---------------------------------------------------------------------------
 # .env writer
 # ---------------------------------------------------------------------------
 
@@ -430,6 +547,10 @@ def update_env_file(env_path: Path, tokens: dict[str, str]) -> None:
         content = _upsert(content, "GDRIVE_COOKIES", tokens["gdrive_cookies"], "# --- Google Drive")
     if "gdrive_sapisid" in tokens:
         content = _upsert(content, "GDRIVE_SAPISID", tokens["gdrive_sapisid"], "# --- Google Drive")
+    if "teams_skypetoken" in tokens:
+        content = _upsert(content, "TEAMS_SKYPETOKEN", tokens["teams_skypetoken"], "# --- Microsoft Teams Free")
+    if "teams_session_id" in tokens:
+        content = _upsert(content, "TEAMS_SESSION_ID", tokens["teams_session_id"], "# --- Microsoft Teams Free")
 
     env_path.write_text(content)
     print(f"  Updated {env_path}")
@@ -449,6 +570,7 @@ def main():
     parser.add_argument("--slack-only", action="store_true", help="Refresh Slack session only")
     parser.add_argument("--gdrive-only", action="store_true", help="Refresh Google Drive session only")
     parser.add_argument("--grafana-only", action="store_true", help="Refresh Grafana session only")
+    parser.add_argument("--teams-only", action="store_true", help="Refresh Microsoft Teams Free session only")
     args = parser.parse_args()
 
     print("SSO token refresher (Playwright)")
@@ -457,11 +579,11 @@ def main():
 
     # Check that required base URLs are configured before opening any browser
     issues = []
-    if not args.slack_only and not args.gdrive_only:
+    if not args.slack_only and not args.gdrive_only and not args.teams_only:
         if "yourcompany" in GRAFANA_BASE_URL or GRAFANA_BASE_URL == "https://grafana.yourcompany.com":
             issues.append(f"  GRAFANA_BASE_URL is not set (currently: {GRAFANA_BASE_URL})\n"
                           f"  → Add GRAFANA_BASE_URL=https://grafana.yourcompany.com to .env first")
-    if not args.grafana_only and not args.gdrive_only:
+    if not args.grafana_only and not args.gdrive_only and not args.teams_only:
         if "yourcompany" in SLACK_WORKSPACE_URL or SLACK_WORKSPACE_URL == "https://yourcompany.slack.com/":
             issues.append(f"  SLACK_WORKSPACE_URL is not set (currently: {SLACK_WORKSPACE_URL})\n"
                           f"  → Add SLACK_WORKSPACE_URL=https://yourcompany.slack.com/ to .env first")
@@ -515,6 +637,23 @@ def main():
             print("  GRAFANA_SESSION: expired or missing")
             print()
         tokens = get_grafana_session()
+        update_env_file(args.env_file, tokens)
+        print("\nDone.")
+        for k, v in tokens.items():
+            print(f"  {k}: {v[:50]}...")
+        return
+
+    # --- Teams only ---
+    if args.teams_only:
+        if not args.force:
+            existing = load_tokens_from_env(args.env_file)
+            validity = check_tokens(teams_skypetoken=existing["teams_skypetoken"])
+            if validity["teams"]:
+                print("  TEAMS_SKYPETOKEN: ok — nothing to do.")
+                return
+            print("  TEAMS_SKYPETOKEN: expired or missing")
+            print()
+        tokens = get_teams_session()
         update_env_file(args.env_file, tokens)
         print("\nDone.")
         for k, v in tokens.items():
