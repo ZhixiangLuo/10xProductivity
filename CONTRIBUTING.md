@@ -14,32 +14,19 @@ This is the single most important quality gate. A connection file with one worki
 
 ### Path 1: Community contribution (lower bar — start here)
 
-Add a new tool or auth variant to `community/`. This is the right path if you have a working connection but it hasn't been tested on multiple environments, or if a variant already exists in core but you use a different auth method (e.g. AD SSO instead of API token).
+Add a new tool or auth variant to `community/`. Right path if you have a working connection but it hasn't been tested across environments, or if you use a different auth method than core (e.g. AD SSO instead of API token).
 
-1. **Copy the template:** `cp community/TEMPLATE.md community/{tool-name}/{auth-method}-{your-github-username}.md`
-2. **Fill in the frontmatter:** `tool`, `auth`, `author`, `verified`, `env_vars`
-3. **Run before you write:** every snippet must be code you actually executed and saw succeed
-4. **Open a PR** — no index update needed for community files
+**Agent:** load `contribute-connection/SKILL.md` — it runs the full flow.
 
-Filename convention: `{auth-method}-{contributor}.md` (e.g. `api-token-alice.md`, `ad-sso-carol.md`)
+Filename convention: `community/{tool-name}/{auth-method}-{github-username}.md` (e.g. `api-token-alice.md`, `ad-sso-carol.md`). No index update needed.
 
 ### Path 2: Core contribution (higher bar)
 
-Add or improve a connection in `tool_connections/`. Core files are maintained, kept up to date, and loaded by default. The bar is higher: multi-environment validation, complete auth flow, search interface documented.
+Add or improve a connection in `tool_connections/`. Core files are maintained and loaded by default. Bar is higher: multi-environment validation, complete auth flow, search interface documented, index wired.
 
-1. **Read the playbook:** Load `add-new-connection/SKILL.md` — it walks through the full process from research to validation to wiring.
+**Agent:** load `contribute-connection/SKILL.md` — it orchestrates research → validate → write → PR.
 
-2. **Research the tool:** Find the official API docs, identify the auth mechanism, find the base URL.
-
-3. **Validate against production:** Test connectivity, auth, and at least 2 read endpoints. Record actual output.
-
-4. **Write the connection file:** Use the format in `add-new-connection/SKILL.md`. Every snippet must have a `# → {actual output}` comment.
-
-5. **Wire into the index:** Update `tool_connections/SKILL.md` in all 3 places (frontmatter, table, inline section).
-
-6. **Open a PR** — see PR process below.
-
-> Community files can be promoted to core. If your `community/` contribution is solid, open a PR to move it to `tool_connections/` and wire it into the index.
+> Community files can be promoted to core. If your `community/` contribution is solid, open a promotion PR to move it to `tool_connections/`.
 
 ---
 
@@ -81,30 +68,6 @@ connection/{tool-name}-promote   # promoting community → core
 fix/{tool-name}                  # fixing a broken snippet or stale endpoint
 ```
 
-### Opening the PR
-
-```bash
-git checkout -b connection/{tool-name}
-git add community/{tool-name}/ tool_connections/ CONTRIBUTING.md   # whatever changed
-git commit -m "Add {Tool Name} connection ({auth-method})"
-gh pr create \
-  --title "Add {Tool Name} connection ({auth-method})" \
-  --body "$(cat <<'EOF'
-## What this adds
-
-{1-2 sentences: what tool, what auth method, what it enables.}
-
-## Verified against
-
-{environment, date, e.g. "Production (teams.live.com) — 2026-03, personal Microsoft account, no VPN"}
-
-## Checklist
-EOF
-)"
-```
-
-Then append the appropriate checklist from below to the PR body.
-
 ### PR title format
 
 | Contribution type | Title format |
@@ -133,6 +96,7 @@ Then append the appropriate checklist from below to the PR body.
 - [ ] Network requirement stated (VPN or confirmed not needed)
 - [ ] Index updated (`tool_connections/SKILL.md`) in all 3 places (frontmatter description, table row, inline section)
 - [ ] `.env` updated with new credential vars and refresh notes
+- [ ] `env.sample` updated with placeholder entries for any new vars
 
 **Promotion (community → core):**
 - [ ] All core checklist items above

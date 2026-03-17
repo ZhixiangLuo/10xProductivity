@@ -184,6 +184,7 @@ PLACEHOLDER_ENV
 - [ ] Search interface checked — documented if found, noted as absent if not
 - [ ] Index updated (if core)
 - [ ] .env updated with new vars
+- [ ] env.sample updated with placeholder entries for any new vars
 - [ ] SETUP.md updated (if applicable)
 - [ ] playwright_sso.py updated (if SSO)
 - [ ] .env NOT committed
@@ -244,6 +245,7 @@ gh pr create \
 - [ ] `tool_connections/SKILL.md` updated in all 3 places
 - [ ] `SETUP.md` updated if applicable
 - [ ] `.env` updated with new vars
+- [ ] `env.sample` updated with placeholder entries for any new vars
 
 **PR**
 - [ ] Branch name follows convention
