@@ -102,13 +102,13 @@ r = teams_get(f"{BASE}/api/csa/api/v1/teams/users/me")
 for c in r.get("chats", []):
     members = [m["mri"] for m in c.get("members", [])]
     print(c["id"], members)
-# → 19:uni01_trfsylzjwfebqkxapredbdm7xdbval2x7rsccauptnxpueuuqinq@thread.v2  ['8:pkuthu1', '8:live:.cid.6382e9c1d72b52b8']
+# → 19:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@thread.v2  ['8:other_user', '8:live:.cid.xxxxxxxxxxxxxxxx']
 # Own MRI is the live:.cid.* entry; chat IDs are needed for reading/sending messages.
 
 # Read recent messages from a chat
 import ssl as _ssl
 _ctx = _ssl.create_default_context(); _ctx.check_hostname = False; _ctx.verify_mode = _ssl.CERT_NONE
-CHAT_ID = "19:uni01_trfsylzjwfebqkxapredbdm7xdbval2x7rsccauptnxpueuuqinq@thread.v2"
+CHAT_ID = "19:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@thread.v2"  # from chats list above
 req = urllib.request.Request(
     f"https://msgapi.teams.live.com/v1/users/ME/conversations/{CHAT_ID}/messages"
     "?startTime=0&pageSize=5&view=msnp24Equivalent|supportsMessageProperties",
@@ -117,8 +117,8 @@ with urllib.request.urlopen(req, context=_ctx, timeout=10) as resp:
     msgs = json.loads(resp.read()).get("messages", [])
 for m in msgs[-3:]:
     print(f"[{m.get('originalarrivaltime','?')}] {m.get('imdisplayname','?')}: {m.get('content','')[:80]}")
-# → [2026-03-17T16:28:34.1400000Z] Agent: Hello from 10xProductivity agent — connection test 2026-03-17
-# → [2026-03-17T16:26:42.5060000Z] Jeffrey Luo: <p>hi</p>
+# → [2026-03-17T16:28:34.1400000Z] Agent: Hello from agent — connection test
+# → [2026-03-17T16:26:42.5060000Z] Alice: <p>hi</p>
 # Note: content field contains HTML — strip tags for plain text.
 
 # Send a message to a chat
@@ -143,6 +143,7 @@ with urllib.request.urlopen(req, context=_ctx, timeout=10) as resp:
     r = json.loads(resp.read())
     print(f"HTTP {resp.status}", r)
 # → HTTP 201 {"OriginalArrivalTime": 1773764914140}
+# OriginalArrivalTime is milliseconds epoch — confirms delivery.
 ```
 
 ---

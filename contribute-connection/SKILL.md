@@ -97,7 +97,33 @@ When promoting from community → core:
 
 ---
 
-## Step 4: Run the PR checklist
+## Step 4: Scrub company-specific artifacts
+
+Before opening the PR, go through every file being committed and remove anything that only applies to your specific setup. The connection must be usable by anyone, not just you.
+
+**What to remove or generalize:**
+
+| Company-specific (remove) | General replacement |
+|---------------------------|---------------------|
+| Real chat IDs, thread IDs, message IDs | `{chat-id}`, `19:xxxxxxxx@thread.v2` |
+| Your own user MRI / email / display name | `{your-mri}`, `8:live:.cid.xxxxxxxxxxxxxxxx` |
+| Your org's workspace URL, tenant ID, domain | `{your-workspace}.slack.com`, `{tenant-id}` |
+| Real API base URLs specific to your org | Use env var like `$TOOL_BASE_URL` |
+| Usernames, people's names in output comments | `Alice`, `Bob`, or `User1` |
+| Internal channel names, project names | `#general`, `my-project` |
+| Any actual token or credential value | `your-token-here` |
+
+**What to keep:**
+- Real HTTP status codes and response shapes (these are general)
+- Real field names and data types
+- Real error messages from failed endpoints
+- Timestamps in output comments (they show the file is verified, not stale)
+
+Check every `# →` output comment in the connection file. If the output contains your org's data, replace the specific value with a placeholder while keeping the structure intact.
+
+---
+
+## Step 5: Run the PR checklist
 
 Before opening the PR, verify every box. Read the relevant section from `CONTRIBUTING.md`:
 
@@ -109,7 +135,7 @@ Do not open the PR if any box is unchecked. Fix the gap first.
 
 ---
 
-## Step 5: Open the PR
+## Step 6: Open the PR
 
 ```bash
 # 1. Create and switch to branch
@@ -121,7 +147,7 @@ git add tool_connections/                       # if core file added/changed
 git add tool_connections/SKILL.md               # if index updated
 git add CONTRIBUTING.md SETUP.md               # if updated
 git add tool_connections/assets/playwright_sso.py  # if SSO support added
-git add .env                                   # if new env vars added (check .gitignore first!)
+# NEVER stage .env — verify it is in .gitignore first
 
 # 3. Commit
 git commit -m "Add {Tool Name} connection ({auth-method})"
@@ -131,13 +157,26 @@ git commit -m "Add {Tool Name} connection ({auth-method})"
 # 4. Push
 git push -u origin HEAD
 
-# 5. Open PR
+# 5. Open PR — fill in the validation summary from your actual test run
 gh pr create \
   --title "{PR title per CONTRIBUTING.md}" \
   --body "$(cat <<'EOF'
 ## What this adds
 
 {1-2 sentences: what tool, what auth method, what it enables.}
+
+## Validation summary
+
+{Fill this in from your actual test run. Be specific — list each endpoint
+tested, the HTTP status returned, and a brief description of the response.
+Example:}
+
+- `GET /api/users/me` → HTTP 200, returned `{id, name, email}`
+- `GET /api/projects?limit=5` → HTTP 200, returned array of 3 projects
+- `POST /api/issues` → HTTP 201, issue created with ID `{id}`
+- `GET /api/search?q=foo` → HTTP 404 — no search endpoint exists
+- Token validation via `check_tokens()` → `{"tool": True}`
+- SSO script (`--tool-only`) → token captured in ~30s, written to `.env`
 
 ## Verified against
 
@@ -148,20 +187,21 @@ gh pr create \
 - [ ] File placed correctly
 - [ ] Frontmatter complete
 - [ ] Every snippet run with real output
+- [ ] No company-specific artifacts (chat IDs, usernames, org URLs scrubbed)
 - [ ] Auth flow documented from scratch
+- [ ] Search interface checked — documented if found, noted as absent if not
 - [ ] Index updated (if core)
-- [ ] .env updated
+- [ ] .env updated with new vars
 - [ ] SETUP.md updated (if applicable)
 - [ ] playwright_sso.py updated (if SSO)
+- [ ] .env NOT committed
 EOF
 )"
 ```
 
-**Important:** Never commit `.env`. Verify it is in `.gitignore` before staging.
-
 ---
 
-## Step 6: After the PR is open
+## Step 7: After the PR is open
 
 - Post the PR URL to the user
 - If CI checks run, monitor them — fix any failures before marking ready
@@ -180,7 +220,8 @@ EOF
 **File**
 - [ ] Correct location and filename
 - [ ] Correct frontmatter format (community vs core)
-- [ ] No session-specific artifacts
+- [ ] No session-specific artifacts (chat IDs, user MRIs, org URLs, display names scrubbed)
+- [ ] No company-specific data in `# →` output comments — structure preserved, values generalized
 - [ ] Search interface checked and documented or explicitly noted as absent
 
 **Wiring (core only)**
@@ -191,5 +232,7 @@ EOF
 **PR**
 - [ ] Branch name follows convention
 - [ ] Commit message follows convention
-- [ ] PR body includes verified-against statement and checklist
+- [ ] PR body includes validation summary (each endpoint tested, HTTP status, response shape)
+- [ ] PR body includes verified-against statement (env, date, VPN requirement)
+- [ ] PR body checklist fully filled in with [x]
 - [ ] `.env` is NOT staged or committed

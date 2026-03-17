@@ -75,7 +75,7 @@ r = teams_get(f"{BASE}/api/csa/api/v1/teams/users/me")
 for c in r.get("chats", []):
     members = [m["mri"] for m in c.get("members", [])]
     print(c["id"], members)
-# → 19:xxxxxxxx@thread.v2  ['8:pkuthu1', '8:live:.cid.xxxxxxxxxxxxxxxx']
+# → 19:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@thread.v2  ['8:other_user', '8:live:.cid.xxxxxxxxxxxxxxxx']
 # Own MRI is the live:.cid.* entry. Chat IDs are needed for reading/sending.
 # Returns empty list if account has no active chats.
 
@@ -90,7 +90,7 @@ with urllib.request.urlopen(req, context=ctx, timeout=10) as resp:
 for m in msgs[-5:]:
     print(f"[{m.get('originalarrivaltime','?')}] {m.get('imdisplayname','?')}: {m.get('content','')[:80]}")
 # → [2026-03-17T16:28:34.1400000Z] Agent: Hello from 10xProductivity agent — connection test 2026-03-17
-# → [2026-03-17T16:26:42.5060000Z] Jeffrey Luo: <p>hi</p>
+# → [2026-03-17T16:26:42.5060000Z] Alice: <p>hi</p>
 # Note: content field contains HTML — strip tags for plain text.
 
 # Send a message to a chat
