@@ -1,0 +1,266 @@
+---
+name: add-new-connection
+description: Research, validate, and wire in a new tool connection. Use when you need API access to a tool not yet in tool_connections, or when asked to add a new tool connection. Produces a verified tool_connections/{tool}.md and updates the index.
+---
+
+# Add a New Tool Connection
+
+## Purpose
+
+Turn "I've heard of this tool" into a working, verified connection file that any agent can pick up and use.
+
+**Non-negotiable rules:**
+1. **Run before you write.** Every snippet in the file must be code you actually executed and saw succeed. No copy-paste from docs. No hypothetical endpoints.
+2. **Write for the next agent, not yourself.** The file is a general template — not a log of your test session. Strip out session-specific IDs, one-time URLs, and example data. Document the *pattern* (e.g. "search URL returns result URLs") not the artifact.
+3. **Nothing broken.** If something didn't work (wrong endpoint, 404, expired session logic), cut it. A connection file with one working snippet is better than five broken ones.
+
+**Prerequisites:** Load `tool_connections/SKILL.md` first (index + format reference).
+
+---
+
+## When to use
+
+- You need API access to a tool and no connection file exists
+- An existing connection file has unverified snippets or missing auth details
+- Someone asks "can the agent access X?"
+
+---
+
+## Step 0: Probe the endpoint first
+
+Before researching or writing anything, check what the URL actually resolves to:
+
+```bash
+curl -sI --max-time 10 "https://{the-url}" | head -10
+```
+
+Sites often redirect to a completely different domain. A 5-second curl saves you from researching the wrong platform. Identify the real final URL and any tech hints (server headers, platform names in HTML) before doing any research.
+
+---
+
+## Step 1: Research
+
+Do not guess base URLs or auth patterns. Find the official API docs first.
+
+**Search strategy (in order):**
+1. Official docs — most tools have a public API reference (`docs.tool.com/api` or `developer.tool.com`)
+2. OpenAPI/Swagger spec — often at `/api/swagger.json`, `/openapi.json`, or linked from docs
+3. Existing callers — search GitHub for code that calls the tool's endpoint; working code is more accurate than docs
+
+**Collect before moving on:**
+- Base URL (production)
+- Auth mechanism (API key, Bearer token, session cookie, OAuth2)
+- Token lifetime and refresh method
+- Search/query interface (if any — prefer it as the primary interface)
+- Key endpoints: health/version (no auth), list, get, create
+- Network requirements (VPN, specific network access, etc.)
+- Required env vars not already in `.env`
+
+---
+
+## Step 2: Store credentials in `.env`
+
+Before testing, add any new credentials to `.env` (repo root). Follow the existing format:
+
+```bash
+# --- Tool Name ---
+TOOL_API_TOKEN=your-api-token-here
+# Generate at: https://tool.com/settings/api-tokens
+```
+
+For short-lived tokens (session cookies, JWTs), note the refresh method in a comment.
+
+If the tool uses SSO:
+- Check if it can be automated via `playwright_sso.py` (add a new `--tool-only` flag)
+- Or document the manual refresh steps clearly
+
+---
+
+## Step 3: Validate — on the real environment
+
+**Dev is not sufficient.** Dev environments are often misconfigured or have different auth. Validate against the actual production/staging endpoint you'll use.
+
+### 3a. Connectivity (no auth)
+
+```bash
+# Try health/version endpoints — note which ones respond
+curl -sv --max-time 10 "https://{prod-base-url}/health"
+curl -sv --max-time 10 "https://{prod-base-url}/version"
+curl -sv --max-time 10 "https://{prod-base-url}/api/v1/status"
+curl -sv --max-time 10 "https://{prod-base-url}/ping"
+```
+
+- **200 OK** → reachable, proceed
+- **SSL error** → check if VPN/proxy required; document it
+- **Timeout** → wrong URL; keep searching
+
+### 3b. Auth
+
+```bash
+BASE="https://{prod-base-url}"
+
+# API key / Bearer token
+curl -s "$BASE/some-read-endpoint" \
+  -H "Authorization: Bearer $TOOL_API_TOKEN" \
+  | jq .
+
+# If token header name is unclear, try common ones:
+for header in "Authorization: Bearer $TOOL_API_TOKEN" "X-API-Key: $TOOL_API_TOKEN" "api-key: $TOOL_API_TOKEN"; do
+  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
+    "$BASE/some-read-endpoint" -H "$header")
+  echo "$header → HTTP $code"
+done
+```
+
+### 3c. Key read endpoints
+
+Test at least 2 read endpoints that return real data. Record actual output — this becomes the snippet comments in the file:
+
+```bash
+curl -s "$BASE/users/me" -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
+# → {"id": "u_123", "name": "Alice", "email": "alice@example.com"}
+
+curl -s "$BASE/projects?limit=5" -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
+# → [{"id": "p_1", "name": "My Project"}, ...]
+```
+
+Note both successes **and** permission errors — both are useful for the next user.
+
+---
+
+## Step 4: Write the tool connection file
+
+**Location:** `tool_connections/{tool-name}.md`
+
+**Format:**
+
+```markdown
+---
+name: {tool-name}
+description: {Tool} — {one sentence what it is}. Use when {2-3 specific use cases}.
+---
+
+# {Tool Name}
+
+{1-2 sentences: what problem it solves, who uses it.}
+
+Env: `TOOL_TOKEN` ({short-lived? how to refresh})
+API docs: {URL}
+
+**Verified:** {exactly what was tested, on which env, date.
+ e.g. "Production (api.tool.com) — /users/me + /projects — 2026-03-16, v2.1.0. No VPN required."}
+
+---
+
+## Auth
+
+{Auth flow in prose, then commands.}
+
+\`\`\`bash
+source .env
+BASE="https://{prod-base-url}"
+
+curl -s "$BASE/endpoint" \
+  -H "Authorization: Bearer $TOOL_API_TOKEN" \
+  | jq .
+\`\`\`
+
+---
+
+## Quick-reference snippets (verified)
+
+\`\`\`bash
+source .env
+BASE="https://{prod-base-url}"
+
+# Health check (no auth)
+curl -s "$BASE/version"
+# → "2.1.0"
+
+# Verified endpoint 1
+curl -s "$BASE/users/me" -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
+# → {"id": "u_123", "name": "Alice"}
+
+# Verified endpoint 2
+curl -s "$BASE/projects?limit=5" -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
+# → [{"id": "p_1", "name": "My Project"}]
+\`\`\`
+
+---
+
+## Full API surface (most-used endpoints)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/users/me` | Current user |
+| GET | `/projects` | List projects |
+```
+
+**Snippet rules:**
+- Only include commands you actually ran and saw succeed. No copy-paste from docs.
+- Add `# → {actual output}` after every command. Truncate long output with `# → [{...}, ...]`.
+- Permission errors are valid output — document them: `# → 403 requires Admin role`.
+- Do not include write/mutating endpoints unless you verified them intentionally.
+- If an endpoint didn't work — cut it.
+
+**Generality rule:** Write for the next agent, not for your test session.
+- ❌ Don't document: specific session IDs, one-time task URLs, example data from a single run
+- ✅ Do document: URL patterns, auth flows, endpoint schemas, how to discover IDs
+
+---
+
+## Step 5: Wire into the index
+
+Three places in `tool_connections/SKILL.md`:
+
+**1. Frontmatter `description`** — append tool name to the comma-separated list.
+
+**2. Quick-reference table** — add a row:
+```markdown
+| **{Tool}** | {what it is} | `{tool}.md` | {when to use} |
+```
+
+**3. Inline section** before "Standards":
+```markdown
+## {Tool} → load `{tool}.md`
+
+**Use when:** {2-3 specific triggers}.
+Env: `TOOL_TOKEN`
+```
+
+---
+
+## Checklist — do not mark done until all boxes checked
+
+**Research & validation**
+- [ ] Base URL confirmed (not guessed)
+- [ ] Auth mechanism identified and tested
+- [ ] Connectivity confirmed on production (HTTP 200)
+- [ ] Auth confirmed on production (token accepted)
+- [ ] At least 2 read endpoints tested, output recorded
+- [ ] Search/query interface checked — documented if found
+
+**The file itself**
+- [ ] Every snippet was actually executed — no copy-paste from docs
+- [ ] Every snippet has a `# → {actual output}` comment
+- [ ] Permission gaps noted (e.g. "requires Admin role")
+- [ ] Network requirement explicitly stated (VPN, etc.) or confirmed not needed
+- [ ] No session-specific artifacts (IDs, tokens, example data from one run)
+- [ ] New credentials added to `.env` with descriptive names and refresh notes
+
+**Wiring**
+- [ ] Wired into `tool_connections/SKILL.md` in all 3 places (frontmatter, table, inline section)
+
+---
+
+## Adding SSO-based tools
+
+If the tool uses SSO (session cookies rather than long-lived API keys):
+
+1. Add a `get_{tool}_session()` function in `playwright_sso.py`
+2. Add a `--{tool}-only` CLI flag
+3. Add a session validity check (use `_http_get_no_redirect` for redirect-based expiry detection)
+4. Add the session token to `load_tokens_from_env()` and `update_env_file()`
+5. Document the refresh command in the tool's `.md` file
+
+Follow the Grafana or Slack patterns in `playwright_sso.py` as a template.
