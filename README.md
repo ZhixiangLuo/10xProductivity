@@ -40,7 +40,7 @@ If every individual is 10x productive, the team and company is 10x as a result. 
 
 ```
 tool_connections/
-  SKILL.md                  ← index: which tool to use when
+  SKILL.md                  ← index: which tool to use when (keep loaded)
   jira.md                   ← Jira: fetch, search, create, update issues
   github.md                 ← GitHub: repos, PRs, issues, code search
   confluence.md             ← Confluence: search and read internal docs
@@ -51,7 +51,13 @@ tool_connections/
   assets/
     playwright_sso.py       ← SSO session automation (Okta, Google)
     google_drive.py         ← Google Drive helper class
-  env.sample                ← credential variable reference
+env.sample                    ← credential variable reference (copy to .env)
+
+community/
+  README.md                 ← how community files are organized
+  TEMPLATE.md               ← template for new contributions
+  {tool-name}/
+    {auth-method}-{author}.md  ← e.g. linear/api-token-alice.md
 
 add-new-connection/
   SKILL.md                  ← playbook: how to research, validate, and add a new tool
@@ -66,7 +72,7 @@ git clone https://github.com/yourusername/10xProductivity.git
 cd 10xProductivity
 python3 -m venv .venv && source .venv/bin/activate
 pip install playwright && playwright install chromium
-cp tool_connections/env.sample .env
+cp env.sample .env
 ```
 
 Then point your agent at the setup guide:
@@ -114,6 +120,14 @@ For tools with simple API tokens (Jira, GitHub, PagerDuty), no browser automatio
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 The core rule: **run before you write.** Every snippet in a connection file must be code you actually executed and saw succeed. No copy-paste from docs.
+
+---
+
+## Final Notes
+
+This repo provides the foundational skills to unlock 10x productivity, but it won't work out of the box. Ask your favorite agent to set it up, try it out, and gradually automate everything that can be automated — humans can always be in the loop.
+
+**A real warning:** 10x productivity will not get you 10x rewards. In most organizations, the person who automates their job away doesn't get paid more — they just get more work. Be deliberate about where you direct this leverage.
 
 ---
 

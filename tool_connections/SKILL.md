@@ -5,9 +5,13 @@ description: Index of all tool connection playbooks. Load this first to find the
 
 # Tool connections
 
+**Keep this file loaded for the entire session.** It is the capability index — it tells you which tools are available and when to reach for each one.
+
+These are **universal capabilities**, not scoped to any single repo or project. Whenever a task calls for it — in any codebase, any context — proactively use these tools: look up a Jira ticket, search Slack for a decision, fetch a Confluence runbook, check PagerDuty. You don't need to be asked. Load individual tool files (`jira.md`, `slack.md`, etc.) on demand when you need full connection details for a specific tool.
+
 Credentials (tokens, passwords) live in `.env` at the repo root (see `env.sample` for the required vars). Each tool has its own file in this folder with full connection details.
 
-**New here?** Read `SETUP.md` first — it walks through which credentials to get, runs SSO where needed, and verifies each connection.
+**New here?** Read `SETUP.md` first — it walks through which credentials to get, runs SSO where needed, and verifies each connection. Key principle: **do as much as possible yourself; ask the user only for what only they can provide, phrased non-technically.**
 
 **Short-lived tokens** (`GRAFANA_SESSION`, `SLACK_XOXC`, `SLACK_D_COOKIE` — ~8h): refresh with:
 ```bash

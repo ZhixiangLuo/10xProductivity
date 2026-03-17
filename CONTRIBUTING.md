@@ -8,7 +8,22 @@ Every snippet in a connection file must be code you actually executed and saw su
 
 This is the single most important quality gate. A connection file with one working snippet is better than five unverified ones.
 
-## How to add a new tool connection
+## Two contribution paths
+
+### Path 1: Community contribution (lower bar — start here)
+
+Add a new tool or auth variant to `community/`. This is the right path if you have a working connection but it hasn't been tested on multiple environments, or if a variant already exists in core but you use a different auth method (e.g. AD SSO instead of API token).
+
+1. **Copy the template:** `cp community/TEMPLATE.md community/{tool-name}/{auth-method}-{your-github-username}.md`
+2. **Fill in the frontmatter:** `tool`, `auth`, `author`, `verified`, `env_vars`
+3. **Run before you write:** every snippet must be code you actually executed and saw succeed
+4. **Open a PR** — no index update needed for community files
+
+Filename convention: `{auth-method}-{contributor}.md` (e.g. `api-token-alice.md`, `ad-sso-carol.md`)
+
+### Path 2: Core contribution (higher bar)
+
+Add or improve a connection in `tool_connections/`. Core files are maintained, kept up to date, and loaded by default. The bar is higher: multi-environment validation, complete auth flow, search interface documented.
 
 1. **Read the playbook:** Load `add-new-connection/SKILL.md` — it walks through the full process from research to validation to wiring.
 
@@ -21,6 +36,8 @@ This is the single most important quality gate. A connection file with one worki
 5. **Wire into the index:** Update `tool_connections/SKILL.md` in all 3 places (frontmatter, table, inline section).
 
 6. **Open a PR** with the new file and the index update.
+
+> Community files can be promoted to core. If your `community/` contribution is solid, open a PR to move it to `tool_connections/` and wire it into the index.
 
 ## What makes a good connection file
 
@@ -48,12 +65,18 @@ If the tool uses SSO rather than long-lived API keys:
 
 ## PR checklist
 
+**Community contribution (`community/`):**
+- [ ] File placed at `community/{tool-name}/{auth-method}-{username}.md`
+- [ ] Frontmatter filled in (`tool`, `auth`, `author`, `verified`, `env_vars`)
+- [ ] Every snippet was actually run and includes real output in comments
+- [ ] Auth flow documented from scratch
+
+**Core contribution (`tool_connections/`):**
 - [ ] New connection file at `tool_connections/{tool-name}.md`
 - [ ] Every snippet was actually run and includes real output in comments
 - [ ] Auth flow documented from scratch
 - [ ] Index updated (`tool_connections/SKILL.md`) in all 3 places
 - [ ] `env.sample` updated with new credential vars
-- [ ] `CONTRIBUTING.md` doesn't need updating (this file is stable)
 
 ## Questions?
 

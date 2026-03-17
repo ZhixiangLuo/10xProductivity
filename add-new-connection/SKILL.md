@@ -12,7 +12,8 @@ Turn "I've heard of this tool" into a working, verified connection file that any
 **Non-negotiable rules:**
 1. **Run before you write.** Every snippet in the file must be code you actually executed and saw succeed. No copy-paste from docs. No hypothetical endpoints.
 2. **Write for the next agent, not yourself.** The file is a general template — not a log of your test session. Strip out session-specific IDs, one-time URLs, and example data. Document the *pattern* (e.g. "search URL returns result URLs") not the artifact.
-3. **Nothing broken.** If something didn't work (wrong endpoint, 404, expired session logic), cut it. A connection file with one working snippet is better than five broken ones.
+3. **Generalize the auth, not just the snippets.** Before writing, ask: does this auth flow work for the full range of users? (SSO vs password login, managed vs personal machine, free vs paid tier, different OS.) Document the assumptions and variations explicitly. A connection that only works for your exact setup is a personal note, not a connection file.
+4. **Nothing broken.** If something didn't work (wrong endpoint, 404, expired session logic), cut it. A connection file with one working snippet is better than five broken ones.
 
 **Prerequisites:** Load `tool_connections/SKILL.md` first (index + format reference).
 
@@ -130,7 +131,18 @@ Note both successes **and** permission errors — both are useful for the next u
 
 ## Step 4: Write the tool connection file
 
-**Location:** `tool_connections/{tool-name}.md`
+**Where to put it:**
+
+- **New tool or auth variant, not yet validated across environments** → `community/{tool-name}/{auth-method}-{your-github-username}.md`
+  Use the template at `community/TEMPLATE.md`. Frontmatter required. No index update needed.
+- **Well-validated, ready for core** → `tool_connections/{tool-name}.md`
+  Follow the format below and wire into the index (Step 5).
+
+When in doubt, start in `community/`. A solid community file can be promoted to core later.
+
+---
+
+**Core file location:** `tool_connections/{tool-name}.md`
 
 **Format:**
 
@@ -230,6 +242,19 @@ Env: `TOOL_TOKEN`
 
 ---
 
+## Step 6: Reflect and harden
+
+**If you iterated more than once to get auth working, the skill isn't done yet.**
+
+Before closing, ask:
+1. What broke, and why? (wrong assumption, missing edge case, bad fallback)
+2. Is the fix generalizable — does it affect all users of this tool, not just your situation?
+3. If yes — update `playwright_sso.py`, the tool `.md`, or `SETUP.md` before marking done.
+
+**The test:** could the next agent follow this skill on a fresh machine, with a different org, and succeed on the first try?
+
+---
+
 ## Checklist — do not mark done until all boxes checked
 
 **Research & validation**
@@ -247,6 +272,8 @@ Env: `TOOL_TOKEN`
 - [ ] Network requirement explicitly stated (VPN, etc.) or confirmed not needed
 - [ ] No session-specific artifacts (IDs, tokens, example data from one run)
 - [ ] New credentials added to `.env` with descriptive names and refresh notes
+- [ ] Auth flow covers realistic variations (SSO *and* password login if both exist; free vs paid tier differences noted)
+- [ ] Assumptions that only hold for specific org setups or plans are explicitly called out
 
 **Wiring**
 - [ ] Wired into `tool_connections/SKILL.md` in all 3 places (frontmatter, table, inline section)

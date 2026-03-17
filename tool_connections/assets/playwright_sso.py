@@ -59,7 +59,7 @@ except ImportError:
 
 def _load_env_var(key: str, default: str) -> str:
     """Load a var from .env file or environment, falling back to default."""
-    env_file = Path(__file__).parents[3] / ".env"
+    env_file = Path(__file__).parents[2] / ".env"
     if env_file.exists():
         for line in env_file.read_text().splitlines():
             if line.startswith(f"{key}="):
@@ -70,7 +70,7 @@ GRAFANA_BASE_URL    = _load_env_var("GRAFANA_BASE_URL", "https://grafana.yourcom
 SLACK_WORKSPACE_URL = _load_env_var("SLACK_WORKSPACE_URL", "https://yourcompany.slack.com/")
 GDRIVE_URL          = "https://drive.google.com/drive/my-drive"
 GDRIVE_AUTH_FILE    = Path.home() / ".browser_automation" / "gdrive_auth.json"
-DEFAULT_ENV_FILE    = Path(__file__).parents[3] / ".env"
+DEFAULT_ENV_FILE    = Path(__file__).parents[2] / ".env"
 
 
 # ---------------------------------------------------------------------------
@@ -138,12 +138,21 @@ def check_tokens(
         )
         result["grafana_session"] = status == 200
 
-    if slack_xoxc:
-        status = _http_get(
-            "https://slack.com/api/auth.test",
-            {"Authorization": f"Bearer {slack_xoxc}"},
-        )
-        result["slack_xoxc"] = status == 200
+    if slack_xoxc and not slack_xoxc.startswith("xoxc-your-"):
+        try:
+            import ssl, json as _json
+            req = urllib.request.Request(
+                "https://slack.com/api/auth.test",
+                headers={"Authorization": f"Bearer {slack_xoxc}"},
+            )
+            ctx2 = ssl.create_default_context()
+            ctx2.check_hostname = False
+            ctx2.verify_mode = ssl.CERT_NONE
+            with urllib.request.urlopen(req, context=ctx2, timeout=8) as resp:
+                body = _json.loads(resp.read())
+                result["slack_xoxc"] = body.get("ok") is True
+        except Exception:
+            result["slack_xoxc"] = False
 
     if gdrive_sapisid and gdrive_cookies:
         import hashlib
@@ -237,36 +246,43 @@ def get_grafana_session() -> dict[str, str]:
 def _extract_slack_session(page, ctx) -> tuple[str, str]:
     """Navigate to Slack workspace and extract the xoxc client token + d cookie."""
     page.goto(SLACK_WORKSPACE_URL, wait_until="commit", timeout=30_000)
-    try:
-        page.wait_for_url("https://app.slack.com/**", timeout=90_000)
-    except PlaywrightTimeout:
-        raise RuntimeError(f"Slack SSO timed out — still on: {page.url}")
-
-    time.sleep(6)
-
-    xoxc = page.evaluate("""() => {
-        if (window.boot_data?.api_token) return window.boot_data.api_token;
-        if (window.TS?.boot_data?.api_token) return window.TS.boot_data.api_token;
-        for (const key of Object.keys(window)) {
-            try {
-                const v = window[key];
-                if (typeof v === 'string' && v.startsWith('xoxc')) return v;
-                if (v && typeof v === 'object') {
-                    for (const k2 of ['api_token', 'token']) {
-                        if (v[k2] && String(v[k2]).startsWith('xoxc')) return v[k2];
+    # Wait for the Slack app to fully load — indicated by the xoxc token appearing
+    # in localStorage. This handles SSO (auto), manual login, and CAPTCHA flows.
+    # Polls every 2s for up to 3 minutes.
+    print("    Waiting for Slack login to complete (up to 3 min)...", flush=True)
+    xoxc = None
+    deadline = time.time() + 180
+    while time.time() < deadline:
+        time.sleep(2)
+        try:
+            xoxc = page.evaluate("""() => {
+                try {
+                    const cfg = JSON.parse(localStorage.getItem('localConfig_v2') || 'null');
+                    if (cfg && cfg.teams) {
+                        const tid = Object.keys(cfg.teams)[0];
+                        const t = cfg.teams[tid]?.token;
+                        if (t && t.startsWith('xoxc')) return t;
                     }
+                } catch(e) {}
+                for (let i = 0; i < localStorage.length; i++) {
+                    const raw = localStorage.getItem(localStorage.key(i)) || '';
+                    const m = raw.match(/xoxc-[a-zA-Z0-9%-]+/);
+                    if (m) return m[0];
                 }
-            } catch(e) {}
-        }
-        for (let i = 0; i < localStorage.length; i++) {
-            const raw = localStorage.getItem(localStorage.key(i)) || '';
-            const m = raw.match(/xoxc-[a-zA-Z0-9-]+/);
-            if (m) return m[0];
-        }
-        return null;
-    }""")
+                return null;
+            }""")
+        except Exception:
+            # Page navigated mid-evaluate — normal during login redirects, just retry
+            continue
+        if xoxc:
+            break
+    if "slack.com" not in page.url:
+        raise RuntimeError(f"Slack login timed out — ended up on: {page.url}")
+
+    print(f"    Page after login: {page.url}", flush=True)
+
     if not xoxc:
-        raise RuntimeError("No xoxc token found after Slack SSO.")
+        raise RuntimeError("No xoxc token found — login may not have completed within 3 minutes.")
 
     all_cookies = ctx.cookies(["https://slack.com", "https://app.slack.com"])
     d_cookie = {c["name"]: c["value"] for c in all_cookies}.get("d", "")

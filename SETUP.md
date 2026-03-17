@@ -4,7 +4,28 @@ This file is for your agent. Point your agent here first:
 
 > *"Read SETUP.md and set up my tool connections."*
 
-Your agent will walk you through which credentials to get, run the SSO refresher where needed, and verify each connection works.
+---
+
+## Agent UX principles — read this first
+
+**Do as much as possible. Ask as little as possible. Ask non-technically.**
+
+- Run every command yourself. Never paste a command and ask the user to run it.
+- Infer everything you can before asking. A Slack message URL tells you the workspace URL. A Jira ticket URL tells you the base URL. Don't ask for what you can derive.
+- When you must ask, ask for the one thing only the user can provide (a credential, a URL they're logged into), and phrase it in plain language — not in technical terms.
+- As soon as you have what you need, do the work and verify it yourself. Tell the user what succeeded, not what they need to do next.
+
+**Minimum user input by tool:**
+
+| Tool | What to ask for | What you can infer / automate |
+|------|----------------|-------------------------------|
+| **Slack** | "Send me any Slack message link from your workspace" — that's it | Workspace URL from the link; run `playwright_sso.py --slack-only` to capture tokens automatically |
+| **Jira** | "Share any Jira ticket URL" + "Paste your API token (Jira → Profile → API Tokens)" + "Your Atlassian account email" | Base URL from the ticket link; auth is Basic base64(email:token) |
+| **GitHub** | "Paste your GitHub personal access token (Settings → Developer settings → Personal access tokens)" | Base URL is `https://api.github.com` unless they share a GHE URL |
+| **Confluence** | "Share any Confluence page URL" + "Paste your API token (Confluence → Profile → Personal Access Tokens)" | Base URL from the page link |
+| **Grafana** | "Share your Grafana URL" | Run `playwright_sso.py --grafana-only` to capture session automatically |
+| **PagerDuty** | "Paste your PagerDuty API key (My Profile → User Settings → API Access)" | Base URL is always `https://api.pagerduty.com` |
+| **Google Drive** | Nothing — just run the script | Run `playwright_sso.py --gdrive-only`; browser opens, user logs in once |
 
 ---
 
@@ -18,16 +39,16 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install playwright && playwright install chromium
 
 # Copy env template
-cp tool_connections/env.sample .env
+cp env.sample .env
 ```
 
 ---
 
 ## Step 1: Ask the user which tools they use
 
-Before doing anything, ask:
+Ask once, simply:
 
-> *"Which of these tools does your team use? (Select all that apply)"*
+> *"Which of these tools does your team use?"*
 > - Confluence (internal wiki / docs)
 > - Slack
 > - Jira
@@ -47,7 +68,38 @@ Only set up what they actually use. Don't touch tools they don't have.
 
 ---
 
+## How credentials work
+
+Tools fall into two categories:
+
+**API tokens** (Jira, GitHub, Confluence, PagerDuty) — generate a personal token in the tool's settings UI, paste it into `.env`. Long-lived, no browser needed.
+
+**Session cookies** (Slack, Grafana, Google Drive) — these tools use SSO and don't offer simple API tokens. You authenticate by extracting your existing browser session. You're already logged in; you just need to copy the cookie/token out.
+
+### How to extract a session cookie from any browser
+
+This is the universal approach for any SSO-based tool. You don't need to log in again — just copy what's already there.
+
+1. Open the tool in **Chrome or Firefox** (you should already be logged in)
+2. Press `F12` (or right-click → Inspect) to open DevTools
+3. Go to **Application** tab → **Cookies** → click the tool's URL in the left sidebar
+4. Find the cookie named in the per-tool instructions below, copy its **Value**
+5. Paste it into `.env`
+
+For **Slack only**, there's also a JS token to extract (in addition to the cookie) — see the Slack section below.
+
+**Managed machines with enterprise SSO (Okta, Azure AD, Google):** you can alternatively run the automated script which opens a browser and captures tokens automatically:
+```bash
+source .venv/bin/activate
+python3 tool_connections/assets/playwright_sso.py --slack-only    # or --grafana-only / --gdrive-only
+```
+Use whichever is faster for your setup.
+
+---
+
 ## Step 2: Set up tools in priority order
+
+**Validation is mandatory.** For every tool you configure, you MUST run the **Verify** command and confirm it returns the expected output before moving on. If it fails, fix the credential before proceeding.
 
 Start with **Tier 1** (knowledge tools) — these make everything else easier because your agent can look up how to use the other tools, find credentials, and understand your team's context.
 
@@ -56,24 +108,29 @@ Start with **Tier 1** (knowledge tools) — these make everything else easier be
 #### 1. Confluence *(if used)*
 Knowledge base, runbooks, architecture docs — your agent's primary reference for "how does X work?"
 
-```bash
-# What you need:
-# 1. Your Confluence base URL
-# 2. A personal API token
+**Ask the user for:**
+- "Share any Confluence page URL" → infer `CONFLUENCE_BASE_URL` from it
+- "Paste your Confluence API token" → Confluence → Profile photo → Personal Access Tokens → Create token
 
-# Get token: Confluence → Profile → Personal Access Tokens → Create
-# Then add to .env:
-# CONFLUENCE_TOKEN=your-token
-# CONFLUENCE_BASE_URL=https://yourcompany.atlassian.net/wiki
+Set `.env`:
+```
+CONFLUENCE_TOKEN=<token>
+CONFLUENCE_BASE_URL=https://yourcompany.atlassian.net/wiki   # inferred from URL they shared
 ```
 
 **Verify:**
-```bash
-source .env
-curl -s -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
-  "$CONFLUENCE_BASE_URL/rest/api/content/search?cql=type=page&limit=1" \
-  | jq '.results[0] | {id, title}'
-# Should return a page title, not an error
+```python
+from pathlib import Path
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+import urllib.request, json, ssl
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+req = urllib.request.Request(
+    f"{env['CONFLUENCE_BASE_URL']}/rest/api/content/search?cql=type=page&limit=1",
+    headers={"Authorization": f"Bearer {env['CONFLUENCE_TOKEN']}"})
+r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+print(r['results'][0]['title'] if r.get('results') else r)
+# Should print a page title
 ```
 
 ---
@@ -81,23 +138,23 @@ curl -s -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
 #### 2. Slack *(if used)*
 Decisions, context, who to ask — the informal knowledge layer. Slack AI can answer "how do we do X?" in 0.2s.
 
+**Ask the user for:** "Send me any Slack message link from your workspace (right-click any message → Copy link)."
+
+> **Note:** Slack AI (natural-language Q&A over workspace history) requires Business+ or Enterprise+ plan. On Free/Pro plans, `search.messages` still works for keyword search.
+
+That's the only input needed. The workspace URL is inferred from the link. Then run the SSO script — it opens a browser, the user logs in once (if not already), and tokens are written to `.env` automatically.
+
+**What you do:**
+1. Extract workspace URL from the message link (e.g. `https://acme.slack.com/...` → `SLACK_WORKSPACE_URL=https://acme.slack.com/`). Update `.env`.
+2. Run the SSO script:
 ```bash
-# What you need: your Slack workspace URL
-# Token is captured automatically via browser SSO
-
-# Add to .env first:
-# SLACK_WORKSPACE_URL=https://yourcompany.slack.com/
-
-# Then run (opens browser for ~20s SSO):
 source .venv/bin/activate
 python3 tool_connections/assets/playwright_sso.py --slack-only
-# On a managed machine: SSO completes automatically
-# On a personal machine: log in manually when the browser opens
 ```
+The script opens a Chromium window. On managed machines with enterprise SSO it completes automatically (~20s). On personal machines, the user logs in once through the browser.
 
 **Verify:**
 ```python
-# Load tokens — always use Python to read .env (bash truncates long tokens)
 from pathlib import Path
 env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
        if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
@@ -115,24 +172,30 @@ print(r.get("user"), r.get("team"))
 #### 3. Jira *(if used)*
 Your work queue, sprint, tickets — what needs to get done.
 
-```bash
-# What you need:
-# 1. Your Jira base URL
-# 2. A personal API token
+**Ask the user for:**
+- "Share any Jira ticket URL" → infer `JIRA_BASE_URL` from it (e.g. `https://acme.atlassian.net/browse/ENG-123` → `https://acme.atlassian.net`)
+- "Paste your Jira API token" → Jira → Profile photo → Manage account → Security → API tokens → Create
 
-# Get token: Jira → Profile → API Tokens → Create
-# Then add to .env:
-# JIRA_API_TOKEN=your-token
-# JIRA_BASE_URL=https://yourcompany.atlassian.net
+Set `.env`:
+```
+JIRA_EMAIL=you@yourcompany.com
+JIRA_API_TOKEN=<token>
+JIRA_BASE_URL=https://yourcompany.atlassian.net   # inferred from URL they shared
 ```
 
 **Verify:**
-```bash
-source .env
-curl -s -H "Authorization: Bearer $JIRA_API_TOKEN" \
-  "$JIRA_BASE_URL/rest/api/2/myself" \
-  | jq '{displayName, emailAddress}'
-# Should return your name and email
+```python
+from pathlib import Path
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+import urllib.request, json, ssl, base64
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
+req = urllib.request.Request(f"{env['JIRA_BASE_URL']}/rest/api/2/myself",
+    headers={"Authorization": f"Basic {creds}"})
+r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+print(r.get('displayName'), r.get('emailAddress'))
+# Should print your name and email
 ```
 
 ---
@@ -140,23 +203,28 @@ curl -s -H "Authorization: Bearer $JIRA_API_TOKEN" \
 #### 4. GitHub *(if used)*
 Code, PRs, READMEs — source of truth for implementation. Works with github.com and GitHub Enterprise.
 
-```bash
-# What you need: a personal access token
-# Get token: GitHub → Settings → Developer settings → Personal access tokens → Generate
-# Scopes: repo, read:org
-# Then add to .env:
-# GITHUB_TOKEN=ghp_your-token
-# GITHUB_BASE_URL=https://api.github.com
-# (For GitHub Enterprise: GITHUB_BASE_URL=https://your-ghe.example.com/api/v3)
+**Ask the user for:**
+- "Paste your GitHub personal access token" → GitHub → Settings → Developer settings → Personal access tokens → Generate new token (scopes: `repo`, `read:org`)
+- If GitHub Enterprise: "Share any repo or PR URL from your GitHub" → infer the GHE base URL
+
+Set `.env`:
+```
+GITHUB_TOKEN=<token>
+GITHUB_BASE_URL=https://api.github.com   # or https://your-ghe.example.com/api/v3
 ```
 
 **Verify:**
-```bash
-source .env
-curl -s -H "Authorization: token $GITHUB_TOKEN" \
-  "$GITHUB_BASE_URL/user" \
-  | jq '{login, name, email}'
-# Should return your GitHub username and name
+```python
+from pathlib import Path
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+import urllib.request, json, ssl
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+req = urllib.request.Request(f"{env['GITHUB_BASE_URL']}/user",
+    headers={"Authorization": f"token {env['GITHUB_TOKEN']}"})
+r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+print(r.get('login'), r.get('name'))
+# Should print your GitHub username and name
 ```
 
 ---
@@ -176,25 +244,27 @@ curl -s -H "Authorization: token $GITHUB_TOKEN" \
 #### 7. Grafana *(if used)*
 Metrics and dashboards — makes incident response and performance analysis possible.
 
+**Ask the user for:** "Share your Grafana URL" (e.g. `https://grafana.acme.com`).
+
+That's the only input needed. Run the SSO script — it opens a browser, completes login, captures the session automatically:
+
 ```bash
-# What you need: your Grafana base URL
-# Token is captured automatically via browser SSO
-
-# Add to .env first (BEFORE running the SSO script):
-# GRAFANA_BASE_URL=https://grafana.yourcompany.com
-
-# Then run (opens browser for SSO):
 source .venv/bin/activate
 python3 tool_connections/assets/playwright_sso.py --grafana-only
 ```
 
 **Verify:**
-```bash
-source .env
-curl -s "$GRAFANA_BASE_URL/api/user" \
-  -H "Cookie: grafana_session=$GRAFANA_SESSION" \
-  | jq '{login, email, name}'
-# Should return your Grafana user info
+```python
+from pathlib import Path
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+import urllib.request, json, ssl
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+req = urllib.request.Request(f"{env['GRAFANA_BASE_URL']}/api/user",
+    headers={"Cookie": f"grafana_session={env['GRAFANA_SESSION']}"})
+r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+print(r.get('login'), r.get('email'))
+# Should print your Grafana username and email
 ```
 
 ---
@@ -202,21 +272,23 @@ curl -s "$GRAFANA_BASE_URL/api/user" \
 #### 8. PagerDuty *(if used)*
 On-call schedules, active incidents, escalation policies.
 
-```bash
-# What you need: a personal REST API key
-# Get key: PagerDuty → My Profile → User Settings → API Access → Create New API Key
-# Then add to .env:
-# PAGERDUTY_TOKEN=your-api-key
-```
+**Ask the user for:** "Paste your PagerDuty API key" → PagerDuty → top-right avatar → My Profile → User Settings → API Access → Create New API Key.
+
+No URL needed — PagerDuty's API is always at `https://api.pagerduty.com`.
 
 **Verify:**
-```bash
-source .env
-curl -s "https://api.pagerduty.com/users/me" \
-  -H "Authorization: Token token=$PAGERDUTY_TOKEN" \
-  -H "Accept: application/vnd.pagerduty+json;version=2" \
-  | jq '{name: .user.name, email: .user.email, role: .user.role}'
-# Should return your PagerDuty user info
+```python
+from pathlib import Path
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+import urllib.request, json, ssl
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+req = urllib.request.Request("https://api.pagerduty.com/users/me",
+    headers={"Authorization": f"Token token={env['PAGERDUTY_TOKEN']}",
+             "Accept": "application/vnd.pagerduty+json;version=2"})
+r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+print(r['user']['name'], r['user']['email'])
+# Should print your PagerDuty name and email
 ```
 
 ---
@@ -241,13 +313,13 @@ curl -s "https://api.pagerduty.com/users/me" \
 #### 12. Google Drive *(if used)*
 Docs, sheets, slides — specs and decisions often live here.
 
-```bash
-# No API token needed — uses browser session
+Google Drive uses a full browser session (Playwright storage state) rather than a single cookie, because raw cookie injection triggers Google's security checks. The session is saved to `~/.browser_automation/gdrive_auth.json` and is valid for days to weeks.
 
-# Run (opens browser for Google Workspace SSO, ~30s):
+```bash
 source .venv/bin/activate
 python3 tool_connections/assets/playwright_sso.py --gdrive-only
-# Session saved to ~/.browser_automation/gdrive_auth.json (valid for days/weeks)
+# Opens a browser — log in to Google if prompted (~30s)
+# Session saved to ~/.browser_automation/gdrive_auth.json
 ```
 
 **Verify:**
@@ -287,7 +359,7 @@ with GDrive() as drive:
 
 ## Step 3: Tell the user what's ready
 
-After setup, summarize:
+After all verifications pass, summarize:
 
 ```
 ✓ Confluence  — connected (verified: returned page titles)
@@ -299,24 +371,24 @@ After setup, summarize:
 ✗ Google Drive— skipped (not used)
 ```
 
-Now read `tool_connections/SKILL.md` to understand which tool to use for each task.
+**Now read `tool_connections/SKILL.md` immediately.** This is required — not optional. It is the capability index: it tells you what tools are available and when to use each one.
+
+These are **universal capabilities** — not scoped to this repo. From this point on, in any task across any project, you should proactively reach for these tools whenever they're relevant: look up a Jira ticket, search Slack for context, check who's on call, pull a Confluence runbook. You don't need to be asked. The credentials are set up; the tools are ready.
+
+Individual tool files (`jira.md`, `slack.md`, etc.) live in this repo and are loaded on demand when you need full connection details for a specific tool.
 
 ---
 
 ## Refreshing short-lived tokens
 
-Grafana and Slack sessions expire in ~8h. When a tool stops working, refresh:
+Slack and Grafana sessions expire in ~8h. When a tool stops working:
 
-```bash
-source .venv/bin/activate
+- **Slack:** run `python3 tool_connections/assets/playwright_sso.py --slack-only` (opens browser, completes login, writes tokens automatically).
+- **Grafana:** run `python3 tool_connections/assets/playwright_sso.py --grafana-only`.
+- **Google Drive:** sessions last days to weeks. When expired, re-run `python3 tool_connections/assets/playwright_sso.py --gdrive-only`.
 
-# Refresh all (Grafana + Slack):
-python3 tool_connections/assets/playwright_sso.py
+---
 
-# Refresh one:
-python3 tool_connections/assets/playwright_sso.py --slack-only
-python3 tool_connections/assets/playwright_sso.py --grafana-only
-python3 tool_connections/assets/playwright_sso.py --gdrive-only
-```
+## If something broke during setup
 
-Tokens are validated first — the browser only opens if something is actually expired.
+If you had to iterate more than once on a tool — wrong token, failed script, unexpected login flow — update the relevant skill before finishing. See `add-new-connection/SKILL.md` Step 6. The fix that unblocked you will unblock the next person too.

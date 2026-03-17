@@ -5,50 +5,85 @@ description: All Jira operations — fetch issues, JQL search, update fields, wr
 
 # Jira
 
-Env: `JIRA_API_TOKEN`, `JIRA_BASE_URL`
+Env: `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_BASE_URL`
 
 ```bash
 # Set in .env:
+# JIRA_EMAIL=you@yourcompany.com
 # JIRA_API_TOKEN=your-jira-api-token
 # JIRA_BASE_URL=https://yourcompany.atlassian.net   # or your self-hosted Jira URL
 ```
 
-Auth: `Authorization: Bearer $JIRA_API_TOKEN`
+Auth: **Basic auth** — `Authorization: Basic base64(email:token)`. Atlassian Cloud personal API tokens require Basic auth, not Bearer.
 
-**Generate token:** Jira → Profile → API Tokens → Create (Jira Cloud) or Profile → Security → API Tokens (Jira Server/Data Center)
+**⚠ Always load credentials in Python, not bash `source .env`** — avoids silent truncation of long tokens.
+
+```python
+from pathlib import Path
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+import base64
+creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
+# Use: headers={"Authorization": f"Basic {creds}"}
+```
+
+**Generate token:** Jira → Profile photo → Manage account → Security → API tokens → Create
 
 When mentioning issues, link them: `[KEY-123]($JIRA_BASE_URL/browse/KEY-123)`
 
 ## Verify connection
 
-```bash
-source .env
-curl -s -H "Authorization: Bearer $JIRA_API_TOKEN" \
-  "$JIRA_BASE_URL/rest/api/2/myself" \
-  | jq '{displayName, emailAddress, accountId}'
-# → {"displayName": "Alice Smith", "emailAddress": "alice@example.com", ...}
-# If you see 401: token is wrong. If you see connection refused: check JIRA_BASE_URL.
+```python
+from pathlib import Path
+import urllib.request, json, ssl, base64
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
+req = urllib.request.Request(f"{env['JIRA_BASE_URL']}/rest/api/2/myself",
+    headers={"Authorization": f"Basic {creds}"})
+r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+print(r.get('displayName'), r.get('emailAddress'))
+# → Alice Smith alice@example.com
+# If you see 401: wrong email or token. If 403: token lacks permissions.
 ```
 
 ---
 
 ## Fetch and search
 
-```bash
-source .env
+```python
+from pathlib import Path
+import urllib.request, json, ssl, base64, urllib.parse
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
+headers = {"Authorization": f"Basic {creds}", "Accept": "application/json", "Content-Type": "application/json"}
+
+def jira_get(path):
+    req = urllib.request.Request(f"{env['JIRA_BASE_URL']}{path}", headers=headers)
+    return json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+
+def jira_post(path, data):
+    req = urllib.request.Request(f"{env['JIRA_BASE_URL']}{path}",
+        data=json.dumps(data).encode(), headers=headers, method="POST")
+    return json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+
+def jira_put(path, data):
+    req = urllib.request.Request(f"{env['JIRA_BASE_URL']}{path}",
+        data=json.dumps(data).encode(), headers=headers, method="PUT")
+    urllib.request.urlopen(req, context=ctx, timeout=10)
 
 # Get a specific issue
-curl -s -H "Authorization: Bearer $JIRA_API_TOKEN" -H "Accept: application/json" \
-  "$JIRA_BASE_URL/rest/api/2/issue/KEY-123" \
-  | jq '{key, summary: .fields.summary, status: .fields.status.name, assignee: .fields.assignee.displayName, priority: .fields.priority.name, description: .fields.description}'
+issue = jira_get("/rest/api/2/issue/KEY-123")
+print(issue['key'], issue['fields']['summary'], issue['fields']['status']['name'])
 
 # Search with JQL
-curl -s -G -H "Authorization: Bearer $JIRA_API_TOKEN" -H "Accept: application/json" \
-  "$JIRA_BASE_URL/rest/api/2/search" \
-  --data-urlencode "jql=assignee = currentUser() AND status NOT IN (Resolved,Closed,Done) ORDER BY updated DESC" \
-  --data-urlencode "maxResults=25" \
-  --data-urlencode "fields=summary,status,priority,updated" \
-  | jq '.issues[] | {key, summary: .fields.summary, status: .fields.status.name}'
+jql = "assignee = currentUser() AND status NOT IN (Resolved,Closed,Done) ORDER BY updated DESC"
+results = jira_get(f"/rest/api/2/search?{urllib.parse.urlencode({'jql': jql, 'maxResults': 25, 'fields': 'summary,status,priority,updated'})}")
+for i in results['issues']:
+    print(i['key'], i['fields']['summary'], i['fields']['status']['name'])
 ```
 
 ## Common JQL patterns
@@ -65,26 +100,26 @@ curl -s -G -H "Authorization: Bearer $JIRA_API_TOKEN" -H "Accept: application/js
 
 ## Update fields
 
-```bash
-source .env
-
-# Update a field (e.g. summary)
-curl -s -X PUT -H "Authorization: Bearer $JIRA_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  "$JIRA_BASE_URL/rest/api/2/issue/KEY-123" \
-  -d '{"fields": {"summary": "New summary"}}'
+```python
+# Update a field (e.g. summary) — uses jira_put() from above
+jira_put("/rest/api/2/issue/KEY-123", {"fields": {"summary": "New summary"}})
 
 # Update components — must use IDs, not names
-curl -s -X PUT -H "Authorization: Bearer $JIRA_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  "$JIRA_BASE_URL/rest/api/2/issue/KEY-123" \
-  -d '{"fields": {"components": [{"id": "<COMPONENT_ID>"}]}}'
+jira_put("/rest/api/2/issue/KEY-123", {"fields": {"components": [{"id": "<COMPONENT_ID>"}]}})
 
 # Add a comment
-curl -s -X POST -H "Authorization: Bearer $JIRA_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  "$JIRA_BASE_URL/rest/api/2/issue/KEY-123/comment" \
-  -d '{"body": "Comment text here."}'
+jira_post("/rest/api/2/issue/KEY-123/comment", {"body": "Comment text here."})
+
+# Create an issue
+new_issue = jira_post("/rest/api/2/issue", {
+    "fields": {
+        "project": {"key": "MYPROJECT"},
+        "summary": "Issue summary",
+        "description": "Issue description.",
+        "issuetype": {"name": "Task"}
+    }
+})
+print(f"Created: {new_issue['key']} — {env['JIRA_BASE_URL']}/browse/{new_issue['key']}")
 ```
 
 ---
@@ -96,23 +131,20 @@ curl -s -X POST -H "Authorization: Bearer $JIRA_API_TOKEN" \
 **Epic Link in JQL:** Requires quotes — `"Epic Link" = KEY-123`, not `Epic Link = KEY-123`.
 
 **Check editable fields before updating:**
-```bash
-curl -s -H "Authorization: Bearer $JIRA_API_TOKEN" \
-  "$JIRA_BASE_URL/rest/api/2/issue/KEY-123/editmeta" \
-  | python3 -m json.tool
+```python
+editmeta = jira_get("/rest/api/2/issue/KEY-123/editmeta")
+print(json.dumps(editmeta, indent=2))
 ```
 
 **Sprint field:** Cannot be set via the standard REST API. Use the Agile API instead:
-```bash
+```python
 # List boards for a project
-curl -s -H "Authorization: Bearer $JIRA_API_TOKEN" \
-  "$JIRA_BASE_URL/rest/agile/1.0/board?projectKeyOrId=MYPROJECT"
+boards = jira_get("/rest/agile/1.0/board?projectKeyOrId=MYPROJECT")
+for b in boards['values']:
+    print(b['id'], b['name'])
 
 # Move issue to sprint
-curl -s -X POST -H "Authorization: Bearer $JIRA_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  "$JIRA_BASE_URL/rest/agile/1.0/sprint/<sprintId>/issue" \
-  -d '{"issues": ["KEY-123"]}'
+jira_post(f"/rest/agile/1.0/sprint/<sprintId>/issue", {"issues": ["KEY-123"]})
 ```
 
 ---

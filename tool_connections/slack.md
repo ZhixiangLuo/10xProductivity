@@ -30,11 +30,18 @@ print(r.get("ok"), r.get("user"), r.get("team"))
 
 ## Auth setup
 
+**Minimum user input:** ask for a Slack message link (right-click any message → Copy link, e.g. `https://acme.slack.com/archives/C.../p...`). That's it.
+
+From the link, extract the workspace URL yourself (`https://acme.slack.com/`), update `SLACK_WORKSPACE_URL` in `.env`, then run:
+
 ```bash
-# Refresh Slack session only (~20s):
 source .venv/bin/activate
 python3 tool_connections/assets/playwright_sso.py --slack-only
+```
 
+The script opens a Chromium window, completes SSO (auto on managed machines, manual login once on personal machines), and writes `SLACK_XOXC` and `SLACK_D_COOKIE` to `.env` automatically. Never ask the user to open DevTools or extract tokens manually.
+
+```bash
 # Refresh all tokens (Grafana + Slack in one pass):
 python3 tool_connections/assets/playwright_sso.py
 ```
@@ -51,6 +58,8 @@ xoxc, d = env["SLACK_XOXC"], env["SLACK_D_COOKIE"]
 ---
 
 ## Slack AI — ask questions, get synthesized answers
+
+**Requires: Slack Business+ or Enterprise+ plan.** Slack AI is not available on Free or Pro plans (as of January 2026). If the workspace is on a lower plan, skip this section — use `search.messages` instead for message search.
 
 **Best for:** natural-language questions ("how do I X?", "what did we decide about Y?", "who owns Z?"). Slack AI searches all channels you have access to and synthesizes a cited answer.
 
