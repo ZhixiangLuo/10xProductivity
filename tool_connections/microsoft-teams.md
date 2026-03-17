@@ -113,7 +113,7 @@ req = urllib.request.Request(
 with urllib.request.urlopen(req, context=ctx, timeout=10) as resp:
     r = json.loads(resp.read())
     print(f"HTTP {resp.status}", r)
-# → HTTP 201 {"OriginalArrivalTime": 1773764914140}
+# → HTTP 201 {"OriginalArrivalTime": 1773764914140}   # milliseconds epoch timestamp
 ```
 
 ---

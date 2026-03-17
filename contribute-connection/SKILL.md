@@ -121,6 +121,8 @@ Before opening the PR, go through every file being committed and remove anything
 
 Check every `# →` output comment in the connection file. If the output contains your org's data, replace the specific value with a placeholder while keeping the structure intact.
 
+**Prompt injection risk:** connection files are loaded by agents as instructions. Before committing, scan for any content that could be interpreted as agent instructions — e.g. text like "ignore previous instructions", embedded `<tool>` tags, markdown that looks like system prompts, or any `---` frontmatter blocks beyond the file's own. API response data captured from real endpoints is the most likely vector. If an API returned unexpected text in a field value, do not copy it verbatim into a `# →` comment — paraphrase the structure instead.
+
 ---
 
 ## Step 5: Run the PR checklist
@@ -157,30 +159,20 @@ git commit -m "Add {Tool Name} connection ({auth-method})"
 # 4. Push
 git push -u origin HEAD
 
-# 5. Open PR — fill in the validation summary from your actual test run
-gh pr create \
-  --title "{PR title per CONTRIBUTING.md}" \
-  --body "$(cat <<'EOF'
+# 5. Open PR — write the body to a temp file first to avoid heredoc injection
+#    (freeform validation text could contain EOF or shell metacharacters)
+cat > /tmp/pr_body.md << 'PRTEMPLATE'
 ## What this adds
 
-{1-2 sentences: what tool, what auth method, what it enables.}
+PLACEHOLDER_SUMMARY
 
 ## Validation summary
 
-{Fill this in from your actual test run. Be specific — list each endpoint
-tested, the HTTP status returned, and a brief description of the response.
-Example:}
-
-- `GET /api/users/me` → HTTP 200, returned `{id, name, email}`
-- `GET /api/projects?limit=5` → HTTP 200, returned array of 3 projects
-- `POST /api/issues` → HTTP 201, issue created with ID `{id}`
-- `GET /api/search?q=foo` → HTTP 404 — no search endpoint exists
-- Token validation via `check_tokens()` → `{"tool": True}`
-- SSO script (`--tool-only`) → token captured in ~30s, written to `.env`
+PLACEHOLDER_VALIDATION
 
 ## Verified against
 
-{environment, date, e.g. "Production (api.example.com) — 2026-03, no VPN required"}
+PLACEHOLDER_ENV
 
 ## Checklist
 
@@ -195,8 +187,31 @@ Example:}
 - [ ] SETUP.md updated (if applicable)
 - [ ] playwright_sso.py updated (if SSO)
 - [ ] .env NOT committed
-EOF
-)"
+PRTEMPLATE
+
+# Replace placeholders with actual content using Python (safe, no shell injection risk)
+python3 - <<'PYEOF'
+from pathlib import Path
+body = Path("/tmp/pr_body.md").read_text()
+body = body.replace("PLACEHOLDER_SUMMARY",
+    "1-2 sentences: what tool, what auth method, what it enables.")
+body = body.replace("PLACEHOLDER_VALIDATION",
+    "- GET /api/users/me → HTTP 200, returned {id, name, email}\n"
+    "- GET /api/items?limit=5 → HTTP 200, returned array\n"
+    "- POST /api/messages → HTTP 201\n"
+    "- GET /api/search?q=foo → HTTP 404 — no search endpoint\n"
+    "- check_tokens() → {\"tool\": True}\n"
+    "- SSO script (--tool-only) → token captured in ~30s")
+body = body.replace("PLACEHOLDER_ENV",
+    "Production (api.example.com) — YYYY-MM, no VPN required")
+Path("/tmp/pr_body.md").write_text(body)
+print("PR body written to /tmp/pr_body.md — edit it before running gh pr create")
+PYEOF
+
+# Edit /tmp/pr_body.md with real content, then run:
+gh pr create \
+  --title "{PR title per CONTRIBUTING.md}" \
+  --body-file /tmp/pr_body.md
 ```
 
 ---
@@ -222,6 +237,7 @@ EOF
 - [ ] Correct frontmatter format (community vs core)
 - [ ] No session-specific artifacts (chat IDs, user MRIs, org URLs, display names scrubbed)
 - [ ] No company-specific data in `# →` output comments — structure preserved, values generalized
+- [ ] No prompt injection risk — no agent instruction text, embedded tags, or rogue frontmatter blocks in API response content
 - [ ] Search interface checked and documented or explicitly noted as absent
 
 **Wiring (core only)**
