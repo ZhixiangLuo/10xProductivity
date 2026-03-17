@@ -19,6 +19,17 @@ Auth: `Authorization: token $GITHUB_TOKEN`
 **Generate token:** GitHub → Settings → Developer settings → Personal access tokens → Generate new token
 Scopes needed: `repo`, `read:org` (add `workflow` if you need to trigger Actions)
 
+## Verify connection
+
+```bash
+source .env
+curl -s -H "Authorization: token $GITHUB_TOKEN" \
+  "$GITHUB_BASE_URL/user" \
+  | jq '{login, name, email}'
+# → {"login": "alice", "name": "Alice Smith", "email": "alice@example.com"}
+# If you see 401: token is wrong. If you see 404: check GITHUB_BASE_URL.
+```
+
 ---
 
 ## Repos

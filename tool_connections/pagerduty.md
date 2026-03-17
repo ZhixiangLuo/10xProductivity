@@ -28,6 +28,18 @@ PAGERDUTY_TOKEN=your-personal-api-key-here
 
 Auth header: `Authorization: Token token=$PAGERDUTY_TOKEN`
 
+## Verify connection
+
+```bash
+source .env
+curl -s "https://api.pagerduty.com/users/me" \
+  -H "Authorization: Token token=$PAGERDUTY_TOKEN" \
+  -H "Accept: application/vnd.pagerduty+json;version=2" \
+  | jq '{name: .user.name, email: .user.email, role: .user.role}'
+# → {"name": "Alice Smith", "email": "alice@example.com", "role": "limited_user"}
+# If you see 401: token is wrong or expired — generate a new one in PagerDuty.
+```
+
 ---
 
 ## Quick-reference snippets

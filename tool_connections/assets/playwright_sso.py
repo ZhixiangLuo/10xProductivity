@@ -439,6 +439,23 @@ def main():
     print(f"  .env: {args.env_file}")
     print()
 
+    # Check that required base URLs are configured before opening any browser
+    issues = []
+    if not args.slack_only and not args.gdrive_only:
+        if "yourcompany" in GRAFANA_BASE_URL or GRAFANA_BASE_URL == "https://grafana.yourcompany.com":
+            issues.append(f"  GRAFANA_BASE_URL is not set (currently: {GRAFANA_BASE_URL})\n"
+                          f"  → Add GRAFANA_BASE_URL=https://grafana.yourcompany.com to .env first")
+    if not args.grafana_only and not args.gdrive_only:
+        if "yourcompany" in SLACK_WORKSPACE_URL or SLACK_WORKSPACE_URL == "https://yourcompany.slack.com/":
+            issues.append(f"  SLACK_WORKSPACE_URL is not set (currently: {SLACK_WORKSPACE_URL})\n"
+                          f"  → Add SLACK_WORKSPACE_URL=https://yourcompany.slack.com/ to .env first")
+    if issues:
+        print("⚠ Configuration required before running SSO:\n")
+        for issue in issues:
+            print(issue)
+        print("\nEdit .env, then re-run this script.")
+        sys.exit(1)
+
     # --- Slack-only ---
     if args.slack_only:
         if not args.force:

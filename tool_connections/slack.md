@@ -11,6 +11,23 @@ Env: `SLACK_XOXC`, `SLACK_D_COOKIE` (~8h — refresh via `assets/playwright_sso.
 
 ---
 
+## Verify connection
+
+```python
+# Always use Python to load .env — bash truncates long xoxc tokens silently
+from pathlib import Path
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+import urllib.request, json, ssl
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+req = urllib.request.Request("https://slack.com/api/auth.test",
+    headers={"Authorization": f"Bearer {env['SLACK_XOXC']}", "Cookie": f"d={env['SLACK_D_COOKIE']}"})
+r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+print(r.get("ok"), r.get("user"), r.get("team"))
+# → True alice your-workspace
+# If ok=False: session expired — run playwright_sso.py --slack-only to refresh.
+```
+
 ## Auth setup
 
 ```bash

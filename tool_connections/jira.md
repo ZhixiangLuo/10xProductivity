@@ -19,6 +19,17 @@ Auth: `Authorization: Bearer $JIRA_API_TOKEN`
 
 When mentioning issues, link them: `[KEY-123]($JIRA_BASE_URL/browse/KEY-123)`
 
+## Verify connection
+
+```bash
+source .env
+curl -s -H "Authorization: Bearer $JIRA_API_TOKEN" \
+  "$JIRA_BASE_URL/rest/api/2/myself" \
+  | jq '{displayName, emailAddress, accountId}'
+# → {"displayName": "Alice Smith", "emailAddress": "alice@example.com", ...}
+# If you see 401: token is wrong. If you see connection refused: check JIRA_BASE_URL.
+```
+
 ---
 
 ## Fetch and search

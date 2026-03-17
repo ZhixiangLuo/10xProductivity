@@ -16,6 +16,20 @@ Auth file: `~/.browser_automation/gdrive_auth.json` (Playwright storage_state sn
 Refresh: `python3 tool_connections/assets/playwright_sso.py --gdrive-only`
 Asset: `assets/google_drive.py` — importable `GDrive` class; use instead of writing boilerplate
 
+## Verify connection
+
+```python
+import sys; sys.path.insert(0, "tool_connections/assets")
+from google_drive import GDrive
+with GDrive() as drive:
+    files = drive.list_my_drive()
+    print(f"{len(files)} files in My Drive")
+    for f in files[:3]:
+        print(f"  [{f['type']}] {f['name']}")
+# Should list 3 files from your Drive
+# If you see an auth error: re-run playwright_sso.py --gdrive-only to refresh the session.
+```
+
 ---
 
 ## Quick start (use the asset — no boilerplate)

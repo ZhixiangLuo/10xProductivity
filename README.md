@@ -61,34 +61,23 @@ add-new-connection/
 
 ## Quick start
 
-**1. Clone and set up Python env**
 ```bash
 git clone https://github.com/yourusername/10xProductivity.git
 cd 10xProductivity
 python3 -m venv .venv && source .venv/bin/activate
 pip install playwright && playwright install chromium
-```
-
-**2. Copy env.sample and fill in your credentials**
-```bash
 cp tool_connections/env.sample .env
-# Edit .env — add your personal API tokens
 ```
 
-**3. For SSO-based tools (Grafana, Slack, Google Drive), run the session refresher**
-```bash
-python3 tool_connections/assets/playwright_sso.py
-```
-A browser window opens briefly, SSO completes automatically on a managed machine, and tokens are written to `.env`.
+Then point your agent at the setup guide:
 
-**4. Point your agent at the skill files**
-
-In Cursor, Claude Code, Codex, or any agent runtime — reference the relevant skill file:
 ```
-Read tool_connections/SKILL.md to understand which tool to use, then load the specific tool file for the full connection details.
+Read SETUP.md and set up my tool connections.
 ```
 
-Your agent now has authenticated access to every tool in the library.
+Your agent will ask which tools you use, guide you to get each credential, run SSO where needed, and verify each connection works. Tools are set up in priority order — knowledge tools first (Confluence, Slack, Jira, GitHub), then observability, then file access.
+
+**Manual setup:** edit `.env` with your credentials, then see `tool_connections/SKILL.md` for the full tool reference.
 
 ---
 

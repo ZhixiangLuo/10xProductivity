@@ -18,6 +18,17 @@ Auth: `Authorization: Bearer $CONFLUENCE_TOKEN`
 
 **Generate token:** Confluence → Profile → Settings → Personal Access Tokens → Create token
 
+## Verify connection
+
+```bash
+source .env
+curl -s -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
+  "$CONFLUENCE_BASE_URL/rest/api/content/search?cql=type=page&limit=1" \
+  | jq '{total: .size, first: .results[0].title}'
+# → {"total": 1, "first": "Some Page Title"}
+# If you see 401: token is wrong. If you see connection refused: check CONFLUENCE_BASE_URL.
+```
+
 ---
 
 ## Search pages

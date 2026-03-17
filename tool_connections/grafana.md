@@ -17,6 +17,18 @@ Auth: session cookie captured via SSO — refresh with the shared script (see be
 
 **The primary use case is extracting PromQL:** Grafana dashboard JSON contains all panel queries with Grafana variable placeholders (e.g. `${env}`). Substitute variables to get runnable PromQL, then execute via your Prometheus-compatible endpoint.
 
+## Verify connection
+
+```bash
+source .env
+curl -s "$GRAFANA_BASE_URL/api/user" \
+  -H "Cookie: grafana_session=$GRAFANA_SESSION" \
+  | jq '{login, email, name}'
+# → {"login": "alice", "email": "alice@example.com", "name": "Alice Smith"}
+# If you see 401/redirect: session expired — run playwright_sso.py to refresh.
+# If you see connection refused: check GRAFANA_BASE_URL in .env.
+```
+
 ---
 
 ## Refresh session
