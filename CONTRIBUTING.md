@@ -8,6 +8,8 @@ Every snippet in a connection file must be code you actually executed and saw su
 
 This is the single most important quality gate. A connection file with one working snippet is better than five unverified ones.
 
+---
+
 ## Two contribution paths
 
 ### Path 1: Community contribution (lower bar — start here)
@@ -35,9 +37,11 @@ Add or improve a connection in `tool_connections/`. Core files are maintained, k
 
 5. **Wire into the index:** Update `tool_connections/SKILL.md` in all 3 places (frontmatter, table, inline section).
 
-6. **Open a PR** with the new file and the index update.
+6. **Open a PR** — see PR process below.
 
 > Community files can be promoted to core. If your `community/` contribution is solid, open a PR to move it to `tool_connections/` and wire it into the index.
+
+---
 
 ## What makes a good connection file
 
@@ -54,6 +58,8 @@ Add or improve a connection in `tool_connections/`. Core files are maintained, k
 - Stale content that hasn't been re-validated after major API changes
 - Session-specific IDs or one-time URLs that won't work for the next user
 
+---
+
 ## SSO-based tools
 
 If the tool uses SSO rather than long-lived API keys:
@@ -62,6 +68,53 @@ If the tool uses SSO rather than long-lived API keys:
 2. Add a `--{tool}-only` CLI flag.
 3. Add a session validity check (use `_http_get_no_redirect` for redirect-based expiry).
 4. Document the refresh command in the tool's `.md` file.
+
+---
+
+## PR process
+
+### Branch naming
+
+```
+connection/{tool-name}           # new connection (community or core)
+connection/{tool-name}-promote   # promoting community → core
+fix/{tool-name}                  # fixing a broken snippet or stale endpoint
+```
+
+### Opening the PR
+
+```bash
+git checkout -b connection/{tool-name}
+git add community/{tool-name}/ tool_connections/ CONTRIBUTING.md   # whatever changed
+git commit -m "Add {Tool Name} connection ({auth-method})"
+gh pr create \
+  --title "Add {Tool Name} connection ({auth-method})" \
+  --body "$(cat <<'EOF'
+## What this adds
+
+{1-2 sentences: what tool, what auth method, what it enables.}
+
+## Verified against
+
+{environment, date, e.g. "Production (teams.live.com) — 2026-03, personal Microsoft account, no VPN"}
+
+## Checklist
+EOF
+)"
+```
+
+Then append the appropriate checklist from below to the PR body.
+
+### PR title format
+
+| Contribution type | Title format |
+|-------------------|--------------|
+| New community file | `Add {Tool} connection ({auth-method})` |
+| Promote to core | `Promote {Tool} connection to core` |
+| Fix existing | `Fix {Tool} connection: {what broke}` |
+| New SSO tool | `Add {Tool} SSO connection + playwright_sso.py support` |
+
+---
 
 ## PR checklist
 
@@ -73,11 +126,19 @@ If the tool uses SSO rather than long-lived API keys:
 
 **Core contribution (`tool_connections/`):**
 - [ ] New connection file at `tool_connections/{tool-name}.md`
+- [ ] Frontmatter uses core format (`name:`, `description:`)
 - [ ] Every snippet was actually run and includes real output in comments
 - [ ] Auth flow documented from scratch
-- [ ] Index updated (`tool_connections/SKILL.md`) in all 3 places
-- [ ] `env.sample` updated with new credential vars
+- [ ] Search/query interface checked — documented if found, explicitly noted if absent
+- [ ] Network requirement stated (VPN or confirmed not needed)
+- [ ] Index updated (`tool_connections/SKILL.md`) in all 3 places (frontmatter description, table row, inline section)
+- [ ] `.env` updated with new credential vars and refresh notes
 
-## Questions?
+**Promotion (community → core):**
+- [ ] All core checklist items above
+- [ ] Community file removed (or kept if the auth variant differs from core)
+- [ ] `SETUP.md` updated if the tool was listed as "coming soon"
 
-Open an issue. Describe the tool you're trying to connect and what you've already tried.
+**SSO tool (additional):**
+- [ ] `playwright_sso.py` updated: session function, `--{tool}-only` flag, `check_tokens()`, `load_tokens_from_env()`, `update_env_file()`
+- [ ] `SETUP.md` "Minimum user input" table updated

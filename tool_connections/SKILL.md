@@ -1,6 +1,6 @@
 ---
 name: tool_connections
-description: Index of all tool connection playbooks. Load this first to find the right tool, then load the relevant file for full connection details. Covers Confluence, Slack, Jira, GitHub, Grafana, PagerDuty, Google Drive, and more.
+description: Index of all tool connection playbooks. Load this first to find the right tool, then load the relevant file for full connection details. Covers Confluence, Slack, Jira, GitHub, Grafana, PagerDuty, Google Drive, Microsoft Teams Free, and more.
 ---
 
 # Tool connections
@@ -37,7 +37,7 @@ Tools are ordered by **information value** — start with Tier 1. Once Confluenc
 | **Slack** | Team messaging — search + AI | `slack.md` | Decisions, context, who to ask; Slack AI synthesizes answers from all Slack history |
 | **Jira** | Issue tracker | `jira.md` | Fetching/creating/updating tickets, JQL search, sprint management |
 | **GitHub** | Git hosting + code search | `github.md` | Browsing repos, reading READMEs/API docs, searching code, PRs, issues |
-| **Microsoft Teams** | Team messaging (Microsoft) | *(coming soon)* | Decisions and context for Teams-based organizations |
+| **Microsoft Teams Free** | Personal Teams messaging (teams.live.com) | `microsoft-teams.md` | Chats and decisions for personal Microsoft account Teams users |
 | **Outlook / M365** | Email, calendar, OneDrive, SharePoint | *(coming soon)* | Reading email/calendar, accessing SharePoint/OneDrive docs, Excel/Word files |
 
 ### Tier 2 — Observability & Operations
@@ -114,6 +114,13 @@ Env: `PAGERDUTY_TOKEN` (personal REST API key — long-lived)
 
 **Use when:** listing or searching Google Drive files, reading a Google Doc/Sheet/Slide's content, or exporting files when other search tools don't surface the raw content.
 Auth: `~/.browser_automation/gdrive_auth.json` (Playwright storage_state — refresh with `playwright_sso.py --gdrive-only`)
+
+---
+
+## Microsoft Teams Free → load `microsoft-teams.md`
+
+**Use when:** reading or sending messages in personal Microsoft Teams chats, listing chats for a personal Microsoft account (teams.live.com), or looking up conversation history in Teams Free.
+Env: `TEAMS_SKYPETOKEN`, `TEAMS_SESSION_ID` (~24h — refresh with `assets/playwright_sso.py --teams-only`)
 
 ---
 
