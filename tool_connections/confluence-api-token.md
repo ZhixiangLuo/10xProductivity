@@ -1,6 +1,10 @@
 ---
 name: confluence
+auth: api-token
 description: Confluence wiki — search pages, fetch content, browse spaces. Use when looking up internal documentation, runbooks, architecture pages, procedures, or any content stored in Confluence.
+env_vars:
+  - CONFLUENCE_TOKEN
+  - CONFLUENCE_BASE_URL
 ---
 
 # Confluence

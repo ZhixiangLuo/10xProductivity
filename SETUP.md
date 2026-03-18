@@ -26,6 +26,7 @@ This file is for your agent. Point your agent here first:
 | **Grafana** | "Share your Grafana URL" | Run `playwright_sso.py --grafana-only` to capture session automatically |
 | **PagerDuty** | "Paste your PagerDuty API key (My Profile → User Settings → API Access)" | Base URL is always `https://api.pagerduty.com` |
 | **Microsoft Teams Free** | Nothing — just run the script | Run `playwright_sso.py --teams-only`; browser opens, user logs in once with Microsoft personal account |
+| **Outlook / Microsoft 365** | Nothing — just run the script | Run `playwright_sso.py --outlook-only`; browser opens, Azure AD SSO auto-completes on managed machines |
 | **Google Drive** | Nothing — just run the script | Run `playwright_sso.py --gdrive-only`; browser opens, user logs in once |
 
 ---
@@ -262,12 +263,51 @@ print(f"{len(chats)} chats found")
 # If 401/403: token expired — run playwright_sso.py --teams-only to refresh
 ```
 
-Full connection details: `tool_connections/microsoft-teams.md`
+Full connection details: `tool_connections/microsoft-teams-sso-session.md`
 
 ---
 
-#### 6. Outlook / Microsoft 365 *(if used — placeholder)*
-> **Coming soon.** Covers Outlook (email/calendar), OneDrive, SharePoint, Word, Excel via Microsoft Graph API. Contribution welcome — see `add-new-connection/SKILL.md`.
+#### 6. Outlook / Microsoft 365 *(work account)*
+
+Email, calendar, contacts — your scheduled meetings, unread mail, and colleague lookup.
+
+> **Work accounts only** (Azure AD / Microsoft 365). Personal Outlook uses a different flow — see Microsoft Teams Free above.
+
+Auth uses your existing browser session (two Bearer tokens captured from network requests). No API key page exists — run the SSO script:
+
+```bash
+source .venv/bin/activate
+python3 tool_connections/assets/playwright_sso.py --outlook-only
+```
+
+The script opens a Chromium window and navigates to `outlook.office.com`. On a managed machine (Workday, Intune, company MDM), Azure AD SSO auto-completes in ~30s. On unmanaged machines, complete the Microsoft 365 login once through the browser.
+
+Two tokens are captured:
+- `GRAPH_ACCESS_TOKEN` — for Microsoft Graph (`/me`, `/me/people`)
+- `OWA_ACCESS_TOKEN` — for Outlook REST API v2.0 (mail, calendar, contacts)
+
+**Verify:**
+```python
+from pathlib import Path
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+import urllib.request, json, ssl
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+
+req = urllib.request.Request("https://graph.microsoft.com/v1.0/me",
+    headers={"Authorization": f"Bearer {env['GRAPH_ACCESS_TOKEN']}"})
+r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+print(r["displayName"], r["mail"])
+# Should print your name and work email
+
+req = urllib.request.Request("https://outlook.office.com/api/v2.0/me/MailFolders/Inbox?$select=DisplayName,UnreadItemCount",
+    headers={"Authorization": f"Bearer {env['OWA_ACCESS_TOKEN']}"})
+r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+print(r["DisplayName"], r["UnreadItemCount"])
+# Should print: Inbox  <count>
+```
+
+Full connection details: `tool_connections/outlook-sso-session.md`
 
 ---
 
@@ -389,9 +429,103 @@ with GDrive() as drive:
 
 ---
 
-## Step 3: Tell the user what's ready
+## Step 3: Generate verified_connections.md and tell the user what's ready
 
-After all verifications pass, summarize:
+**Only tools whose Verify command you actually ran and confirmed with real output belong here.** Do not infer from `.env` — credentials being present does not mean the connection works. A stale session token, wrong base URL, or expired API key will all pass an env-var check and fail at runtime.
+
+For each tool set up in Step 2, you ran a Verify snippet and saw expected output (a username, page title, etc.). Collect only those tool names into `VERIFIED_NAMES` below, then run the script to generate `verified_connections.md`:
+
+```python
+import re, os
+from pathlib import Path
+
+# EDIT THIS LIST: only tools whose Verify command you ran and confirmed
+VERIFIED_NAMES = [
+    # "confluence",
+    # "slack",
+    # "jira",
+    # "github",
+    # "grafana",
+    # "pagerduty",
+    # "google-drive",
+    # "microsoft-teams",
+]
+
+# Determine which tools are verified
+verified_names = VERIFIED_NAMES
+
+# Build verified_connections.md by filtering the example to verified tools only
+example = Path("verified_connections.example.md").read_text()
+chunks = re.split(r"\n---\n", example)
+
+def tool_slug(name):
+    return name.lower().replace(" ", "-").replace("/", "-")
+
+def is_verified_section(chunk):
+    m = re.match(r"^##\s+(\S+)", chunk.strip())
+    if not m:
+        return False
+    slug = tool_slug(m.group(1))
+    return any(v in slug or slug in v for v in verified_names)
+
+def filter_table_rows(text):
+    lines = text.splitlines()
+    out = []
+    in_table = False
+    for line in lines:
+        if "| Tool" in line or line.startswith("|---"):
+            in_table = True
+            out.append(line)
+        elif in_table and line.startswith("|"):
+            tool_m = re.search(r"\*\*(.+?)\*\*", line)
+            if tool_m:
+                slug = tool_slug(tool_m.group(1))
+                if any(v in slug or slug in v for v in verified_names):
+                    out.append(line)
+        else:
+            in_table = False
+            out.append(line)
+    return "\n".join(out)
+
+header_chunks, section_chunks = [], []
+for chunk in chunks:
+    (section_chunks if re.match(r"^##\s+\w", chunk.strip()) else header_chunks).append(chunk)
+
+filtered_header = "\n---\n".join(
+    filter_table_rows(c) if "| Tool" in c else c for c in header_chunks
+)
+verified_sections = [c for c in section_chunks if is_verified_section(c)]
+
+output = filtered_header
+if verified_sections:
+    output += "\n---\n" + "\n---\n".join(verified_sections)
+
+tool_list = ", ".join(verified_names) if verified_names else "none"
+output = re.sub(
+    r"(description: ).*?(\n)",
+    lambda m_: m_.group(1) + f"Your active tool connections — verified and ready. Covers: {tool_list}. Load at session start." + m_.group(2),
+    output, count=1
+)
+output = output.replace(
+    "**This is the example file.** Do not load this as your capability index.\n\n"
+    "- **Your active connections:** load `verified_connections.md` (generated by setup, gitignored).\n"
+    "- **To set up connections:** *\"Read SETUP.md and set up my tool connections.\"*\n"
+    "- **To refresh short-lived tokens (~8h):** "
+    "`source .venv/bin/activate && python3 tool_connections/assets/playwright_sso.py`",
+    "**Keep this file loaded for the entire session.** These tools are verified and ready — "
+    "use them proactively in any task across any codebase.\n\n"
+    "Individual tool files have full connection details — load them on demand.\n\n"
+    "**Refresh short-lived tokens (~8h):**\n"
+    "```bash\n"
+    "source .venv/bin/activate && python3 tool_connections/assets/playwright_sso.py\n"
+    "```"
+)
+
+Path("verified_connections.md").write_text(output)
+print(f"verified_connections.md written. Active tools: {verified_names}")
+```
+
+Then summarize for the user:
 
 ```
 ✓ Confluence  — connected (verified: returned page titles)
@@ -403,20 +537,21 @@ After all verifications pass, summarize:
 ✗ Google Drive— skipped (not used)
 ```
 
-**Now read `tool_connections/SKILL.md` immediately.** This is required — not optional. It is the capability index: it tells you what tools are available and when to use each one.
+**Now load `verified_connections.md` immediately.** This is required — not optional. It is your capability index for this session: it lists exactly the tools that are verified and ready to use.
 
-These are **universal capabilities** — not scoped to this repo. From this point on, in any task across any project, you should proactively reach for these tools whenever they're relevant: look up a Jira ticket, search Slack for context, check who's on call, pull a Confluence runbook. You don't need to be asked. The credentials are set up; the tools are ready.
+These are **universal capabilities** — not scoped to this repo. From this point on, in any task across any codebase, proactively reach for these tools whenever they're relevant: look up a Jira ticket, search Slack for context, check who's on call, pull a Confluence runbook. You don't need to be asked. The credentials are set up; the tools are ready.
 
-Individual tool files (`jira.md`, `slack.md`, etc.) live in this repo and are loaded on demand when you need full connection details for a specific tool.
+Individual tool files (`jira-api-token.md`, `slack-sso-session.md`, etc.) live in this repo and are loaded on demand when you need full connection details for a specific tool.
 
 ---
 
 ## Refreshing short-lived tokens
 
-Slack and Grafana sessions expire in ~8h. When a tool stops working:
+Slack and Grafana sessions expire in ~8h. Outlook / Microsoft 365 tokens expire in ~1h. When a tool stops working:
 
 - **Slack:** run `python3 tool_connections/assets/playwright_sso.py --slack-only` (opens browser, completes login, writes tokens automatically).
 - **Grafana:** run `python3 tool_connections/assets/playwright_sso.py --grafana-only`.
+- **Outlook / M365:** run `python3 tool_connections/assets/playwright_sso.py --outlook-only` (Azure AD SSO, ~30s on managed machines).
 - **Google Drive:** sessions last days to weeks. When expired, re-run `python3 tool_connections/assets/playwright_sso.py --gdrive-only`.
 
 ---

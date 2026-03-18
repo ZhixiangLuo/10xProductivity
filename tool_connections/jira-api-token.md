@@ -1,6 +1,11 @@
 ---
 name: jira
+auth: api-token
 description: All Jira operations — fetch issues, JQL search, update fields, write descriptions/comments, REST API quirks (components, editmeta, Agile/sprint API). Use when fetching a Jira issue, listing tickets, updating fields, writing Jira comments or descriptions, or using the Jira REST API.
+env_vars:
+  - JIRA_EMAIL
+  - JIRA_API_TOKEN
+  - JIRA_BASE_URL
 ---
 
 # Jira

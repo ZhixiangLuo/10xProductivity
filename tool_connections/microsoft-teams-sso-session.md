@@ -1,6 +1,11 @@
 ---
 name: microsoft-teams
+auth: sso-session
 description: Microsoft Teams Free (teams.live.com) — read and send messages in personal Teams chats via private SSO session. Use when reading chat history, sending messages, or listing chats for a personal Microsoft account.
+env_vars:
+  - TEAMS_SKYPETOKEN
+  - TEAMS_SESSION_ID
+  - TEAMS_BASE_URL
 ---
 
 # Microsoft Teams Free
