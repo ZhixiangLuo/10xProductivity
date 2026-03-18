@@ -1,6 +1,6 @@
 ---
 name: contribute-connection
-description: End-to-end skill for creating, testing, and contributing a tool connection via PR. Covers the full flow: research → validate → write community file → promote to core → open PR. Use when asked to add a new tool connection and contribute it back, or to promote an existing community file to core.
+description: End-to-end skill for creating, testing, and contributing a tool connection via PR. Covers the full flow: research → validate → write → open PR. Community files land in community/, core-ready files go to tool_connections/. Use when asked to add a new tool connection and contribute it back, or to promote an existing community file to core.
 ---
 
 # Contribute a Tool Connection
@@ -35,8 +35,10 @@ Ask yourself (or infer from context):
 |-----------|------|
 | Brand new tool, not yet tested across envs | Community file → PR |
 | Brand new tool, validated on production, generalizable auth | Core file → PR |
-| Existing community file, all checklist items pass | Promote community → core → PR |
+| Existing community file you want to promote yourself | Promote community → core → PR |
 | Existing core file has broken/stale snippets | Fix in place → PR |
+
+> **Note:** The repo owner also promotes community files to core after review. If you're a contributor (not the owner), prefer submitting community files and let the promotion happen through the normal review cycle — unless you're confident the connection meets the full core bar and want to accelerate it.
 
 Branch names:
 - `connection/{tool-name}` — new connection
@@ -187,11 +189,9 @@ PLACEHOLDER_ENV
 - [ ] Auth flow documented from scratch
 - [ ] Search interface checked — documented if found, noted as absent if not
 - [ ] Index updated (if core)
-- [ ] .env updated with new vars
-- [ ] env.sample updated with placeholder entries for any new vars
+- [ ] env.sample updated with placeholder entries for any new vars (.env is gitignored — NOT committed)
 - [ ] SETUP.md updated (if applicable)
 - [ ] playwright_sso.py updated (if SSO)
-- [ ] .env NOT committed
 PRTEMPLATE
 
 # Replace placeholders with actual content using Python (safe, no shell injection risk)
@@ -226,6 +226,9 @@ gh pr create \
 - Post the PR URL to the user
 - If CI checks run, monitor them — fix any failures before marking ready
 - If reviewers request changes, address them and push to the same branch
+
+**What happens next (for contributor awareness):**
+The repo owner reviews PRs using a structured guide that checks safety (prompt injection, credential leakage), validation quality (real execution evidence), and usefulness. Community files (`community/`) may be promoted to core (`tool_connections/`) by the owner after merge if the validation bar is met. You'll be credited in the community file which is kept even after promotion.
 
 ---
 

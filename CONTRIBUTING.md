@@ -95,14 +95,23 @@ fix/{tool-name}                  # fixing a broken snippet or stale endpoint
 - [ ] Search/query interface checked — documented if found, explicitly noted if absent
 - [ ] Network requirement stated (VPN or confirmed not needed)
 - [ ] `verified_connections.example.md` updated in all 3 places (table row, inline section, connection file frontmatter)
-- [ ] `.env` updated with new credential vars and refresh notes
-- [ ] `env.sample` updated with placeholder entries for any new vars
+- [ ] `env.sample` updated with placeholder entries for any new vars (`.env` is gitignored — do NOT commit it)
 
 **Promotion (community → core):**
 - [ ] All core checklist items above
-- [ ] Community file removed (or kept if the auth variant differs from core)
+- [ ] Community file kept (it stays as a verified record; do not delete)
 - [ ] `SETUP.md` updated if the tool was listed as "coming soon"
 
 **SSO tool (additional):**
 - [ ] `playwright_sso.py` updated: session function, `--{tool}-only` flag, `check_tokens()`, `load_tokens_from_env()`, `update_env_file()`
 - [ ] `SETUP.md` "Minimum user input" table updated
+
+---
+
+## Reviewer / owner
+
+Incoming PRs are reviewed using `scripts/review-community-pr.md` (gitignored, owner's local copy). That guide covers:
+- Safety (prompt injection, credential leakage, malicious code)
+- Validation quality (real execution evidence, auth completeness)
+- Usefulness
+- Core promotion assessment and post-merge promotion flow
