@@ -1,6 +1,6 @@
 ---
 name: add-new-connection
-description: Research, validate, and wire in a new tool connection. Use when you need API access to a tool not yet in tool_connections, or when asked to add a new tool connection. Produces a verified tool_connections/{tool}.md and updates the index.
+description: Research, validate, and write a new tool connection file. Use when you need API access to a tool not yet in tool_connections, or when asked to add a new tool connection. Produces a verified connection file — community/{tool}/ for new/unvalidated tools, or tool_connections/{tool}.md if fully validated across environments.
 ---
 
 # Add a New Tool Connection
@@ -21,9 +21,11 @@ Turn "I've heard of this tool" into a working, verified connection file that any
 
 ## When to use
 
-- You need API access to a tool and no connection file exists
+- You need API access to a tool for your own use and no connection file exists
 - An existing connection file has unverified snippets or missing auth details
 - Someone asks "can the agent access X?"
+
+**If you want to contribute the result back as a PR**, load `contribute-connection/SKILL.md` instead — it wraps this skill and adds the full PR flow on top.
 
 ---
 

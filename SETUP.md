@@ -233,7 +233,7 @@ print(r.get('login'), r.get('name'))
 
 #### 5. Microsoft Teams Free *(teams.live.com)*
 
-> **Note:** This covers **Teams Free** (personal/consumer) at `https://teams.live.com/v2/`. Enterprise Teams (work/school) via Microsoft Graph API is a separate connection not yet in core — contribution welcome via `add-new-connection/SKILL.md`.
+> **Note:** This covers **Teams Free** (personal/consumer) at `https://teams.live.com/v2/`. Enterprise Teams (work/school) via Microsoft Graph API is a separate connection not yet in core — contribution welcome via `contribute-connection/SKILL.md`.
 
 Auth uses your live browser session (Skype-derived `x-skypetoken`) — no API token page exists. Run the SSO script and log in with your Microsoft personal account:
 
@@ -366,17 +366,17 @@ print(r['user']['name'], r['user']['email'])
 ---
 
 #### 9. OpsGenie *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `add-new-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
 
 ---
 
 #### 10. Datadog *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `add-new-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
 
 ---
 
 #### 11. Splunk *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `add-new-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
 
 ---
 
@@ -409,23 +409,23 @@ with GDrive() as drive:
 ---
 
 #### 13. Notion *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `add-new-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
 
 ---
 
 ### Tier 4 — Issue Tracking & Support Alternatives
 
 #### 14. Linear *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `add-new-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
 
 #### 15. Zendesk *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `add-new-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
 
 #### 16. ServiceNow *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `add-new-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
 
 #### 17. Jenkins / GitHub Actions *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `add-new-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
 
 ---
 
@@ -558,4 +558,10 @@ Slack and Grafana sessions expire in ~8h. Outlook / Microsoft 365 tokens expire 
 
 ## If something broke during setup
 
-If you had to iterate more than once on a tool — wrong token, failed script, unexpected login flow — update the relevant skill before finishing. See `add-new-connection/SKILL.md` Step 6. The fix that unblocked you will unblock the next person too.
+If you had to iterate more than once on a tool — wrong token, failed script, unexpected login flow — update the relevant file before finishing. The fix that unblocked you will unblock the next person too.
+
+- Fix in `SETUP.md` (this file) if the setup instructions themselves were wrong or incomplete
+- Fix in `tool_connections/{tool}.md` if a snippet was wrong or an endpoint changed
+- Fix in `tool_connections/assets/playwright_sso.py` if the SSO script failed
+
+See `add-new-connection/SKILL.md` Step 6 for a structured checklist on hardening before closing.

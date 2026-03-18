@@ -37,6 +37,8 @@ If multiple files exist for the same tool, prefer the one whose auth method matc
 
 ## Contributing
 
-See `CONTRIBUTING.md` — specifically the **Community contributions** section. Use the template at `community/TEMPLATE.md`.
+**Agent:** load `contribute-connection/SKILL.md` — it walks the full flow: research → validate → write → PR.
 
-The bar for community files is lower than core: one working verified snippet is enough to submit. If a community file gets adopted into `tool_connections/`, the contributor will be credited.
+For manual guidance see `CONTRIBUTING.md` — specifically the **Community contributions** section. Use the template at `community/TEMPLATE.md`.
+
+The bar for community files is lower than core: one working verified snippet is enough to submit. If a community file gets promoted into `tool_connections/` by the owner after review, the contributor is credited and the original community file is kept as a record.
