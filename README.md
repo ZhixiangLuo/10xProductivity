@@ -50,8 +50,7 @@ tool_connections/             ← core, validated connection files
     playwright_sso.py         ← SSO session automation (Okta, Google, Microsoft)
 
 community/                    ← community-contributed connections (lower validation bar)
-  {tool-name}/
-    {auth-method}-{author}.md ← e.g. community/linear/api-token-alice.md
+  {tool-name}-{auth-method}.md ← e.g. community/jenkins-api-token.md (mirrors core naming)
 
 add-new-connection/
   SKILL.md                    ← playbook: research, validate, and write a new connection file

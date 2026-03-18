@@ -6,26 +6,20 @@ Tool connections contributed by the community. These are not part of the verifie
 
 ```
 community/
-  {tool-name}/
-    {auth-method}.md
+  {tool-name}-{auth-method}.md
 ```
 
-**Filename convention:** `{auth-method}.md`
-- `auth-method` — how the tool authenticates: `api-token`, `oauth`, `sso`, `ad-sso`, `session-cookie`, `ldap`, etc.
+**Filename convention:** `{tool-name}-{auth-method}.md` — mirrors core exactly (`tool_connections/jenkins-api-token.md` ↔ `community/jenkins-api-token.md`).
 - The `author` field in frontmatter captures attribution — no need to repeat it in the filename.
-- If two contributors submit different files for the **same auth method**, append a short disambiguator: `api-token-alice.md`, `api-token-bob.md`. This is the exception, not the rule.
+- If two contributors submit different files for the **same tool + auth method**, append a short disambiguator: `datadog-api-key-alice.md`. This is the exception, not the rule.
 
 **Examples:**
 ```
 community/
-  linear/
-    api-token.md
-    oauth.md
-  datadog/
-    api-key.md
-    ad-sso.md
-  notion/
-    api-token.md
+  linear-api-token.md
+  datadog-api-key.md
+  datadog-ad-sso.md
+  notion-api-token.md
 ```
 
 ## For agents: how to use

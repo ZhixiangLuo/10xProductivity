@@ -143,7 +143,7 @@ Note both successes **and** permission errors — both are useful for the next u
 
 **Where to put it:**
 
-- **New tool or auth variant, not yet validated across environments** → `community/{tool-name}/{auth-method}-{your-github-username}.md`
+- **New tool or auth variant, not yet validated across environments** → `community/{tool-name}-{auth-method}.md` (e.g. `jenkins-api-token.md`)
   Use the template at `community/TEMPLATE.md`. Frontmatter required. No index update needed.
 - **Well-validated, ready for core** → `tool_connections/{tool-name}-{auth}.md`
   Follow the format below and wire into the index (Step 5).

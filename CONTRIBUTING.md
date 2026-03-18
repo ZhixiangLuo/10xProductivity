@@ -30,7 +30,7 @@ Add a new tool or auth variant to `community/`. Right path if you have a working
 
 **Agent:** load `contribute-connection/SKILL.md` — it runs the full flow.
 
-Filename convention: `community/{tool-name}/{auth-method}.md` (e.g. `api-token.md`, `ad-sso.md`). Attribution is captured in the `author` frontmatter field — no need to repeat it in the filename. If two contributors submit the same auth method for the same tool, append a short disambiguator (`api-token-alice.md`). No index update needed.
+Filename convention: `community/{tool-name}-{auth-method}.md` (e.g. `jenkins-api-token.md`, `datadog-ad-sso.md`) — mirrors core naming exactly. Attribution is captured in the `author` frontmatter field. If two contributors submit the same tool + auth method, append a short disambiguator (`datadog-api-key-alice.md`). No index update needed.
 
 ### Path 2: Core contribution (higher bar)
 
@@ -94,7 +94,7 @@ fix/{tool-name}                  # fixing a broken snippet or stale endpoint
 ## PR checklist
 
 **Community contribution (`community/`):**
-- [ ] File placed at `community/{tool-name}/{auth-method}.md` (add disambiguator suffix only if another file with the same auth method already exists)
+- [ ] File placed at `community/{tool-name}-{auth-method}.md` (add disambiguator suffix only if a file for that tool + auth method already exists)
 - [ ] Frontmatter filled in (`tool`, `auth`, `author`, `verified`, `env_vars`)
 - [ ] Every snippet was actually run and includes real output in comments
 - [ ] Auth flow documented from scratch

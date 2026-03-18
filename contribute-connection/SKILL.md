@@ -62,7 +62,7 @@ If the connection exists in `community/` and you're promoting it:
 
 ### Community file format
 
-Location: `community/{tool-name}/{auth-method}.md` (e.g. `api-token.md`). If a file for that auth method already exists, add a short disambiguator: `api-token-alice.md`.
+Location: `community/{tool-name}-{auth-method}.md` (e.g. `jenkins-api-token.md`) — mirrors core naming exactly. If a file for that tool + auth method already exists, add a short disambiguator: `datadog-api-key-alice.md`.
 
 Use `community/TEMPLATE.md`. Frontmatter required:
 
@@ -150,7 +150,7 @@ Do not open the PR if any box is unchecked. Fix the gap first.
 git checkout -b connection/{tool-name}          # or connection/{tool-name}-promote
 
 # 2. Stage all relevant changes
-git add community/{tool-name}/                  # if community file added/changed
+git add community/{tool-name}-{auth-method}.md  # if community file added/changed
 git add tool_connections/                       # if core file added/changed
 git add verified_connections.example.md         # if master catalog updated
 git add CONTRIBUTING.md SETUP.md               # if updated
