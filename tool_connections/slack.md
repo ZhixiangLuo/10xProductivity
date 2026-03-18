@@ -93,13 +93,16 @@ def api(method, endpoint, data=None, params=None):
         return json.loads(resp.read())
 
 def get_slackbot_dm() -> str:
-    """Find your Slackbot DM channel ID."""
-    # Search for any message from slackbot to find the DM channel ID
-    r = api("GET", "search.messages", params={"query": "from:slackbot", "count": "1"})
-    matches = r.get("messages", {}).get("matches", [])
-    if matches:
-        return matches[0]["channel"]["id"]
-    raise RuntimeError("Could not find Slackbot DM channel. Try posting a message to Slackbot first.")
+    """Find your Slackbot DM channel ID.
+
+    ⚠ Do NOT use search.messages(from:slackbot) — it returns public channel IDs (C...)
+    instead of the actual DM (D...). Use conversations.open with USLACKBOT instead.
+    USLACKBOT is Slackbot's fixed user ID across all workspaces.
+    """
+    r = api("POST", "conversations.open", {"users": "USLACKBOT"})
+    if r.get("ok"):
+        return r["channel"]["id"]
+    raise RuntimeError(f"Could not open Slackbot DM: {r.get('error')}")
 
 def extract_element(item):
     """Render one rich_text element to plain text."""
