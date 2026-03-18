@@ -62,7 +62,7 @@ If the connection exists in `community/` and you're promoting it:
 
 ### Community file format
 
-Location: `community/{tool-name}/{auth-method}-{github-username}.md`
+Location: `community/{tool-name}/{auth-method}.md` (e.g. `api-token.md`). If a file for that auth method already exists, add a short disambiguator: `api-token-alice.md`.
 
 Use `community/TEMPLATE.md`. Frontmatter required:
 

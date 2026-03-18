@@ -7,24 +7,25 @@ Tool connections contributed by the community. These are not part of the verifie
 ```
 community/
   {tool-name}/
-    {auth-method}-{contributor}.md
+    {auth-method}.md
 ```
 
-**Filename convention:** `{auth-method}-{contributor}.md`
+**Filename convention:** `{auth-method}.md`
 - `auth-method` — how the tool authenticates: `api-token`, `oauth`, `sso`, `ad-sso`, `session-cookie`, `ldap`, etc.
-- `contributor` — your GitHub username
+- The `author` field in frontmatter captures attribution — no need to repeat it in the filename.
+- If two contributors submit different files for the **same auth method**, append a short disambiguator: `api-token-alice.md`, `api-token-bob.md`. This is the exception, not the rule.
 
 **Examples:**
 ```
 community/
   linear/
-    api-token-alice.md
-    oauth-bob.md
+    api-token.md
+    oauth.md
   datadog/
-    api-key-alice.md
-    ad-sso-carol.md
+    api-key.md
+    ad-sso.md
   notion/
-    api-token-dave.md
+    api-token.md
 ```
 
 ## For agents: how to use
