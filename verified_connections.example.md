@@ -135,4 +135,4 @@ When a new core connection file is added to `tool_connections/`, update this fil
 2. **Inline section** — add a `## ToolName → \`tool_connections/tool.md\`` block above
 3. **Connection file frontmatter** — ensure `env_vars` (and `auth_file` if applicable) are set in `tool_connections/{tool}.md`
 
-See `add-new-connection/SKILL.md` Step 5 for exact format.
+See `create-connection/SKILL.md` Phase 2 Step 8 for the full PR flow.

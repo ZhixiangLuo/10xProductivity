@@ -50,14 +50,10 @@ tool_connections/             ← core, validated connection files
     playwright_sso.py         ← SSO session automation (Okta, Google, Microsoft)
 
 community/                    ← community-contributed connections (lower validation bar)
-  {tool-name}/
-    {auth-method}-{author}.md ← e.g. community/linear/api-token-alice.md
+  {tool-name}-{auth-method}.md  ← e.g. community/datadog-api-key.md
 
-add-new-connection/
-  SKILL.md                    ← playbook: research, validate, and write a new connection file
-
-contribute-connection/
-  SKILL.md                    ← playbook: full flow from research to merged PR
+create-connection/
+  SKILL.md                    ← playbook: check credentials → research → validate → write → PR (contribution optional)
 
 verified_connections.example.md  ← master catalog of all available connections
 env.sample                        ← credential variable reference (copy to .env)
@@ -109,8 +105,8 @@ See `verified_connections.example.md` for the full catalog including community c
 3. Your agent generates `verified_connections.md` — load it at session start
 
 **Contributor** — you want to add a new tool or improve an existing connection:
-1. Ask your agent: *"Load contribute-connection/SKILL.md and add a connection for [Tool]"*
-2. The skill walks through: research → validate → write → PR
+1. Ask your agent: *"Load create-connection/SKILL.md and add a connection for [Tool]"*
+2. The skill walks through: check credentials → research → validate → write → PR (contribution is optional and only for commercial tools)
 3. Community files (`community/`) have a lower bar; core (`tool_connections/`) requires multi-environment validation
 
 ---
