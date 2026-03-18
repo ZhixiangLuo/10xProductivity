@@ -28,6 +28,7 @@ This file is for your agent. Point your agent here first:
 | **Microsoft Teams** | "Share any Teams link or message URL" — infer personal (`teams.live.com`) vs enterprise (`teams.microsoft.com`) | Personal: run `playwright_sso.py --teams-only`; Enterprise: not yet supported (contribution welcome) |
 | **Outlook** | "Share any Outlook link or email URL" — infer Outlook.com (`outlook.live.com`) vs Microsoft 365 (`outlook.office.com`) | M365: run `playwright_sso.py --outlook-only`; Outlook.com: run `get_outlook_token.py` |
 | **Google Drive** | Nothing — just run the script | Run `playwright_sso.py --gdrive-only`; browser opens, user logs in once |
+| **Datadog** | "Share your Datadog URL" + "Paste your API key" + "Paste your Application key" | Base URL inferred from subdomain (e.g. `us5.datadoghq.com` → `api.us5.datadoghq.com`); both keys from org settings |
 
 ---
 
@@ -407,8 +408,28 @@ print(r['user']['name'], r['user']['email'])
 
 ---
 
-#### 10. Datadog *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
+#### 10. Datadog *(if used)*
+
+Cloud monitoring — monitors, alerts, host inventory, metrics, dashboards, incidents.
+
+**Ask the user for:**
+- "Share your Datadog URL" → infer `DD_BASE_URL` from the subdomain (e.g. `us5.datadoghq.com` → `https://api.us5.datadoghq.com`)
+- "Paste your Datadog API key" → `https://{your-site}/organization-settings/api-keys` → New Key
+- "Paste your Datadog Application key" → `https://{your-site}/organization-settings/application-keys` → New Key
+
+Set `.env`:
+```
+DD_API_KEY=<api-key>
+DD_APP_KEY=<application-key>
+DD_BASE_URL=https://api.us5.datadoghq.com   # inferred from URL they shared
+```
+
+**Verify:**
+```bash
+source .env
+curl -s "$DD_BASE_URL/api/v1/validate" -H "DD-API-KEY: $DD_API_KEY" | jq .
+# → {"valid": true}
+```
 
 ---
 
