@@ -1,6 +1,6 @@
 ---
 name: add-new-connection
-description: Research, validate, and write a new tool connection file. Use when you need API access to a tool not yet in tool_connections, or when asked to add a new tool connection. Produces a verified connection file — community/{tool}/ for new/unvalidated tools, or tool_connections/{tool}.md if fully validated across environments.
+description: Research, validate, and write a new tool connection file. Use when you need API access to a tool not yet in tool_connections, or when asked to add a new tool connection. Produces a verified connection file — community/{tool}-{auth}.md for new tools, or tool_connections/{tool}-{auth}.md if fully validated across environments. Verification against a live instance is required before writing any file.
 ---
 
 # Add a New Tool Connection
@@ -10,7 +10,7 @@ description: Research, validate, and write a new tool connection file. Use when 
 Turn "I've heard of this tool" into a working, verified connection file that any agent can pick up and use.
 
 **Non-negotiable rules:**
-1. **Run before you write.** Every snippet in the file must be code you actually executed and saw succeed. No copy-paste from docs. No hypothetical endpoints.
+1. **Run before you write.** Every snippet in the file must be code you actually executed and saw succeed. No copy-paste from docs. No hypothetical endpoints. The reason you haven't run them — no credentials, tool not available, etc. — does not matter. Unverified snippets do not belong in a connection file, period. If you cannot run them now, stop: write nothing, open no PR, wait until you can.
 2. **Write for the next agent, not yourself.** The file is a general template — not a log of your test session. Strip out session-specific IDs, one-time URLs, and example data. Document the *pattern* (e.g. "search URL returns result URLs") not the artifact.
 3. **Generalize the auth, not just the snippets.** Before writing, ask: does this auth flow work for the full range of users? (SSO vs password login, managed vs personal machine, free vs paid tier, different OS.) Document the assumptions and variations explicitly. A connection that only works for your exact setup is a personal note, not a connection file.
 4. **Nothing broken.** If something didn't work (wrong endpoint, 404, expired session logic), cut it. A connection file with one working snippet is better than five broken ones.
