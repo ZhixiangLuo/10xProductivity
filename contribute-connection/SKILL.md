@@ -49,6 +49,10 @@ Branch names:
 
 ## Step 2: Build and validate the connection
 
+**Verification is required before any PR — no exceptions.** The reason snippets aren't verified (no credentials yet, tool not available, etc.) is irrelevant. Unverified is unverified. Do not proceed past this step without it.
+
+If you cannot verify right now — stop. Write the file, keep it on a local branch, and open the PR only after running every snippet and capturing real output.
+
 If the connection file doesn't exist yet, run `add-new-connection/SKILL.md` in full before continuing. Do not proceed to Step 3 until the checklist in that skill is fully checked.
 
 If the connection exists in `community/` and you're promoting it:
@@ -139,7 +143,7 @@ Before opening the PR, verify every box. Read the relevant section from `CONTRIB
 - Core / promotion: **Core contribution checklist** + **Promotion checklist**
 - SSO tool: also **SSO tool checklist**
 
-Do not open the PR if any box is unchecked. Fix the gap first.
+Do not open the PR if any box is unchecked. Fix the gap first. If the gap is "snippets not verified", the only fix is to run them — not to document that they're unverified.
 
 ---
 
@@ -234,11 +238,12 @@ The repo owner reviews PRs using a structured guide that checks safety (prompt i
 
 ## Checklist — do not mark done until all boxes checked
 
-**Validation**
-- [ ] All snippets in the connection file were actually executed
-- [ ] Every snippet has real `# → {output}` comments
+**Validation — hard gate, no exceptions**
+- [ ] All snippets in the connection file were actually executed against a live instance
+- [ ] Every snippet has real `# → {output}` comments (not illustrative, not from docs)
 - [ ] Auth confirmed working on production
 - [ ] At least 2 read endpoints tested
+- [ ] `verified: YYYY-MM` frontmatter field is filled in (blank = not ready)
 
 **File**
 - [ ] Correct location and filename
