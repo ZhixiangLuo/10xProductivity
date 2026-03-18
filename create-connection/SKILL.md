@@ -267,8 +267,9 @@ Go through every `# →` output comment and the file body. Remove or generalize:
 ### Step 8: Open the PR
 
 ```bash
-# 1. Branch
+# 1. Branch off latest main
 git checkout main
+git pull origin main
 git checkout -b connection/{tool-name}
 
 # 2. Stage — NEVER stage .env or verified_connections.md
