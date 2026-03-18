@@ -25,8 +25,8 @@ This file is for your agent. Point your agent here first:
 | **Confluence** | "Share any Confluence page URL" + "Paste your API token (Confluence → Profile → Personal Access Tokens)" | Base URL from the page link |
 | **Grafana** | "Share your Grafana URL" | Run `playwright_sso.py --grafana-only` to capture session automatically |
 | **PagerDuty** | "Paste your PagerDuty API key (My Profile → User Settings → API Access)" | Base URL is always `https://api.pagerduty.com` |
-| **Microsoft Teams (personal)** | Nothing — just run the script | Run `playwright_sso.py --teams-only`; browser opens, user logs in once with Microsoft personal account |
-| **Outlook / Microsoft 365** | Nothing — just run the script | Run `playwright_sso.py --outlook-only`; browser opens, Azure AD SSO auto-completes on managed machines |
+| **Microsoft Teams** | "Share any Teams link or message URL" — infer personal (`teams.live.com`) vs enterprise (`teams.microsoft.com`) | Personal: run `playwright_sso.py --teams-only`; Enterprise: not yet supported (contribution welcome) |
+| **Outlook** | "Share any Outlook link or email URL" — infer Outlook.com (`outlook.live.com`) vs Microsoft 365 (`outlook.office.com`) | M365: run `playwright_sso.py --outlook-only`; Outlook.com: run `get_outlook_token.py` |
 | **Google Drive** | Nothing — just run the script | Run `playwright_sso.py --gdrive-only`; browser opens, user logs in once |
 
 ---
@@ -55,8 +55,8 @@ Ask once, simply:
 > - Slack
 > - Jira
 > - GitHub (or GitHub Enterprise)
-> - Microsoft Teams
-> - Outlook / Microsoft 365 (OneDrive, SharePoint, Word, Excel)
+> - Microsoft Teams ("Share any Teams link — I'll detect personal vs enterprise")
+> - Outlook ("Share any Outlook link — I'll detect Outlook.com vs Microsoft 365")
 > - Grafana
 > - PagerDuty / OpsGenie
 > - Google Drive / Google Workspace
@@ -231,9 +231,11 @@ print(r.get('login'), r.get('name'))
 
 ---
 
-#### 5. Microsoft Teams (personal) *(teams.live.com)*
+#### 5. Microsoft Teams
 
-> **Note:** This covers **Teams (personal)** (personal/consumer) at `https://teams.live.com/v2/`. Enterprise Teams (work/school) via Microsoft Graph API is a separate connection not yet in core — contribution welcome via `contribute-connection/SKILL.md`.
+> **Variant detection:** infer from the URL the user shares.
+> - `teams.live.com` → **Teams (personal)** — use the flow below.
+> - `teams.microsoft.com` → **Enterprise Teams** — not yet in core; contribution welcome via `contribute-connection/SKILL.md`.
 
 Auth uses your live browser session (Skype-derived `x-skypetoken`) — no API token page exists. Run the SSO script and log in with your Microsoft personal account:
 
@@ -267,11 +269,13 @@ Full connection details: `tool_connections/microsoft-teams-personal-sso-session.
 
 ---
 
-#### 6. Outlook / Microsoft 365 *(work account)*
+#### 6. Outlook
 
 Email, calendar, contacts — your scheduled meetings, unread mail, and colleague lookup.
 
-> **Work accounts only** (Azure AD / Microsoft 365).
+> **Variant detection:** infer from the URL the user shares.
+> - `outlook.office.com` or `office365` → **Outlook / Microsoft 365** (work/Azure AD) — use the M365 flow below.
+> - `outlook.live.com` or `outlook.com` → **Outlook.com** (personal) — skip to section 7.
 
 Auth uses your existing browser session (two Bearer tokens captured from network requests). No API key page exists — run the SSO script:
 
@@ -308,6 +312,39 @@ print(r["DisplayName"], r["UnreadItemCount"])
 ```
 
 Full connection details: `tool_connections/outlook-sso-session.md`
+
+---
+
+#### 7. Outlook.com
+
+Email (inbox), mail folders, and message search for personal Microsoft accounts (outlook.live.com).
+
+Refresh your read-only token by capturing it in a browser session:
+
+```bash
+source .venv/bin/activate
+python3 tool_connections/assets/get_outlook_token.py
+```
+
+Token TTL: ~1 hour. Session TTL: ~24 hours. Send is not supported by the read-only token capture flow.
+
+**Verify:**
+```python
+from pathlib import Path
+import urllib.request, json, ssl
+
+env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
+       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+
+req = urllib.request.Request(
+    "https://outlook.office.com/api/v2.0/me/messages?$top=1&$select=Subject",
+    headers={"Authorization": f"Bearer {env['OUTLOOK_ACCESS_TOKEN']}"})
+r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
+print(r.get("value", [{}])[0].get("Subject"))
+```
+
+Full connection details: `tool_connections/outlook-com-api-token.md`
 
 ---
 
@@ -547,11 +584,12 @@ Individual tool files (`jira-api-token.md`, `slack-sso-session.md`, etc.) live i
 
 ## Refreshing short-lived tokens
 
-Slack and Grafana sessions expire in ~8h. Outlook / Microsoft 365 tokens expire in ~1h. When a tool stops working:
+Slack and Grafana sessions expire in ~8h. Outlook tokens (work and personal) expire in ~1h. When a tool stops working:
 
 - **Slack:** run `python3 tool_connections/assets/playwright_sso.py --slack-only` (opens browser, completes login, writes tokens automatically).
 - **Grafana:** run `python3 tool_connections/assets/playwright_sso.py --grafana-only`.
 - **Outlook / M365:** run `python3 tool_connections/assets/playwright_sso.py --outlook-only` (Azure AD SSO, ~30s on managed machines).
+- **Outlook.com:** run `python3 tool_connections/assets/get_outlook_token.py` (~1h token TTL; uses saved browser profile).
 - **Google Drive:** sessions last days to weeks. When expired, re-run `python3 tool_connections/assets/playwright_sso.py --gdrive-only`.
 
 ---

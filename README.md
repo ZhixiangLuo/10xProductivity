@@ -49,6 +49,7 @@ tool_connections/
   google-drive-browser-session.md ← Google Drive: list, search, read, export
   microsoft-teams-personal-sso-session.md  ← Teams (personal): chats, messages
   outlook-sso-session.md          ← Outlook / M365: email, calendar, contacts
+  outlook-com-api-token.md  ← Outlook.com: inbox/mail folders, message search (read-only)
   assets/
     playwright_sso.py           ← SSO session automation (Okta, Google, Microsoft)
     google_drive.py             ← Google Drive helper class
@@ -104,6 +105,9 @@ Your agent will ask which tools you use, guide you to get each credential, run S
 | **PagerDuty** | Personal API key | Who's on call, active incidents, service status, schedules |
 | **Slack** | Session token (SSO) | Slack AI search, message search, read threads, post messages |
 | **Google Drive** | Browser session (SSO) | List, search, read, export Docs/Sheets/Slides |
+| **Microsoft Teams (personal)** | sso-session | Chats and messages for personal Teams users (teams.live.com) |
+| **Outlook / M365** | sso-session | Email, calendar, and contacts for work Microsoft 365 accounts |
+| **Outlook.com** | api-token | Inbox/mail folders and message search for personal Microsoft accounts (read-only) |
 
 ---
 
