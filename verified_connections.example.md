@@ -27,6 +27,7 @@ Tools are ordered by information value — start with Tier 1.
 | **GitHub** | api-token | `tool_connections/github-api-token.md` | Browsing repos, reading READMEs/API docs, searching code, PRs, issues |
 | **Microsoft Teams (personal)** | sso-session | `tool_connections/microsoft-teams-personal-sso-session.md` | Chats and decisions for personal Microsoft account Teams users |
 | **Outlook / M365** | sso-session | `tool_connections/outlook-sso-session.md` | Reading email/calendar, contacts, people suggestions for work Microsoft 365 accounts |
+| **Outlook.com** | api-token | `tool_connections/outlook-com-api-token.md` | Reading personal email (outlook.live.com): inbox/mail folders, message details, and message search (read-only) |
 
 ### Tier 2 — Observability & Operations
 
@@ -116,6 +117,13 @@ Env: `TEAMS_SKYPETOKEN`, `TEAMS_SESSION_ID` (~24h — refresh with `assets/playw
 
 **Use when:** reading work email (inbox, mail folders, message search), checking today's calendar meetings, looking up contacts, or finding colleague info (`/me/people`). Work Microsoft 365 accounts only (Azure AD).
 Env: `GRAPH_ACCESS_TOKEN` + `OWA_ACCESS_TOKEN` (~1h — refresh with `assets/playwright_sso.py --outlook-only`)
+
+---
+
+## Outlook.com → `tool_connections/outlook-com-api-token.md`
+
+**Use when:** reading personal email in inbox/mail folders, fetching message details, and searching messages for personal Microsoft accounts (outlook.live.com). Read-only (send not supported by the token capture flow).
+Env: `OUTLOOK_ACCESS_TOKEN` (~1h — refresh with `python3 tool_connections/assets/get_outlook_token.py`)
 
 ---
 
