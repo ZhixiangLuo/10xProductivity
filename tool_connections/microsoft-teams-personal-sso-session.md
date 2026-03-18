@@ -1,14 +1,14 @@
 ---
-name: microsoft-teams
+name: microsoft-teams-personal
 auth: sso-session
-description: Microsoft Teams Free (teams.live.com) — read and send messages in personal Teams chats via private SSO session. Use when reading chat history, sending messages, or listing chats for a personal Microsoft account.
+description: Microsoft Teams (personal) — read and send messages in personal Teams chats via private SSO session. Use when reading chat history, sending messages, or listing chats for a personal Microsoft account (teams.live.com).
 env_vars:
   - TEAMS_SKYPETOKEN
   - TEAMS_SESSION_ID
   - TEAMS_BASE_URL
 ---
 
-# Microsoft Teams Free
+# Microsoft Teams (personal)
 
 Personal/consumer Microsoft Teams, accessed at `https://teams.live.com/v2/`. Uses a private API at `teams.live.com/api/` and `msgapi.teams.live.com/`, authenticated via a Skype-derived session token (`x-skypetoken`).
 
@@ -23,7 +23,7 @@ API docs: none (private API — community-discovered)
 
 ## Auth setup
 
-Teams Free has no API token page. Run the SSO script — it opens a Chromium window, you log in with your Microsoft personal account once, and tokens are written to `.env` automatically:
+Teams (personal) has no API token page. Run the SSO script — it opens a Chromium window, you log in with your Microsoft personal account once, and tokens are written to `.env` automatically:
 
 ```bash
 source .venv/bin/activate

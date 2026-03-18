@@ -8,7 +8,7 @@ machines via enterprise SSO extensions), and captures session tokens/cookies for
   - Grafana session cookie (~8h TTL)          → GRAFANA_SESSION in .env
   - Slack session token (~8h TTL)             → SLACK_XOXC + SLACK_D_COOKIE in .env
   - Google Drive session (days/weeks)         → ~/.browser_automation/gdrive_auth.json
-  - Microsoft Teams Free session (~24h TTL)   → TEAMS_SKYPETOKEN + TEAMS_SESSION_ID in .env
+  - Microsoft Teams (personal) session (~24h TTL)   → TEAMS_SKYPETOKEN + TEAMS_SESSION_ID in .env
   - Outlook / Microsoft 365 work (~1h TTL)    → GRAPH_ACCESS_TOKEN + OWA_ACCESS_TOKEN in .env
 
 By default, existing tokens are validated first — the browser only opens if one
@@ -19,7 +19,7 @@ Usage (CLI):
     python3 playwright_sso.py --slack-only    # refresh only Slack credentials
     python3 playwright_sso.py --gdrive-only   # refresh only Google Drive session
     python3 playwright_sso.py --grafana-only  # refresh only Grafana session
-    python3 playwright_sso.py --teams-only    # refresh only Microsoft Teams Free session
+    python3 playwright_sso.py --teams-only    # refresh only Microsoft Teams (personal) session
     python3 playwright_sso.py --outlook-only  # refresh only Outlook / Microsoft 365 tokens
 
 Usage (library):
@@ -446,15 +446,15 @@ def get_gdrive_session() -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# Microsoft Teams Free session (teams.live.com)
+# Microsoft Teams (personal) session (teams.live.com)
 # ---------------------------------------------------------------------------
 
 def _extract_teams_session(page, ctx) -> tuple[str, str]:
     """
-    Navigate to Teams Free, complete Microsoft account login, and extract
+    Navigate to Teams (personal), complete Microsoft account login, and extract
     the skypetoken (from localStorage/network request headers) + x-ms-session-id.
 
-    Teams Free uses a private API at teams.live.com/api/ authenticated via
+    Teams (personal) uses a private API at teams.live.com/api/ authenticated via
     x-skypetoken (not a standard Bearer token). Both tokens are short-lived (~24h).
     """
     page.goto(TEAMS_URL, wait_until="commit", timeout=30_000)
@@ -522,7 +522,7 @@ def _extract_teams_session(page, ctx) -> tuple[str, str]:
 
 def get_teams_session() -> dict[str, str]:
     """
-    Open Microsoft Teams Free (teams.live.com) in a headed browser, complete
+    Open Microsoft Teams (personal) (teams.live.com) in a headed browser, complete
     Microsoft account login, and return {"teams_skypetoken": "...", "teams_session_id": "..."}.
 
     On managed machines with Azure AD SSO, this completes automatically.
@@ -666,9 +666,9 @@ def update_env_file(env_path: Path, tokens: dict[str, str]) -> None:
     if "gdrive_sapisid" in tokens:
         content = _upsert(content, "GDRIVE_SAPISID", tokens["gdrive_sapisid"], "# --- Google Drive")
     if "teams_skypetoken" in tokens:
-        content = _upsert(content, "TEAMS_SKYPETOKEN", tokens["teams_skypetoken"], "# --- Microsoft Teams Free")
+        content = _upsert(content, "TEAMS_SKYPETOKEN", tokens["teams_skypetoken"], "# --- Microsoft Teams (personal)")
     if "teams_session_id" in tokens:
-        content = _upsert(content, "TEAMS_SESSION_ID", tokens["teams_session_id"], "# --- Microsoft Teams Free")
+        content = _upsert(content, "TEAMS_SESSION_ID", tokens["teams_session_id"], "# --- Microsoft Teams (personal)")
     if "graph_access_token" in tokens and tokens["graph_access_token"]:
         content = _upsert(content, "GRAPH_ACCESS_TOKEN", tokens["graph_access_token"], "# --- Outlook / Microsoft 365")
     if "owa_access_token" in tokens and tokens["owa_access_token"]:
@@ -692,7 +692,7 @@ def main():
     parser.add_argument("--slack-only", action="store_true", help="Refresh Slack session only")
     parser.add_argument("--gdrive-only", action="store_true", help="Refresh Google Drive session only")
     parser.add_argument("--grafana-only", action="store_true", help="Refresh Grafana session only")
-    parser.add_argument("--teams-only", action="store_true", help="Refresh Microsoft Teams Free session only")
+    parser.add_argument("--teams-only", action="store_true", help="Refresh Microsoft Teams (personal) session only")
     parser.add_argument("--outlook-only", action="store_true", help="Refresh Outlook / Microsoft 365 tokens only")
     args = parser.parse_args()
 

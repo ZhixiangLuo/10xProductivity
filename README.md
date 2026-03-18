@@ -47,7 +47,7 @@ tool_connections/
   pagerduty-api-token.md        ← PagerDuty: on-call, incidents, services
   slack-sso-session.md          ← Slack: AI search, message search, post
   google-drive-browser-session.md ← Google Drive: list, search, read, export
-  microsoft-teams-sso-session.md  ← Teams Free: chats, messages
+  microsoft-teams-personal-sso-session.md  ← Teams (personal): chats, messages
   outlook-sso-session.md          ← Outlook / M365: email, calendar, contacts
   assets/
     playwright_sso.py           ← SSO session automation (Okta, Google, Microsoft)

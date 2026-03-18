@@ -25,7 +25,7 @@ Tools are ordered by information value — start with Tier 1.
 | **Slack** | sso-session | `tool_connections/slack-sso-session.md` | Decisions, context, who to ask; Slack AI synthesizes answers from all Slack history |
 | **Jira** | api-token | `tool_connections/jira-api-token.md` | Fetching/creating/updating tickets, JQL search, sprint management |
 | **GitHub** | api-token | `tool_connections/github-api-token.md` | Browsing repos, reading READMEs/API docs, searching code, PRs, issues |
-| **Microsoft Teams Free** | sso-session | `tool_connections/microsoft-teams-sso-session.md` | Chats and decisions for personal Microsoft account Teams users |
+| **Microsoft Teams (personal)** | sso-session | `tool_connections/microsoft-teams-personal-sso-session.md` | Chats and decisions for personal Microsoft account Teams users |
 | **Outlook / M365** | sso-session | `tool_connections/outlook-sso-session.md` | Reading email/calendar, contacts, people suggestions for work Microsoft 365 accounts |
 
 ### Tier 2 — Observability & Operations
@@ -105,9 +105,9 @@ Auth: `~/.browser_automation/gdrive_auth.json` (Playwright storage_state — ref
 
 ---
 
-## Microsoft Teams Free → `tool_connections/microsoft-teams-sso-session.md`
+## Microsoft Teams (personal) → `tool_connections/microsoft-teams-personal-sso-session.md`
 
-**Use when:** reading or sending messages in personal Microsoft Teams chats, listing chats for a personal Microsoft account (teams.live.com), or looking up conversation history in Teams Free.
+**Use when:** reading or sending messages in personal Microsoft Teams chats, listing chats for a personal Microsoft account (teams.live.com), or looking up conversation history in Teams (personal).
 Env: `TEAMS_SKYPETOKEN`, `TEAMS_SESSION_ID` (~24h — refresh with `assets/playwright_sso.py --teams-only`)
 
 ---
