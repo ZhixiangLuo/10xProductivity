@@ -9,6 +9,7 @@ machines via enterprise SSO extensions), and captures session tokens/cookies for
   - Slack session token (~8h TTL)             → SLACK_XOXC + SLACK_D_COOKIE in .env
   - Google Drive session (days/weeks)         → ~/.browser_automation/gdrive_auth.json
   - Microsoft Teams Free session (~24h TTL)   → TEAMS_SKYPETOKEN + TEAMS_SESSION_ID in .env
+  - Outlook / Microsoft 365 work (~1h TTL)    → GRAPH_ACCESS_TOKEN + OWA_ACCESS_TOKEN in .env
 
 By default, existing tokens are validated first — the browser only opens if one
 or more have expired. Use --force to always refresh.
@@ -19,13 +20,15 @@ Usage (CLI):
     python3 playwright_sso.py --gdrive-only   # refresh only Google Drive session
     python3 playwright_sso.py --grafana-only  # refresh only Grafana session
     python3 playwright_sso.py --teams-only    # refresh only Microsoft Teams Free session
+    python3 playwright_sso.py --outlook-only  # refresh only Outlook / Microsoft 365 tokens
 
 Usage (library):
-    from playwright_sso import check_tokens, get_grafana_session, get_slack_session, get_teams_session
+    from playwright_sso import check_tokens, get_grafana_session, get_slack_session, get_teams_session, get_outlook_session
     status = check_tokens(grafana_session=..., slack_xoxc=...)
-    tokens = get_grafana_session()   # {"grafana_session": "..."}
-    tokens = get_slack_session()     # {"slack_xoxc": "...", "slack_d_cookie": "..."}
-    tokens = get_teams_session()     # {"teams_skypetoken": "...", "teams_session_id": "..."}
+    tokens = get_grafana_session()    # {"grafana_session": "..."}
+    tokens = get_slack_session()      # {"slack_xoxc": "...", "slack_d_cookie": "..."}
+    tokens = get_teams_session()      # {"teams_skypetoken": "...", "teams_session_id": "..."}
+    tokens = get_outlook_session()    # {"graph_access_token": "...", "owa_access_token": "..."}
 
 Configuration:
     Set these in your .env file (see env.sample):
@@ -73,6 +76,7 @@ GRAFANA_BASE_URL    = _load_env_var("GRAFANA_BASE_URL", "https://grafana.yourcom
 SLACK_WORKSPACE_URL = _load_env_var("SLACK_WORKSPACE_URL", "https://yourcompany.slack.com/")
 TEAMS_URL           = "https://teams.live.com/v2/"
 GDRIVE_URL          = "https://drive.google.com/drive/my-drive"
+OUTLOOK_URL         = "https://outlook.office.com/mail/"
 GDRIVE_AUTH_FILE    = Path.home() / ".browser_automation" / "gdrive_auth.json"
 DEFAULT_ENV_FILE    = Path(__file__).parents[2] / ".env"
 
@@ -125,16 +129,21 @@ def check_tokens(
     gdrive_sapisid: str | None = None,
     gdrive_cookies: str | None = None,
     teams_skypetoken: str | None = None,
+    graph_access_token: str | None = None,
+    owa_access_token: str | None = None,
 ) -> dict[str, bool]:
     """
     Validate existing tokens with lightweight API calls (no browser).
-    Returns validity flags: {"grafana_session": bool, "slack_xoxc": bool, "gdrive": bool, "teams": bool}
+    Returns validity flags: {"grafana_session": bool, "slack_xoxc": bool, "gdrive": bool,
+                             "teams": bool, "outlook_graph": bool, "outlook_owa": bool}
     """
     result = {
         "grafana_session": False,
         "slack_xoxc": False,
         "gdrive": False,
         "teams": False,
+        "outlook_graph": False,
+        "outlook_owa": False,
     }
 
     if grafana_session:
@@ -178,6 +187,20 @@ def check_tokens(
         )
         result["teams"] = status == 200
 
+    if graph_access_token and not graph_access_token.startswith("your-"):
+        status = _http_get(
+            "https://graph.microsoft.com/v1.0/me",
+            {"Authorization": f"Bearer {graph_access_token}"},
+        )
+        result["outlook_graph"] = status == 200
+
+    if owa_access_token and not owa_access_token.startswith("your-"):
+        status = _http_get(
+            "https://outlook.office.com/api/v2.0/me/MailFolders/Inbox?$select=DisplayName",
+            {"Authorization": f"Bearer {owa_access_token}"},
+        )
+        result["outlook_owa"] = status == 200
+
     return result
 
 
@@ -191,6 +214,8 @@ def load_tokens_from_env(env_path: Path) -> dict[str, str | None]:
         "gdrive_sapisid": None,
         "teams_skypetoken": None,
         "teams_session_id": None,
+        "graph_access_token": None,
+        "owa_access_token": None,
     }
     if not env_path.exists():
         return tokens
@@ -209,6 +234,10 @@ def load_tokens_from_env(env_path: Path) -> dict[str, str | None]:
             tokens["teams_skypetoken"] = line.split("=", 1)[1].strip()
         elif line.startswith("TEAMS_SESSION_ID="):
             tokens["teams_session_id"] = line.split("=", 1)[1].strip()
+        elif line.startswith("GRAPH_ACCESS_TOKEN="):
+            tokens["graph_access_token"] = line.split("=", 1)[1].strip()
+        elif line.startswith("OWA_ACCESS_TOKEN="):
+            tokens["owa_access_token"] = line.split("=", 1)[1].strip()
     return tokens
 
 
@@ -515,6 +544,95 @@ def get_teams_session() -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
+# Outlook / Microsoft 365 work account session
+# ---------------------------------------------------------------------------
+
+def _extract_outlook_session(page, ctx) -> tuple[str, str]:
+    """
+    Navigate to Outlook web (outlook.office.com), complete Azure AD SSO, and
+    capture two Bearer tokens from network request headers:
+
+      - graph_token: from the first graph.microsoft.com request (user photo)
+      - owa_token:   from outlook.office.com/owa/startupdata.ashx (app startup)
+
+    On managed machines with macOS Enterprise SSO (Microsoft Intune / Company Portal),
+    Azure AD login auto-completes in ~30s. On unmanaged machines, the user completes
+    login once through the browser (~60s).
+
+    Token lifetime: ~1h. Both tokens expire together (same Azure AD session).
+    """
+    def _is_jwt(t: str) -> bool:
+        return isinstance(t, str) and t.count(".") in (2, 4) and len(t) > 100
+
+    captured: dict[str, str] = {}
+
+    def _on_request(req):
+        auth = req.headers.get("authorization", "")
+        if not auth.startswith("Bearer "):
+            return
+        t = auth[7:]
+        if not _is_jwt(t):
+            return
+        if "graph.microsoft.com" in req.url and "graph" not in captured:
+            captured["graph"] = t
+        elif "outlook.office.com" in req.url and "owa" not in captured:
+            captured["owa"] = t
+
+    page.on("request", _on_request)
+    page.goto(OUTLOOK_URL, wait_until="commit", timeout=30_000)
+    print("    Waiting for Outlook login to complete (up to 3 min)...", flush=True)
+
+    deadline = time.time() + 180
+    while time.time() < deadline:
+        if "graph" in captured and "owa" in captured:
+            break
+        time.sleep(1)
+
+    if not captured:
+        raise RuntimeError("No Outlook tokens captured — login may not have completed within 3 minutes.")
+
+    graph_token = captured.get("graph", "")
+    owa_token   = captured.get("owa", "")
+
+    if not graph_token:
+        raise RuntimeError("Graph token not captured — Outlook page may not have loaded.")
+    if not owa_token:
+        # OWA token fires slightly later; log what we got but don't fail
+        print("    Warning: OWA token not captured — only Graph token available.")
+
+    return graph_token, owa_token
+
+
+def get_outlook_session() -> dict[str, str]:
+    """
+    Open Outlook web (outlook.office.com) in a headed browser, complete Azure AD SSO,
+    and return {"graph_access_token": "...", "owa_access_token": "..."}.
+
+    - graph_access_token: for graph.microsoft.com endpoints (user profile, people)
+    - owa_access_token:   for outlook.office.com/api/v2.0 endpoints (mail, calendar, contacts)
+
+    On managed machines with macOS Enterprise SSO, this completes automatically (~30s).
+    On personal/unmanaged machines, complete Microsoft 365 login once through the browser.
+    Token lifetime: ~1h.
+    """
+    print(f"  [1/1] Getting Outlook/M365 session (navigating to {OUTLOOK_URL})...")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=False,
+            args=["--window-size=1200,800", "--window-position=100,100"],
+        )
+        ctx = browser.new_context(ignore_https_errors=True)
+        page = ctx.new_page()
+        graph_token, owa_token = _extract_outlook_session(page, ctx)
+        browser.close()
+
+    print(f"    Graph token captured ({len(graph_token)} chars)")
+    if owa_token:
+        print(f"    OWA token captured ({len(owa_token)} chars)")
+    return {"graph_access_token": graph_token, "owa_access_token": owa_token}
+
+
+# ---------------------------------------------------------------------------
 # .env writer
 # ---------------------------------------------------------------------------
 
@@ -551,6 +669,10 @@ def update_env_file(env_path: Path, tokens: dict[str, str]) -> None:
         content = _upsert(content, "TEAMS_SKYPETOKEN", tokens["teams_skypetoken"], "# --- Microsoft Teams Free")
     if "teams_session_id" in tokens:
         content = _upsert(content, "TEAMS_SESSION_ID", tokens["teams_session_id"], "# --- Microsoft Teams Free")
+    if "graph_access_token" in tokens and tokens["graph_access_token"]:
+        content = _upsert(content, "GRAPH_ACCESS_TOKEN", tokens["graph_access_token"], "# --- Outlook / Microsoft 365")
+    if "owa_access_token" in tokens and tokens["owa_access_token"]:
+        content = _upsert(content, "OWA_ACCESS_TOKEN", tokens["owa_access_token"], "# --- Outlook / Microsoft 365")
 
     env_path.write_text(content)
     print(f"  Updated {env_path}")
@@ -571,6 +693,7 @@ def main():
     parser.add_argument("--gdrive-only", action="store_true", help="Refresh Google Drive session only")
     parser.add_argument("--grafana-only", action="store_true", help="Refresh Grafana session only")
     parser.add_argument("--teams-only", action="store_true", help="Refresh Microsoft Teams Free session only")
+    parser.add_argument("--outlook-only", action="store_true", help="Refresh Outlook / Microsoft 365 tokens only")
     args = parser.parse_args()
 
     print("SSO token refresher (Playwright)")
@@ -579,11 +702,11 @@ def main():
 
     # Check that required base URLs are configured before opening any browser
     issues = []
-    if not args.slack_only and not args.gdrive_only and not args.teams_only:
+    if not args.slack_only and not args.gdrive_only and not args.teams_only and not args.outlook_only:
         if "yourcompany" in GRAFANA_BASE_URL or GRAFANA_BASE_URL == "https://grafana.yourcompany.com":
             issues.append(f"  GRAFANA_BASE_URL is not set (currently: {GRAFANA_BASE_URL})\n"
                           f"  → Add GRAFANA_BASE_URL=https://grafana.yourcompany.com to .env first")
-    if not args.grafana_only and not args.gdrive_only and not args.teams_only:
+    if not args.grafana_only and not args.gdrive_only and not args.teams_only and not args.outlook_only:
         if "yourcompany" in SLACK_WORKSPACE_URL or SLACK_WORKSPACE_URL == "https://yourcompany.slack.com/":
             issues.append(f"  SLACK_WORKSPACE_URL is not set (currently: {SLACK_WORKSPACE_URL})\n"
                           f"  → Add SLACK_WORKSPACE_URL=https://yourcompany.slack.com/ to .env first")
@@ -658,6 +781,28 @@ def main():
         print("\nDone.")
         for k, v in tokens.items():
             print(f"  {k}: {v[:50]}...")
+        return
+
+    # --- Outlook only ---
+    if args.outlook_only:
+        if not args.force:
+            existing = load_tokens_from_env(args.env_file)
+            validity = check_tokens(
+                graph_access_token=existing["graph_access_token"],
+                owa_access_token=existing["owa_access_token"],
+            )
+            if validity["outlook_graph"] and validity["outlook_owa"]:
+                print("  GRAPH_ACCESS_TOKEN: ok\n  OWA_ACCESS_TOKEN: ok — nothing to do.")
+                return
+            print(f"  GRAPH_ACCESS_TOKEN: {'ok' if validity['outlook_graph'] else 'expired or missing'}")
+            print(f"  OWA_ACCESS_TOKEN:   {'ok' if validity['outlook_owa'] else 'expired or missing'}")
+            print()
+        tokens = get_outlook_session()
+        update_env_file(args.env_file, tokens)
+        print("\nDone.")
+        for k, v in tokens.items():
+            if v:
+                print(f"  {k}: {v[:50]}...")
         return
 
     # --- Default: refresh all (Grafana + Slack) ---

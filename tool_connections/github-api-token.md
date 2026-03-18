@@ -1,6 +1,10 @@
 ---
 name: github
+auth: api-token
 description: GitHub — browse repos, fetch READMEs and API docs, search code, manage PRs and issues. Use when browsing repos, reading READMEs, searching code, creating or reviewing PRs, managing issues. Works with both github.com and GitHub Enterprise (self-hosted).
+env_vars:
+  - GITHUB_TOKEN
+  - GITHUB_BASE_URL
 ---
 
 # GitHub

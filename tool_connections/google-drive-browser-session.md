@@ -1,6 +1,9 @@
 ---
 name: google-drive
+auth: browser-session
 description: Google Drive via Playwright storage_state session — no OAuth app needed. Use when you need to list, search, read, or export files from Google Drive. Supports listing My Drive, searching by keyword/owner, and exporting Google Docs/Sheets/Slides as text/CSV.
+env_vars: []
+auth_file: ~/.browser_automation/gdrive_auth.json
 ---
 
 # Google Drive

@@ -1,6 +1,9 @@
 ---
 name: pagerduty
+auth: api-token
 description: PagerDuty — incident management, on-call scheduling, alerting. Use when looking up active incidents, checking who is on call, querying service status, or reading escalation policies. Requires PAGERDUTY_TOKEN (personal REST API key). Read-only personal use is fine; production write integrations may require approval from your security team.
+env_vars:
+  - PAGERDUTY_TOKEN
 ---
 
 # PagerDuty

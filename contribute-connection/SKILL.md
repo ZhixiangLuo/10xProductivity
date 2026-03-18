@@ -14,7 +14,7 @@ Take a tool connection from zero to a merged PR. This skill orchestrates the ful
 3. Promote to core if the bar is met
 4. Open a PR with the correct format
 
-**Prerequisites:** Read `tool_connections/SKILL.md` and `CONTRIBUTING.md` first.
+**Prerequisites:** Read `verified_connections.example.md` and `CONTRIBUTING.md` first.
 
 ---
 
@@ -77,21 +77,25 @@ env_vars:
 
 ### Core file format
 
-Location: `tool_connections/{tool-name}.md`
+Location: `tool_connections/{tool-name}-{auth}.md` (e.g. `jira-api-token.md`). If the tool has a variant dimension: `tool_connections/{tool-name}-{variant}-{auth}.md` (e.g. `jira-server-api-token.md`).
 
 Frontmatter:
 
 ```markdown
 ---
 name: {tool-name}
+auth: {api-token|sso-session|browser-session|oauth}
 description: {Tool} — {one sentence what it is}. Use when {2-3 specific use cases}.
+env_vars:
+  - TOOL_TOKEN
+  - TOOL_BASE_URL
 ---
 ```
 
 When promoting from community → core:
 1. Copy the community file to `tool_connections/{tool-name}.md`
-2. Replace the community frontmatter with the core frontmatter above
-3. Wire into `tool_connections/SKILL.md` in all 3 places (frontmatter description, table row, inline section) — see `add-new-connection/SKILL.md` Step 5 for exact format
+2. Replace the community frontmatter with the core frontmatter above (adding `auth:` and `env_vars:`)
+3. Wire into `verified_connections.example.md` in all 3 places (table row, inline section, connection file frontmatter) — see `add-new-connection/SKILL.md` Step 5 for exact format
 4. Update `SETUP.md` if the tool was listed as "coming soon"
 5. Delete the community file (or keep it if auth variant differs from core)
 
@@ -146,10 +150,10 @@ git checkout -b connection/{tool-name}          # or connection/{tool-name}-prom
 # 2. Stage all relevant changes
 git add community/{tool-name}/                  # if community file added/changed
 git add tool_connections/                       # if core file added/changed
-git add tool_connections/SKILL.md               # if index updated
+git add verified_connections.example.md         # if master catalog updated
 git add CONTRIBUTING.md SETUP.md               # if updated
 git add tool_connections/assets/playwright_sso.py  # if SSO support added
-# NEVER stage .env — verify it is in .gitignore first
+# NEVER stage .env or verified_connections.md — both are gitignored
 
 # 3. Commit
 git commit -m "Add {Tool Name} connection ({auth-method})"
@@ -242,7 +246,7 @@ gh pr create \
 - [ ] Search interface checked and documented or explicitly noted as absent
 
 **Wiring (core only)**
-- [ ] `tool_connections/SKILL.md` updated in all 3 places
+- [ ] `verified_connections.example.md` updated in all 3 places (table row, inline section, connection file frontmatter)
 - [ ] `SETUP.md` updated if applicable
 - [ ] `.env` updated with new vars
 - [ ] `env.sample` updated with placeholder entries for any new vars
