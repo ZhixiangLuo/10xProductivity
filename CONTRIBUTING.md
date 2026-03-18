@@ -2,6 +2,18 @@
 
 Thank you for contributing. The goal is a library of high-quality, verified tool connections that any agent can pick up and use immediately.
 
+## What to contribute
+
+Contributions are welcome for:
+- **New tool** — a tool not yet in the repo
+- **New auth variant** — a different auth method for an existing tool (e.g. AD SSO vs API token)
+- **New deployment variant** — e.g. Jira Server vs Jira Cloud
+- **Improvement to an existing connection** — fixing broken snippets, adding missing endpoints, updating stale auth
+
+Not sure if your idea fits? Open an issue first.
+
+---
+
 ## The core rule: run before you write
 
 Every snippet in a connection file must be code you actually executed and saw succeed. No copy-pasting from docs. No hypothetical endpoints. If you can't run it, don't write it.
@@ -106,12 +118,3 @@ fix/{tool-name}                  # fixing a broken snippet or stale endpoint
 - [ ] `playwright_sso.py` updated: session function, `--{tool}-only` flag, `check_tokens()`, `load_tokens_from_env()`, `update_env_file()`
 - [ ] `SETUP.md` "Minimum user input" table updated
 
----
-
-## Reviewer / owner
-
-Incoming PRs are reviewed using `scripts/review-community-pr.md` (gitignored, owner's local copy). That guide covers:
-- Safety (prompt injection, credential leakage, malicious code)
-- Validation quality (real execution evidence, auth completeness)
-- Usefulness
-- Core promotion assessment and post-merge promotion flow

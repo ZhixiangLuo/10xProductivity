@@ -25,7 +25,15 @@ Turn "I've heard of this tool" into a working, verified connection file that any
 - An existing connection file has unverified snippets or missing auth details
 - Someone asks "can the agent access X?"
 
-**If you want to contribute the result back as a PR**, load `contribute-connection/SKILL.md` instead — it wraps this skill and adds the full PR flow on top.
+**If contributing back**, this skill is appropriate for one of these four cases:
+1. **New tool** — not yet in `tool_connections/` or `community/`
+2. **New auth variant** — different auth method for an existing tool (e.g. AD SSO vs API token)
+3. **New deployment variant** — e.g. Jira Server vs Jira Cloud
+4. **Improvement to an existing connection** — fixing broken snippets, adding missing endpoints, updating stale auth
+
+If none of the above apply, you likely don't need a new file — check `verified_connections.example.md` first.
+
+**To contribute the result back as a PR**, load `contribute-connection/SKILL.md` instead — it wraps this skill and adds the full PR flow on top.
 
 ---
 
