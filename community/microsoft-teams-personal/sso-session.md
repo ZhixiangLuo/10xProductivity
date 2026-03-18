@@ -1,5 +1,5 @@
 ---
-tool: microsoft-teams-free
+tool: microsoft-teams-personal
 auth: sso
 author: zhixiangluo
 verified: 2026-03
@@ -9,9 +9,9 @@ env_vars:
   - TEAMS_BASE_URL
 ---
 
-# Microsoft Teams Free — SSO session (teams.live.com)
+# Microsoft Teams (personal) — SSO session (teams.live.com)
 
-Microsoft Teams Free is the personal/consumer variant of Teams, accessed at `https://teams.live.com/v2/`. It uses a private API at `teams.live.com/api/` authenticated via a Skype-derived session token (`x-skypetoken`). This is separate from enterprise Teams (teams.microsoft.com), which uses Microsoft Graph API.
+Microsoft Teams (personal) is the personal/consumer variant of Teams, accessed at `https://teams.live.com/v2/`. It uses a private API at `teams.live.com/api/` authenticated via a Skype-derived session token (`x-skypetoken`). This is separate from enterprise Teams (teams.microsoft.com), which uses Microsoft Graph API.
 
 **⚠ Private API:** These endpoints are undocumented and not officially supported by Microsoft for third-party use. They may change without notice. Enterprise Teams users (work/school accounts) should use Microsoft Graph API instead.
 
@@ -35,7 +35,7 @@ Microsoft Teams Free is the personal/consumer variant of Teams, accessed at `htt
 
 ## Auth setup
 
-Teams Free does not offer an API token UI. Run the SSO script — it opens a Chromium window, you log in with your Microsoft personal account once, and tokens are written to `.env` automatically:
+Teams (personal) does not offer an API token UI. Run the SSO script — it opens a Chromium window, you log in with your Microsoft personal account once, and tokens are written to `.env` automatically:
 
 ```bash
 source .venv/bin/activate
@@ -161,7 +161,7 @@ with urllib.request.urlopen(req, context=_ctx, timeout=10) as resp:
 ## Notes
 
 - **Private API only.** No official Microsoft documentation for these endpoints. Breaking changes are possible with any Teams update.
-- **Personal accounts only.** Specific to `teams.live.com` (consumer/personal Teams Free). Enterprise Teams (work/school) uses a different API — Microsoft Graph at `graph.microsoft.com`.
+- **Personal accounts only.** Specific to `teams.live.com` (consumer/personal Teams (personal)). Enterprise Teams (work/school) uses a different API — Microsoft Graph at `graph.microsoft.com`.
 - **No VPN required.** All confirmed endpoints are publicly routable.
 - **Token TTL ~24h.** Run `playwright_sso.py --teams-only` to refresh.
 - **MRI format.** User identifiers use `8:live:.cid.XXXXXXXX`. Chat IDs use `19:UUID@thread.v2`.

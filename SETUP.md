@@ -25,7 +25,7 @@ This file is for your agent. Point your agent here first:
 | **Confluence** | "Share any Confluence page URL" + "Paste your API token (Confluence → Profile → Personal Access Tokens)" | Base URL from the page link |
 | **Grafana** | "Share your Grafana URL" | Run `playwright_sso.py --grafana-only` to capture session automatically |
 | **PagerDuty** | "Paste your PagerDuty API key (My Profile → User Settings → API Access)" | Base URL is always `https://api.pagerduty.com` |
-| **Microsoft Teams Free** | Nothing — just run the script | Run `playwright_sso.py --teams-only`; browser opens, user logs in once with Microsoft personal account |
+| **Microsoft Teams (personal)** | Nothing — just run the script | Run `playwright_sso.py --teams-only`; browser opens, user logs in once with Microsoft personal account |
 | **Outlook / Microsoft 365** | Nothing — just run the script | Run `playwright_sso.py --outlook-only`; browser opens, Azure AD SSO auto-completes on managed machines |
 | **Google Drive** | Nothing — just run the script | Run `playwright_sso.py --gdrive-only`; browser opens, user logs in once |
 
@@ -231,9 +231,9 @@ print(r.get('login'), r.get('name'))
 
 ---
 
-#### 5. Microsoft Teams Free *(teams.live.com)*
+#### 5. Microsoft Teams (personal) *(teams.live.com)*
 
-> **Note:** This covers **Teams Free** (personal/consumer) at `https://teams.live.com/v2/`. Enterprise Teams (work/school) via Microsoft Graph API is a separate connection not yet in core — contribution welcome via `contribute-connection/SKILL.md`.
+> **Note:** This covers **Teams (personal)** (personal/consumer) at `https://teams.live.com/v2/`. Enterprise Teams (work/school) via Microsoft Graph API is a separate connection not yet in core — contribution welcome via `contribute-connection/SKILL.md`.
 
 Auth uses your live browser session (Skype-derived `x-skypetoken`) — no API token page exists. Run the SSO script and log in with your Microsoft personal account:
 
@@ -263,7 +263,7 @@ print(f"{len(chats)} chats found")
 # If 401/403: token expired — run playwright_sso.py --teams-only to refresh
 ```
 
-Full connection details: `tool_connections/microsoft-teams-sso-session.md`
+Full connection details: `tool_connections/microsoft-teams-personal-sso-session.md`
 
 ---
 
@@ -271,7 +271,7 @@ Full connection details: `tool_connections/microsoft-teams-sso-session.md`
 
 Email, calendar, contacts — your scheduled meetings, unread mail, and colleague lookup.
 
-> **Work accounts only** (Azure AD / Microsoft 365). Personal Outlook uses a different flow — see Microsoft Teams Free above.
+> **Work accounts only** (Azure AD / Microsoft 365).
 
 Auth uses your existing browser session (two Bearer tokens captured from network requests). No API key page exists — run the SSO script:
 
