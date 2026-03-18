@@ -1,6 +1,10 @@
 ---
 name: grafana
+auth: sso-session
 description: Grafana dashboards — extract PromQL queries from panels, look up dashboard UIDs, query data. Use when you need the PromQL from a Grafana dashboard (e.g. for incident analysis), or want to find which dashboards exist for a service.
+env_vars:
+  - GRAFANA_BASE_URL
+  - GRAFANA_SESSION
 ---
 
 # Grafana

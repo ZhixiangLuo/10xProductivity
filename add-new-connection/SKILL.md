@@ -15,7 +15,7 @@ Turn "I've heard of this tool" into a working, verified connection file that any
 3. **Generalize the auth, not just the snippets.** Before writing, ask: does this auth flow work for the full range of users? (SSO vs password login, managed vs personal machine, free vs paid tier, different OS.) Document the assumptions and variations explicitly. A connection that only works for your exact setup is a personal note, not a connection file.
 4. **Nothing broken.** If something didn't work (wrong endpoint, 404, expired session logic), cut it. A connection file with one working snippet is better than five broken ones.
 
-**Prerequisites:** Load `tool_connections/SKILL.md` first (index + format reference).
+**Prerequisites:** Load `verified_connections.example.md` first (master catalog + format reference).
 
 ---
 
@@ -135,21 +135,25 @@ Note both successes **and** permission errors — both are useful for the next u
 
 - **New tool or auth variant, not yet validated across environments** → `community/{tool-name}/{auth-method}-{your-github-username}.md`
   Use the template at `community/TEMPLATE.md`. Frontmatter required. No index update needed.
-- **Well-validated, ready for core** → `tool_connections/{tool-name}.md`
+- **Well-validated, ready for core** → `tool_connections/{tool-name}-{auth}.md`
   Follow the format below and wire into the index (Step 5).
 
 When in doubt, start in `community/`. A solid community file can be promoted to core later.
 
 ---
 
-**Core file location:** `tool_connections/{tool-name}.md`
+**Core file location:** `tool_connections/{tool-name}-{auth}.md` (e.g. `jira-api-token.md`, `slack-sso-session.md`). If the tool also has a variant dimension: `tool_connections/{tool-name}-{variant}-{auth}.md` (e.g. `jira-server-api-token.md`).
 
 **Format:**
 
 ```markdown
 ---
 name: {tool-name}
+auth: {api-token|sso-session|browser-session|oauth}
 description: {Tool} — {one sentence what it is}. Use when {2-3 specific use cases}.
+env_vars:
+  - TOOL_TOKEN
+  - TOOL_BASE_URL
 ---
 
 # {Tool Name}
@@ -223,21 +227,31 @@ curl -s "$BASE/projects?limit=5" -H "Authorization: Bearer $TOOL_API_TOKEN" | jq
 
 ## Step 5: Wire into the index
 
-Three places in `tool_connections/SKILL.md`:
+Three places in `verified_connections.example.md` (the master catalog at the repo root):
 
-**1. Frontmatter `description`** — append tool name to the comma-separated list.
-
-**2. Quick-reference table** — add a row:
+**1. Table row** — add a row in the appropriate tier table:
 ```markdown
-| **{Tool}** | {what it is} | `{tool}.md` | {when to use} |
+| **{Tool}** | {auth-method} | `tool_connections/{tool}.md` | {when to use} |
 ```
 
-**3. Inline section** before "Standards":
+**2. Inline section** — add before "Adding new connections":
 ```markdown
-## {Tool} → load `{tool}.md`
+## {Tool Name} → `tool_connections/{tool}.md`
 
 **Use when:** {2-3 specific triggers}.
-Env: `TOOL_TOKEN`
+Env: `TOOL_TOKEN`, `TOOL_BASE_URL`
+```
+
+**3. Connection file frontmatter** — ensure `auth`, `env_vars` (and `auth_file` if applicable) are set in `tool_connections/{tool}.md`:
+```markdown
+---
+name: {tool-name}
+auth: {api-token|sso-session|browser-session|oauth}
+description: ...
+env_vars:
+  - TOOL_TOKEN
+  - TOOL_BASE_URL
+---
 ```
 
 ---
@@ -276,7 +290,7 @@ Before closing, ask:
 - [ ] Assumptions that only hold for specific org setups or plans are explicitly called out
 
 **Wiring**
-- [ ] Wired into `tool_connections/SKILL.md` in all 3 places (frontmatter, table, inline section)
+- [ ] Wired into `verified_connections.example.md` in all 3 places (table row, inline section, connection file frontmatter)
 
 ---
 

@@ -88,13 +88,13 @@ fix/{tool-name}                  # fixing a broken snippet or stale endpoint
 - [ ] Auth flow documented from scratch
 
 **Core contribution (`tool_connections/`):**
-- [ ] New connection file at `tool_connections/{tool-name}.md`
-- [ ] Frontmatter uses core format (`name:`, `description:`)
+- [ ] New connection file at `tool_connections/{tool-name}-{auth}.md` (e.g. `linear-api-token.md`). Add `{variant}` before `{auth}` if the tool has distinct deployment variants (e.g. `jira-server-api-token.md`).
+- [ ] Frontmatter uses core format (`name:`, `auth:`, `description:`, `env_vars:`)
 - [ ] Every snippet was actually run and includes real output in comments
 - [ ] Auth flow documented from scratch
 - [ ] Search/query interface checked — documented if found, explicitly noted if absent
 - [ ] Network requirement stated (VPN or confirmed not needed)
-- [ ] Index updated (`tool_connections/SKILL.md`) in all 3 places (frontmatter description, table row, inline section)
+- [ ] `verified_connections.example.md` updated in all 3 places (table row, inline section, connection file frontmatter)
 - [ ] `.env` updated with new credential vars and refresh notes
 - [ ] `env.sample` updated with placeholder entries for any new vars
 

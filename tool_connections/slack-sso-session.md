@@ -1,6 +1,10 @@
 ---
 name: slack
+auth: sso-session
 description: Slack — two complementary modes. (1) Slack AI: post a natural-language question to the Slackbot DM and get a synthesized AI answer in ~0.2s, drawn from all Slack content you have access to. (2) search.messages: raw full-text search with Slack syntax (in:#channel, from:user, date range). Also: read channel/thread history, post messages. No Slack app install needed — xoxc user session via SSO.
+env_vars:
+  - SLACK_XOXC
+  - SLACK_D_COOKIE
 ---
 
 # Slack
