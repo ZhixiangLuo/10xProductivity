@@ -36,7 +36,7 @@ Tools are ordered by information value — start with Tier 1.
 | **Grafana** | sso-session | `tool_connections/grafana-sso-session.md` | Extracting PromQL from dashboard panels, finding dashboard UIDs |
 | **PagerDuty** | api-token | `tool_connections/pagerduty-api-token.md` | Who's on call, active incidents, service status, escalation policies |
 | **OpsGenie** | — | *(coming soon)* | On-call and alerting for OpsGenie-based orgs |
-| **Datadog** | — | *(coming soon)* | Time-series metrics, log search, APM traces |
+| **Datadog** | api-key | `tool_connections/datadog-api-key.md` | Querying monitors and alerts, host inventory, metrics time-series, dashboards, incidents |
 | **Splunk** | — | *(coming soon)* | Log search and analysis |
 
 ### Tier 3 — File & Document Access
@@ -124,6 +124,13 @@ Env: `GRAPH_ACCESS_TOKEN` + `OWA_ACCESS_TOKEN` (~1h — refresh with `assets/pla
 
 **Use when:** reading personal email in inbox/mail folders, fetching message details, and searching messages for personal Microsoft accounts (outlook.live.com). Read-only (send not supported by the token capture flow).
 Env: `OUTLOOK_ACCESS_TOKEN` (~1h — refresh with `python3 tool_connections/assets/get_outlook_token.py`)
+
+---
+
+## Datadog → `tool_connections/datadog-api-key.md`
+
+**Use when:** querying monitor status and alerts, listing alerting monitors, checking host inventory, searching available metrics, querying metric time-series, listing dashboards, or looking up active incidents.
+Env: `DD_API_KEY`, `DD_APP_KEY`, `DD_BASE_URL` (site-specific — e.g. `https://api.us5.datadoghq.com`)
 
 ---
 
