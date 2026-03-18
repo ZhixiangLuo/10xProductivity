@@ -28,7 +28,7 @@ This is the single most important quality gate. A connection file with one worki
 
 Add a new tool or auth variant to `community/`. Right path if you have a working connection but it hasn't been tested across environments, or if you use a different auth method than core (e.g. AD SSO instead of API token).
 
-**Agent:** load `contribute-connection/SKILL.md` — it runs the full flow.
+**Agent:** load `create-connection/SKILL.md` — it runs the full flow.
 
 Filename convention: `community/{tool-name}/{auth-method}-{github-username}.md` (e.g. `api-token-alice.md`, `ad-sso-carol.md`). No index update needed.
 
@@ -36,7 +36,7 @@ Filename convention: `community/{tool-name}/{auth-method}-{github-username}.md` 
 
 Add or improve a connection in `tool_connections/`. Core files are maintained and loaded by default. Bar is higher: multi-environment validation, complete auth flow, search interface documented, index wired.
 
-**Agent:** load `contribute-connection/SKILL.md` — it orchestrates research → validate → write → PR.
+**Agent:** load `create-connection/SKILL.md` — it orchestrates research → validate → write → PR.
 
 > Community files can be promoted to core. If your `community/` contribution is solid, open a promotion PR to move it to `tool_connections/`.
 

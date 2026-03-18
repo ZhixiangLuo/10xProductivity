@@ -37,7 +37,7 @@ If multiple files exist for the same tool, prefer the one whose auth method matc
 
 ## Contributing
 
-**Agent:** load `contribute-connection/SKILL.md` — it walks the full flow: research → validate → write → PR.
+**Agent:** load `create-connection/SKILL.md` — it walks the full flow: check credentials → research → validate → write → PR (contribution is optional).
 
 For manual guidance see `CONTRIBUTING.md` — specifically the **Community contributions** section. Use the template at `community/TEMPLATE.md`.
 

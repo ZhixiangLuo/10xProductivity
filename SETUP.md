@@ -235,7 +235,7 @@ print(r.get('login'), r.get('name'))
 
 > **Variant detection:** infer from the URL the user shares.
 > - `teams.live.com` → **Teams (personal)** — use the flow below.
-> - `teams.microsoft.com` → **Enterprise Teams** — not yet in core; contribution welcome via `contribute-connection/SKILL.md`.
+> - `teams.microsoft.com` → **Enterprise Teams** — not yet in core; contribution welcome via `create-connection/SKILL.md`.
 
 Auth uses your live browser session (Skype-derived `x-skypetoken`) — no API token page exists. Run the SSO script and log in with your Microsoft personal account:
 
@@ -403,17 +403,17 @@ print(r['user']['name'], r['user']['email'])
 ---
 
 #### 9. OpsGenie *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
 
 ---
 
 #### 10. Datadog *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
 
 ---
 
 #### 11. Splunk *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
 
 ---
 
@@ -446,23 +446,23 @@ with GDrive() as drive:
 ---
 
 #### 13. Notion *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
 
 ---
 
 ### Tier 4 — Issue Tracking & Support Alternatives
 
 #### 14. Linear *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
 
 #### 15. Zendesk *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
 
 #### 16. ServiceNow *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
 
 #### 17. Jenkins / GitHub Actions *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `contribute-connection/SKILL.md`.
+> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
 
 ---
 
@@ -602,4 +602,4 @@ If you had to iterate more than once on a tool — wrong token, failed script, u
 - Fix in `tool_connections/{tool}.md` if a snippet was wrong or an endpoint changed
 - Fix in `tool_connections/assets/playwright_sso.py` if the SSO script failed
 
-See `add-new-connection/SKILL.md` Step 6 for a structured checklist on hardening before closing.
+See `create-connection/SKILL.md` Phase 1 checklist for a structured checklist on hardening before closing.
