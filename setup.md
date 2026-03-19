@@ -36,6 +36,7 @@ This file is for your agent. Point your agent here first:
 | **Outlook / M365** | Any Outlook URL | SSO → run `tool_connections/outlook/sso.py` |
 | **Outlook.com** | Any Outlook URL | Token capture → run `tool_connections/outlook/get_outlook_token.py` |
 | **Google Drive** | Nothing | Browser session → run `tool_connections/google-drive/sso.py` |
+| **Notion** | API token from notion.so/my-integrations | API token (Bearer) — then grant page access via Settings → Integrations → Edit → Content access |
 | **Datadog** | Datadog URL + API key + App key | API key |
 
 ---
