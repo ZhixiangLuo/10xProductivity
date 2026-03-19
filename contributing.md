@@ -7,6 +7,8 @@ description: Contribute a verified personal tool connection back to the communit
 
 > **Starting point:** You already have a working, verified tool in `personal/`. This file takes you from there to a merged PR.
 >
+> **Run before you write (in this context):** The tool is already built and verified in `personal/`. "Run" here means re-executing your existing snippets against the live service right before promoting to staging — to generate fresh, timestamped output as proof. You're not building from scratch; you're re-confirming what already works and capturing the evidence.
+>
 > **Wrong file?** If you haven't built the connection yet, start with `add-new-tool.md`.
 
 ---
