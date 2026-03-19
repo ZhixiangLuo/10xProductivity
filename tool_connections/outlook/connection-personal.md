@@ -64,7 +64,7 @@ Both issues are fixable (add `wait_for_selector("button[aria-label='New mail']")
 ## Auth setup (token capture — read operations only)
 
 ```bash
-python3 tool_connections/assets/get_outlook_token.py
+python3 tool_connections/outlook/get_outlook_token.py
 ```
 
 A browser window opens to `outlook.live.com/mail/inbox`. If already logged in (session < ~24h) the token is captured automatically in ~15s. If not, sign in — the script captures the token after login. Result: `OUTLOOK_ACCESS_TOKEN` written to `.env`.

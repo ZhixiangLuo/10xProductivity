@@ -40,14 +40,14 @@ From the link, extract the workspace URL yourself (`https://acme.slack.com/`), u
 
 ```bash
 source .venv/bin/activate
-python3 tool_connections/assets/playwright_sso.py --slack-only
+python3 tool_connections/shared_utils/playwright_sso.py --slack-only
 ```
 
 The script opens a Chromium window, completes SSO (auto on managed machines, manual login once on personal machines), and writes `SLACK_XOXC` and `SLACK_D_COOKIE` to `.env` automatically. Never ask the user to open DevTools or extract tokens manually.
 
 ```bash
 # Refresh all tokens (Grafana + Slack in one pass):
-python3 tool_connections/assets/playwright_sso.py
+python3 tool_connections/shared_utils/playwright_sso.py
 ```
 
 **⚠ Load credentials in Python, not bash `source .env`** — xoxc tokens are long and bash may truncate them silently, causing `not_authed`. Always read `.env` directly in Python:

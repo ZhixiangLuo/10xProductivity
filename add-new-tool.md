@@ -1,41 +1,54 @@
 ---
-name: create-connection
-description: Create a verified tool connection from scratch. Covers the full flow: check credentials → research → validate → write. Contributing back to the repo is optional — only for commercial tools. Use when you need API access to a tool not yet in tool_connections/, or when asked to add or contribute a new tool connection.
+name: add-new-tool
+description: Add a new tool to this repo from scratch — research auth, validate against a live instance, write the connection files. Use when a tool has no recipe in tool_connections/ yet. Contributing back is optional. Do NOT use this if the tool already exists in tool_connections/ — use setup.md instead.
 ---
 
-# Create a Tool Connection
+# Add a New Tool
+
+> **What this file is for:** The tool has no recipe in `tool_connections/` yet. You are building one from scratch — researching auth, validating against a live instance, and writing the files so any agent can use this tool in the future.
+>
+> **Wrong file?** If the tool already exists in `tool_connections/`, use `setup.md` instead — that one connects your own instance using an existing recipe.
 
 ## Purpose
 
-Turn "I want my agent to access Tool X" into a working, verified connection file.
+Turn "I want my agent to access Tool X" into a working, verified connection file that any agent can pick up and use.
 
-**Phase 1 (always):** Create and verify the connection for your own use.
+**Phase 1 (always):** Research, validate, and write the connection for your own use.
 **Phase 2 (optional):** Contribute it back to the repo as a PR — only if the tool is commercial and publicly available.
 
 ---
 
 ## Non-negotiable rules
 
-1. **Credentials first.** If you don't have credentials for the tool, stop immediately — do not research, do not write. Ask the user for credentials before doing anything else.
-2. **Run before you write.** Every snippet must be code you actually executed and saw succeed against a live instance. No copy-paste from docs. No illustrative output. The reason you haven't run them does not matter — unverified snippets do not belong in a connection file.
-3. **Write for the next agent.** Strip session-specific IDs, one-time URLs, org-specific data. Document the pattern, not the artifact.
-4. **Nothing broken.** If an endpoint didn't work, cut it. One working snippet beats five broken ones.
+1. **Research viability first.** Before asking the user for anything, determine what auth methods exist for this tool. If no viable method exists (no public API, no session-based workaround, no OAuth path), stop — there is nothing to build.
+2. **Ask only what the auth method actually needs.** The credential ask must be proportional to the auth method: SSO/browser-session → ask for nothing (just a URL to confirm the instance); API token → ask for the token and where to generate it; username+password → ask for both. Never ask vague questions the user can't answer.
+3. **A URL is your best minimal input.** If you need to confirm an instance, ask for any URL from that tool (profile page, dashboard, ticket). It reveals the base URL, regional variant, and proves the user has access — without requiring them to know anything about auth.
+4. **Run before you write.** Every snippet must be code you actually executed and saw succeed against a live instance. No copy-paste from docs. No illustrative output. The reason you haven't run them does not matter — unverified snippets do not belong in a connection file.
+5. **Write for the next agent.** Strip session-specific IDs, one-time URLs, org-specific data. Document the pattern, not the artifact.
+6. **Nothing broken.** If an endpoint didn't work, cut it. One working snippet beats five broken ones.
 
 ---
 
 ## Phase 1: Create and Verify
 
-### Step 0: Check credentials — stop here if missing
+### Step 0: Research viability — stop here if no path exists
 
-Before anything else:
+Before asking the user for anything:
 
-```
-Do you have credentials for this tool? (API key, token, login URL?)
-```
+1. Research what auth methods exist for this tool (official API docs, OAuth, browser session, etc.)
+2. Pick the best viable method — prefer browser session (Playwright) for tools with no public API
+3. Determine exactly what that method needs from the user:
 
-If the user does not have credentials yet — **stop**. Do not research, do not write. Help the user get credentials first (direct them to the tool's settings/API token page), then restart from Step 0.
+| Auth method | Ask the user for |
+|-------------|-----------------|
+| Browser session / SSO | A URL from the tool (any page they can open) — nothing else |
+| API token | The token itself + where to generate it |
+| Username + password | Username and password |
+| OAuth (partner/app) | Whether they have an approved app + client credentials |
 
-If credentials are available — proceed to Step 1.
+If no viable auth method exists → **stop**. Do not ask the user anything. Explain why and what would need to change.
+
+If a method exists → ask the user only for the specific input that method requires, then proceed to Step 1.
 
 ---
 
@@ -142,10 +155,10 @@ Record both successes and permission errors — both are useful.
 ### Step 5: Write the connection file
 
 **Location:**
-- Personal use only → `tool_connections/{tool-name}-{auth}.md` (local, not committed)
-- Contributing back → `community/{tool-name}-{auth}.md` (see Phase 2)
+- Personal use → `personal/{tool-name}/` (gitignored — never committed)
+- Contributing back → copy to `staging/{tool-name}/` and open a PR (see Phase 2)
 
-**Format** (use `community/TEMPLATE.md` as reference):
+**Format** (use `staging/_example/` as reference):
 
 ```markdown
 ---
@@ -226,7 +239,7 @@ curl -s "$BASE/endpoint" -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
 
 ### Step 6: Eligibility check
 
-Answer both questions before writing a community file:
+Answer both questions before writing a staging file:
 
 **Is the tool commercial / publicly available?**
 - Anyone can sign up or purchase it → **eligible** (Datadog, Jenkins, Jira, Slack, etc.)
@@ -273,7 +286,7 @@ git pull origin main
 git checkout -b connection/{tool-name}
 
 # 2. Stage — NEVER stage .env or verified_connections.md
-git add community/{tool-name}-{auth-method}.md
+git add staging/{tool-name}/
 git add env.sample   # if new vars were added
 
 # 3. Commit
@@ -300,7 +313,7 @@ Production ({base-url}) — {YYYY-MM}. {No VPN required / VPN required.}
 
 ## Checklist
 
-- [x] File placed at community/{tool-name}-{auth-method}.md
+- [x] Files at staging/{tool-name}/setup.md and staging/{tool-name}/connection-{auth-method}.md
 - [x] Frontmatter complete (tool, auth, author, verified, env_vars)
 - [x] Every snippet run against live instance with real output
 - [x] No company-specific artifacts scrubbed
@@ -317,7 +330,8 @@ EOF
 ## Checklist — do not mark done until all boxes checked
 
 **Phase 1: Create & Verify**
-- [ ] Credentials confirmed before starting
+- [ ] Auth method researched and confirmed viable before asking user anything
+- [ ] Asked user only for what the auth method actually requires
 - [ ] Base URL confirmed (not guessed)
 - [ ] Auth mechanism identified and tested on production
 - [ ] At least 2 read endpoints run, real output recorded

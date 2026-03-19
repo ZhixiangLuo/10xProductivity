@@ -11,10 +11,10 @@ The captured token is written to OUTLOOK_ACCESS_TOKEN in .env (~1h TTL).
 No Azure app registration required. No manual copy-paste.
 
 Usage:
-    python3 tool_connections/assets/get_outlook_token.py
+    python3 tool_connections/outlook/get_outlook_token.py
 
     # Specify a different .env file:
-    python3 tool_connections/assets/get_outlook_token.py --env-file /path/to/.env
+    python3 tool_connections/outlook/get_outlook_token.py --env-file /path/to/.env
 
 Requirements:
     pip install playwright && playwright install chromium
@@ -67,7 +67,7 @@ def _update_env(env_path: Path, token: str) -> None:
             content += "\n"
         content += (
             "\n# --- Outlook Live (personal Microsoft account) ---\n"
-            "# ~1h TTL — refresh with: python3 tool_connections/assets/get_outlook_token.py\n"
+            "# ~1h TTL — refresh with: python3 tool_connections/outlook/get_outlook_token.py\n"
             f"{new_line}\n"
         )
     env_path.write_text(content)
