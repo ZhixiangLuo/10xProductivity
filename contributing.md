@@ -1,15 +1,15 @@
 ---
 name: contributing
-description: Contribute a verified personal tool connection back to the community. Start from verified_connections.md and personal/ — find what you have that tool_connections/ doesn't, decide if it's worth sharing, then copy to staging/ and open a PR.
+description: Contribute a verified personal tool connection back to the community — new tools, new auth variants, or fixes to existing connections. Start from personal/ — find what you have that tool_connections/ doesn't (or what you fixed), scrub it, copy to staging/, and open a PR.
 ---
 
 # Contributing a Tool Connection
 
-> **Starting point:** You already have a working, verified tool in `personal/`. This file takes you from there to a merged PR.
+> **Starting point:** You already have a working, verified recipe in `personal/` — whether it's a new tool, a new auth variant, or a patched fix to an existing `tool_connections/` recipe. This file takes you from there to a merged PR.
 >
-> **Run before you write (in this context):** The tool is already built and verified in `personal/`. "Run" here means re-executing your existing snippets against the live service right before promoting to staging — to generate fresh, timestamped output as proof. You're not building from scratch; you're re-confirming what already works and capturing the evidence.
+> **Run before you write (in this context):** The recipe is already built and verified in `personal/`. "Run" here means re-executing your existing snippets against the live service right before promoting to staging — to generate fresh, timestamped output as proof. You're not building from scratch; you're re-confirming what already works and capturing the evidence.
 >
-> **Wrong file?** If you haven't built the connection yet, start with `add-new-tool.md`.
+> **Wrong file?** If you haven't built or patched the connection yet, start with `add-new-tool.md` (new tool) or `setup.md` (broken recipe — patch in `personal/` first).
 
 ---
 
@@ -28,8 +28,28 @@ ls tool_connections/
 A tool is worth contributing if:
 - It's in `personal/` but **not** in `tool_connections/`
 - Or it's a **different auth method** for a tool that already exists (e.g. you have session-cookie, community only has api-token)
+- Or it's a **fix or improvement** to an existing connection that didn't work in your environment (e.g. the SSO script failed for personal accounts, an endpoint changed, a flag needed adding)
 
 Also check `verified_connections.md` — any tool listed there that came from `personal/` is a candidate.
+
+### Fixes and improvements to existing connections
+
+If you patched a recipe from `tool_connections/` to make it work (following the rule in `setup.md` to patch in `personal/` first), that fix belongs back in the community too. The process is the same — copy your patched files to `staging/{tool-name}/` — but the PR should make the fix scope clear:
+
+- **PR title:** `Fix {Tool Name} connection ({what broke})` — e.g. `Fix Google Drive SSO for personal accounts`
+- **PR body:** replace the "What this adds" section with a **"What this fixes"** section:
+
+  ```
+  ## What this fixes
+
+  {1-2 sentences: what broke, for whom, and what the fix is.}
+
+  ## Why it broke
+
+  {Brief technical explanation — e.g. "Google blocks sign-in from a fresh Playwright context on personal accounts. Switching to a persistent context with --disable-blink-features=AutomationControlled resolves it."}
+  ```
+
+The rest of the checklist (scrub, stage, validate) is identical. The only difference is framing.
 
 ---
 
@@ -97,6 +117,8 @@ TOOL_BASE_URL=https://api.tool.com
 
 ## Step 5: Open the PR
 
+### New tool or new auth variant
+
 ```bash
 # 1. Branch off latest main
 git checkout main
@@ -143,12 +165,63 @@ EOF
 )"
 ```
 
+### Fix or improvement to an existing connection
+
+```bash
+# 1. Branch off latest main
+git checkout main
+git pull origin main
+git checkout -b fix/{tool-name}-{what-broke}   # e.g. fix/google-drive-personal-sso
+
+# 2. Stage — NEVER stage .env or verified_connections.md
+git add staging/{tool-name}/
+git add env.sample   # only if env vars changed
+
+# 3. Commit
+git commit -m "Fix {Tool Name} connection ({what broke})"
+
+# 4. Push and open PR
+git push -u origin HEAD
+gh pr create \
+  --title "Fix {Tool Name} connection ({what broke})" \
+  --body "$(cat <<'EOF'
+## What this fixes
+
+{1-2 sentences: what broke, for whom, and what the fix is.}
+
+## Why it broke
+
+{Brief technical explanation — e.g. "Google blocks sign-in from a fresh Playwright context on
+personal accounts. Switching to a persistent context with --disable-blink-features=AutomationControlled
+resolves it."}
+
+## Validation summary
+
+- Verified fix works: {what you tested}
+- Existing happy path not regressed: {how you confirmed existing users are unaffected}
+
+## Verified against
+
+Production ({base-url}) — {YYYY-MM}. {No VPN required / VPN required.}
+
+## Checklist
+
+- [x] Files in staging/{tool-name}/
+- [x] Fix verified with real output
+- [x] Existing happy path confirmed unaffected
+- [x] Personal/org-specific data scrubbed
+- [x] Prompt injection check done
+- [x] .env NOT staged
+EOF
+)"
+```
+
 ---
 
 ## Checklist — do not mark done until all boxes checked
 
 - [ ] Tool is in `personal/` and verified (at least 2 snippets with real output)
-- [ ] Not already in `tool_connections/` with the same auth method
+- [ ] Not already in `tool_connections/` with the same auth method — **or** this is a fix/improvement to an existing connection
 - [ ] Tool is commercial/publicly available (not internal)
 - [ ] Connection is general enough for any user (not org-specific)
 - [ ] All personal/org data scrubbed from staging files
@@ -156,5 +229,6 @@ EOF
 - [ ] Files copied to `staging/{tool-name}/` (not moved — keep `personal/` intact)
 - [ ] `env.sample` updated with placeholder entries
 - [ ] `.env` NOT staged or committed
-- [ ] Branch named `connection/{tool-name}`
+- [ ] Branch named `connection/{tool-name}` (new tool / auth variant) or `fix/{tool-name}-{what-broke}` (fix)
 - [ ] PR body includes validation summary and verified-against statement
+- [ ] **Fix PRs only:** PR body has "What this fixes" and "Why it broke" sections; existing happy path confirmed unaffected

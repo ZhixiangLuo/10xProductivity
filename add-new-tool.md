@@ -38,19 +38,30 @@ Turn "I want my agent to access Tool X" into a working, verified connection file
 Before asking the user for anything:
 
 1. Research what auth methods exist for this tool (official API docs, OAuth, browser session, etc.)
-2. Pick the best viable method — prefer browser session (Playwright) for tools with no public API
-3. Determine exactly what that method needs from the user:
+2. Pick the best viable method using the priority order below
+3. Determine exactly what that method needs from the user
 
-| Auth method | Ask the user for |
-|-------------|-----------------|
-| Browser session / SSO | A URL from the tool (any page they can open) — nothing else |
-| API token | The token itself + where to generate it |
-| Username + password | Username and password |
-| OAuth (partner/app) | Whether they have an approved app + client credentials |
+**This repo's goal is zero-friction setup.** The user should never have to create an app, register OAuth credentials, or configure anything outside of this repo's own flow. Reject any auth approach that requires that — even if it's technically cleaner.
 
-If no viable auth method exists → **stop**. Do not ask the user anything. Explain why and what would need to change.
+**Auth method priority order:**
 
-If a method exists → ask the user only for the specific input that method requires, then proceed to Step 1.
+| Priority | Auth method | User friction | Ask the user for |
+|----------|-------------|---------------|-----------------|
+| 1 | **API token** | Near-zero — generate in tool settings (~30s) | The token + where to generate it |
+| 2 | **Browser session (SSO, one-time capture)** | Near-zero — run `sso.py` once, cached days/weeks | A URL from the tool — nothing else |
+| 3 | **Browser session (per operation)** | Low but costly — Playwright runs on every call | A URL from the tool — nothing else |
+| 4 | **Username + password** | Low — but only for legacy tools | Username and password |
+| ✗ | **OAuth requiring user to create their own app** | High — stop, do not use | N/A |
+
+**On browser automation cost:** distinguish setup cost from per-operation cost.
+- *SSO capture (Priority 2)* — Playwright runs once. Session is saved to disk and reused. This is acceptable and often the only option for SSO tools (Slack, Teams, Google Workspace).
+- *Per-operation browser (Priority 3)* — Playwright launches on every `search()`, `read()`, or `list()` call. Only accept this if there is genuinely no API or export endpoint. Document it explicitly in the connection file.
+
+**On OAuth:** OAuth is acceptable *only* when the repo ships pre-configured client credentials (the user just clicks "Authorize" in their browser — zero app creation). OAuth that requires the user to create a Google Cloud project, register a redirect URI, or configure a consent screen is **not acceptable** — the friction cost makes it worse than a browser session.
+
+**Stop and explain** if the only viable path requires the user to create an app or register OAuth credentials. Don't propose it as an option — it violates this repo's zero-friction goal.
+
+If a viable zero-friction method exists → ask the user only for what that method requires, then proceed to Step 1.
 
 ---
 

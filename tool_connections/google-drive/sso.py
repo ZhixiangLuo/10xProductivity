@@ -43,13 +43,22 @@ def is_valid() -> bool:
 
 def capture() -> dict:
     """Open Google Drive, complete SSO, save storage_state, return cookie info."""
-    print("  Opening Google Drive (Google Workspace SSO, ~30s)...")
+    print("  Opening Google Drive (~30s to sign in)...")
+    # Use a persistent context so Google sees a real browser profile, not a fresh
+    # automation session — this avoids the "browser may not be secure" block that
+    # personal accounts trigger when cookies are absent.
+    user_data_dir = str(Path.home() / ".browser_automation" / "gdrive_profile")
     with sync_playwright() as p:
-        browser = p.chromium.launch(
+        ctx = p.chromium.launch_persistent_context(
+            user_data_dir,
             headless=False,
-            args=["--window-size=1200,800", "--window-position=100,100"],
+            args=[
+                "--window-size=1200,800",
+                "--window-position=100,100",
+                "--disable-blink-features=AutomationControlled",
+            ],
+            ignore_https_errors=True,
         )
-        ctx = browser.new_context(ignore_https_errors=True)
         page = ctx.new_page()
 
         page.goto(GDRIVE_URL, wait_until="commit", timeout=30_000)
@@ -91,7 +100,7 @@ def capture() -> dict:
             f"{k}={cookie_dict[k]}" for k in cookie_keys
             if k in cookie_dict and cookie_dict[k]
         )
-        browser.close()
+        ctx.close()
 
     print(f"  Captured: GDRIVE_SAPISID ({len(sapisid)} chars)")
     return {"gdrive_cookies": cookie_str, "gdrive_sapisid": sapisid}
