@@ -90,6 +90,8 @@ Do not guess. Find the official API docs.
 
 Add to `.env` (repo root) only — do not touch `env.sample` or any other shared file:
 
+> **Watch for tools with explicit resource-sharing requirements.** Some tools (e.g. Notion) require you to explicitly grant the integration access to specific resources (pages, databases) even after auth succeeds. Workspace-level installation ≠ data access. If auth passes but read endpoints return 404 or empty results, look for a resource-level sharing step — usually found in the tool's Settings → Integrations/Apps → edit the integration → content/resource access panel. Document this in the Notes section of the connection file.
+
 ```bash
 # --- Tool Name ---
 TOOL_API_TOKEN=your-api-token-here
