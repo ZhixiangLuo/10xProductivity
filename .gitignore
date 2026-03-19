@@ -6,5 +6,6 @@ __pycache__/
 *.pyo
 .DS_Store
 ~/.browser_automation/
+/scripts
 .cursor/
 /personal/
