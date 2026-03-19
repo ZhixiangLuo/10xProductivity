@@ -16,13 +16,13 @@ No OAuth app or admin approval needed — access is via a saved Playwright brows
 - Requires a headed browser (macOS enterprise SSO only fires with a UI context).
 
 Auth file: `~/.browser_automation/gdrive_auth.json` (Playwright storage_state snapshot)
-Refresh: `python3 tool_connections/assets/playwright_sso.py --gdrive-only`
+Refresh: `python3 tool_connections/shared_utils/playwright_sso.py --gdrive-only`
 Asset: `assets/google_drive.py` — importable `GDrive` class; use instead of writing boilerplate
 
 ## Verify connection
 
 ```python
-import sys; sys.path.insert(0, "tool_connections/assets")
+import sys; sys.path.insert(0, "tool_connections/google-drive")
 from google_drive import GDrive
 with GDrive() as drive:
     files = drive.list_my_drive()
@@ -39,7 +39,7 @@ with GDrive() as drive:
 
 ```python
 import sys
-sys.path.insert(0, "tool_connections/assets")
+sys.path.insert(0, "tool_connections/google-drive")
 from google_drive import GDrive
 
 with GDrive() as drive:
@@ -76,7 +76,7 @@ python3 google_drive.py read <file_id> document
 
 ```bash
 source .venv/bin/activate
-python3 tool_connections/assets/playwright_sso.py --gdrive-only
+python3 tool_connections/shared_utils/playwright_sso.py --gdrive-only
 ```
 
 Browser opens → Google Workspace SSO completes → session saved to `~/.browser_automation/gdrive_auth.json`.

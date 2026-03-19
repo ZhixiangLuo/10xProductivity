@@ -31,7 +31,7 @@ Tokens are captured by opening `outlook.office.com` in a headed Playwright brows
 
 ```bash
 source .venv/bin/activate
-python3 tool_connections/assets/playwright_sso.py --outlook-only
+python3 tool_connections/shared_utils/playwright_sso.py --outlook-only
 # Opens browser → Azure AD SSO (auto-completes on managed Mac, ~30s)
 # Writes GRAPH_ACCESS_TOKEN + OWA_ACCESS_TOKEN to .env
 ```

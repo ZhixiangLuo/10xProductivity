@@ -39,21 +39,40 @@ If every individual is 10x productive, the team and company is 10x as a result. 
 **Agent-readable playbooks** for connecting your local agent to the tools you already use. Each playbook is a skill file — not a tutorial for humans, but a structured document an LLM agent can read, understand, and execute.
 
 ```
-tool_connections/             ← core, validated connection files
-  github-api-token.md
-  slack-sso-session.md
-  jira-api-token.md
-  confluence-api-token.md
-  grafana-sso-session.md
-  ...
-  assets/
-    playwright_sso.py         ← SSO session automation (Okta, Google, Microsoft)
+tool_connections/             ← one folder per tool
+  slack/
+    setup.md                  ← how to connect (what to ask, which script to run, verify snippet)
+    connection-sso.md         ← how to use once connected (API surface, snippets, gotchas)
+  jira/
+    setup.md
+    connection-api-token.md   ← Jira Cloud (API token + Basic auth)
+  github/
+    setup.md
+    connection-api-token.md
+  confluence/
+    setup.md
+    connection-api-token.md
+  grafana/
+    setup.md
+    connection-sso.md
+  outlook/
+    setup.md
+    connection-m365.md        ← work account (Azure AD / Graph + OWA)
+    connection-personal.md    ← personal Outlook.com account
+  ...                         ← one folder per tool, multiple connection-*.md for variants
+  shared_utils/
+    browser.py / sso_patterns.py  ← shared SSO utilities for per-tool sso.py scripts
+  google-drive/
+    ...
+    google_drive.py           ← importable helper (Google Drive only)
+  outlook/
+    ...
+    get_outlook_token.py      ← token capture script (Outlook.com only)
 
-community/                    ← community-contributed connections (lower validation bar)
-  {tool-name}-{auth-method}.md  ← e.g. community/datadog-api-key.md
+staging/                    ← staging-contributed connections (lower validation bar)
+  {tool-name}-{auth-method}.md  ← e.g. staging/linear-api-token.md
 
-create-connection/
-  SKILL.md                    ← playbook: check credentials → research → validate → write → PR (contribution optional)
+add-new-tool.md          ← playbook: research auth → ask URL first → try the most likely auth → ask only for missing credentials → validate → write → PR (contribution optional)
 
 verified_connections.example.md  ← master catalog of all available connections
 env.sample                        ← credential variable reference (copy to .env)
@@ -74,7 +93,7 @@ cp env.sample .env
 Then point your agent at the setup guide — the most effective way is to paste the full path so your agent can load it immediately:
 
 ```
-Read /path/to/10xProductivity/SETUP.md and set up my tool connections.
+Read /path/to/10xProductivity/setup.md and set up my tool connections.
 ```
 
 Your agent will ask which tools you use, guide you to get each credential, run SSO where needed, and verify each connection works.
@@ -93,7 +112,7 @@ The repo currently covers the tools developers use most across their daily work 
 
 **File access:** Google Drive (list, search, read, export Docs/Sheets/Slides).
 
-See `verified_connections.example.md` for the full catalog including community contributions.
+See `verified_connections.example.md` for the full catalog including staging contributions.
 
 ---
 
@@ -101,13 +120,13 @@ See `verified_connections.example.md` for the full catalog including community c
 
 **User** — you want to connect your agent to tools you already use:
 1. Follow the [Quick start](#quick-start) above
-2. Ask your agent: *"Read /path/to/10xProductivity/SETUP.md and set up my tool connections"*
+2. Ask your agent: *"Read /path/to/10xProductivity/setup.md and set up my tool connections"*
 3. Your agent generates `verified_connections.md` — load it at session start
 
 **Contributor** — you want to add a new tool or improve an existing connection:
-1. Ask your agent: *"Load create-connection/SKILL.md and add a connection for [Tool]"*
-2. The skill walks through: check credentials → research → validate → write → PR (contribution is optional and only for commercial tools)
-3. Community files (`community/`) have a lower bar; core (`tool_connections/`) requires multi-environment validation
+1. Ask your agent: *"Load add-new-tool.md and add a connection for [Tool]"*
+2. The skill walks through: research auth → ask URL first → try the most likely auth → ask only for missing credentials → validate → write → PR (contribution is optional and only for commercial tools)
+3. Community files (`staging/`) have a lower bar; core (`tool_connections/`) requires multi-environment validation
 
 ---
 
@@ -121,7 +140,7 @@ Contributions are welcome for:
 
 If something doesn't work or you want to request a new tool, open an issue.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full process. The core rule: **run before you write.** Every snippet must be code you actually executed and saw succeed. No copy-paste from docs.
+See [contributing.md](contributing.md) for the full process. The core rule: **run before you write.** Every snippet must be code you actually executed and saw succeed. No copy-paste from docs.
 
 ---
 
