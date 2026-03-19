@@ -52,7 +52,7 @@ curl -s "$DD_BASE_URL/api/v1/validate" \
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Datadog ---

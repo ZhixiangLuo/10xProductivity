@@ -52,7 +52,7 @@ curl -s -k "$BACKSTAGE_BASE_URL/api/catalog/entity-facets?facet=kind" \
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Backstage ---

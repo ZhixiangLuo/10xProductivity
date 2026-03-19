@@ -53,7 +53,7 @@ env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- {Tool Name} ---

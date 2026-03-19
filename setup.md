@@ -50,8 +50,8 @@ cd 10xProductivity
 python3 -m venv .venv && source .venv/bin/activate
 pip install playwright && playwright install chromium
 
-# Copy env template
-cp env.sample .env
+# Create .env (empty — fill from each tool's setup.md as you connect)
+touch .env
 ```
 
 ---

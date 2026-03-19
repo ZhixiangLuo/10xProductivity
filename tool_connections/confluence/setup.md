@@ -69,7 +69,7 @@ curl -s -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Confluence ---

@@ -47,7 +47,7 @@ curl -s -k -H "Authorization: Bearer $BITBUCKET_TOKEN" \
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Bitbucket Server / Data Center ---

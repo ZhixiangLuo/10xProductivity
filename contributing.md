@@ -104,14 +104,7 @@ ls staging/{tool-name}/
 # should have: connection-{auth-method}.md, setup.md, and sso.py if applicable
 ```
 
-Also update `env.sample` with placeholder entries for any new env vars:
-
-```bash
-# --- Tool Name ---
-TOOL_API_TOKEN=your-token-here
-TOOL_BASE_URL=https://api.tool.com
-# Generate at: {URL}
-```
+**Do not edit root `env.sample`.** Env vars belong only in `staging/{tool-name}/setup.md` (and `connection-*.md` as needed). Contributors never touch shared index files for new variables.
 
 ---
 
@@ -127,7 +120,6 @@ git checkout -b connection/{tool-name}
 
 # 2. Stage — NEVER stage .env or verified_connections.md
 git add staging/{tool-name}/
-git add env.sample
 
 # 3. Commit
 git commit -m "Add {Tool Name} connection ({auth-method})"
@@ -158,7 +150,6 @@ Production ({base-url}) — {YYYY-MM}. {No VPN required / VPN required.}
 - [x] Every snippet run against live instance with real output
 - [x] Personal/org-specific data scrubbed
 - [x] Prompt injection check done
-- [x] env.sample updated
 - [x] Tool is commercial/public (not internal)
 - [x] .env NOT staged
 EOF
@@ -175,7 +166,6 @@ git checkout -b fix/{tool-name}-{what-broke}   # e.g. fix/google-drive-personal-
 
 # 2. Stage — NEVER stage .env or verified_connections.md
 git add staging/{tool-name}/
-git add env.sample   # only if env vars changed
 
 # 3. Commit
 git commit -m "Fix {Tool Name} connection ({what broke})"
@@ -227,7 +217,6 @@ EOF
 - [ ] All personal/org data scrubbed from staging files
 - [ ] Prompt injection check done on all `# →` output
 - [ ] Files copied to `staging/{tool-name}/` (not moved — keep `personal/` intact)
-- [ ] `env.sample` updated with placeholder entries
 - [ ] `.env` NOT staged or committed
 - [ ] Branch named `connection/{tool-name}` (new tool / auth variant) or `fix/{tool-name}-{what-broke}` (fix)
 - [ ] PR body includes validation summary and verified-against statement

@@ -75,7 +75,7 @@ staging/                    ← staging-contributed connections (lower validatio
 add-new-tool.md          ← playbook: research auth → ask URL first → try the most likely auth → ask only for missing credentials → validate → write → PR (contribution optional)
 
 verified_connections.example.md  ← master catalog of all available connections
-env.sample                        ← credential variable reference (copy to .env)
+env.sample                        ← stub only — real var templates live in each tool's setup.md
 ```
 
 ---
@@ -87,7 +87,7 @@ git clone https://github.com/ZhixiangLuo/10xProductivity.git
 cd 10xProductivity
 python3 -m venv .venv && source .venv/bin/activate
 pip install playwright && playwright install chromium
-cp env.sample .env
+touch .env
 ```
 
 Then point your agent at the setup guide — the most effective way is to paste the full path so your agent can load it immediately:
@@ -98,7 +98,7 @@ Read /path/to/10xProductivity/setup.md and set up my tool connections.
 
 Your agent will ask which tools you use, guide you to get each credential, run SSO where needed, and verify each connection works.
 
-**Manual setup:** edit `.env` with your credentials, then see `verified_connections.example.md` for the full tool catalog.
+**Manual setup:** copy the `.env` block from each `tool_connections/{tool}/setup.md` you use into `.env`, then see `verified_connections.example.md` for the full tool catalog.
 
 ---
 

@@ -47,7 +47,7 @@ curl -s "$GRAFANA_BASE_URL/api/user" \
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Grafana ---

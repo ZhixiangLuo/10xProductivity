@@ -37,7 +37,7 @@ curl -s "https://api.pagerduty.com/users/me" \
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- PagerDuty ---

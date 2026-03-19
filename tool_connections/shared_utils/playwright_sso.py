@@ -31,7 +31,7 @@ Usage (library):
     tokens = get_outlook_session()    # {"graph_access_token": "...", "owa_access_token": "..."}
 
 Configuration:
-    Set these in your .env file (see env.sample):
+    Set these in your .env file (see the relevant tool's setup.md under `.env` entries):
       GRAFANA_BASE_URL    — your Grafana instance URL
       SLACK_WORKSPACE_URL — your Slack workspace URL (e.g. https://yourcompany.slack.com/)
     Or override the constants below directly.

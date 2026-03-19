@@ -50,7 +50,7 @@ print(r.get('displayName'), r.get('emailAddress'))
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Jira ---

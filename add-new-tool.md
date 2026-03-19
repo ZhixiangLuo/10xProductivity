@@ -99,7 +99,7 @@ Do not guess. Find the official API docs.
 
 ### Step 3: Store credentials
 
-Add to `.env` (repo root) only — do not touch `env.sample` or any other shared file:
+Add to `.env` (repo root) only — do not edit root `env.sample` (it is a stub) or other shared index files. Document new variables in `personal/{tool}/setup.md` under **`.env` entries**.
 
 > **Watch for tools with explicit resource-sharing requirements.** Some tools (e.g. Notion) require you to explicitly grant the integration access to specific resources (pages, databases) even after auth succeeds. Workspace-level installation ≠ data access. If auth passes but read endpoints return 404 or empty results, look for a resource-level sharing step — usually found in the tool's Settings → Integrations/Apps → edit the integration → content/resource access panel. Document this in the Notes section of the connection file.
 

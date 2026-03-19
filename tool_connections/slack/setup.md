@@ -51,7 +51,7 @@ print(r.get("user"), r.get("team"))
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Slack ---

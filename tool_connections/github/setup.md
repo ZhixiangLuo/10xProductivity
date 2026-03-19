@@ -39,7 +39,7 @@ curl -s -H "Authorization: token $GITHUB_TOKEN" \
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- GitHub ---

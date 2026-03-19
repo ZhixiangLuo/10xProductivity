@@ -54,7 +54,7 @@ print("ok" if "metadata" in r else r)
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Microsoft Teams (personal) ---

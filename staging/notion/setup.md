@@ -43,7 +43,7 @@ curl -s "$NOTION_BASE_URL/users/me" \
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Notion ---

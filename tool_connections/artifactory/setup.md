@@ -48,7 +48,7 @@ curl -s -H "Authorization: Basic $AUTH" \
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Artifactory ---

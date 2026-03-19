@@ -77,7 +77,7 @@ Token TTL: ~1h. Session TTL: ~24h. **Connection details:** `tool_connections/out
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Outlook / Microsoft 365 (work account) ---

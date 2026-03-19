@@ -47,7 +47,7 @@ curl -s -u "$JENKINS_USER:$JENKINS_TOKEN" \
 
 ---
 
-## env.sample entries
+## `.env` entries
 
 ```bash
 # --- Jenkins ---
