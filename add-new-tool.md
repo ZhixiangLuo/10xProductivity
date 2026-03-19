@@ -143,6 +143,27 @@ curl -s "$TOOL_BASE_URL/items?limit=5" -H "Authorization: Bearer $TOOL_API_TOKEN
 
 Record both successes and permission errors — both are useful.
 
+#### 4d. Native search and AI/chat
+
+**Always check — this is what makes a connection genuinely useful to an agent.**
+
+For every tool, answer these two questions before writing the connection file:
+
+1. **Does it have a search API?** (full-text, title-based, filter-based — any kind)
+   - Try common patterns: `/search`, `/api/search`, `?q=`, `?query=`
+   - Run it. Record what fields it searches, what it returns, and any limitations (e.g. title-only, indexed with delay).
+
+2. **Does it have an AI or chat API?** (LLM-backed Q&A, summarization, assistant endpoint)
+   - Check official docs for "AI", "assistant", "chat", "copilot" endpoints.
+   - If none exist in the public API, say so explicitly — do not leave it ambiguous.
+
+**Document the result in the Notes section of the connection file:**
+- If search works: show a verified snippet with real output.
+- If AI/chat exists: show the endpoint and a verified call.
+- If neither exists or is paywalled: state it clearly (e.g. "No search API." or "AI chat is enterprise-only, no public endpoint.").
+
+Skipping this step leaves the agent blind to the tool's most useful capabilities.
+
 ---
 
 ### Step 5: Write the connection file
@@ -263,6 +284,8 @@ If the tool is commercial/publicly available and you want to share the connectio
 - [ ] Base URL confirmed (not guessed)
 - [ ] Auth mechanism identified and tested on production
 - [ ] At least 2 read endpoints run, real output recorded
+- [ ] Native search API tested — verified snippet recorded, or explicitly noted as absent
+- [ ] AI/chat API checked — verified snippet recorded, or explicitly noted as unavailable/paywalled
 - [ ] `verified: YYYY-MM` filled in (blank = not ready)
 - [ ] `.env` updated with new credentials
 - [ ] All files written to `personal/{tool-name}/` only — nothing outside `personal/`
