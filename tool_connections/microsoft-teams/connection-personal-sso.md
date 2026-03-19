@@ -27,7 +27,7 @@ Teams (personal) has no API token page. Run the SSO script — it opens a Chromi
 
 ```bash
 source .venv/bin/activate
-python3 tool_connections/assets/playwright_sso.py --teams-only
+python3 tool_connections/shared_utils/playwright_sso.py --teams-only
 ```
 
 The script intercepts `x-skypetoken` from outgoing network request headers as the Teams app loads. On managed Azure AD machines this may auto-complete; on personal machines complete the Microsoft login once through the browser (~30–45s after login).

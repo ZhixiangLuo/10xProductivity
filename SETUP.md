@@ -1,8 +1,12 @@
 # Setup Guide
 
+> **What this file is for:** The tool already has a recipe in `tool_connections/`. You are connecting your own instance of it — putting credentials in `.env` and verifying they work.
+>
+> **Wrong file?** If the tool doesn't exist in `tool_connections/` yet, use `add-new-tool.md` instead — that one builds the recipe from scratch.
+
 This file is for your agent. Point your agent here first:
 
-> *"Read SETUP.md and set up my tool connections."*
+> *"Read setup.md and set up my tool connections."*
 
 ---
 
@@ -11,24 +15,27 @@ This file is for your agent. Point your agent here first:
 **Do as much as possible. Ask as little as possible. Ask non-technically.**
 
 - Run every command yourself. Never paste a command and ask the user to run it.
-- Infer everything you can before asking. A Slack message URL tells you the workspace URL. A Jira ticket URL tells you the base URL. Don't ask for what you can derive.
-- When you must ask, ask for the one thing only the user can provide (a credential, a URL they're logged into), and phrase it in plain language — not in technical terms.
+- **Ask for a URL first.** For any tool, the best minimal input is a URL the user already has open (a ticket, a message link, a dashboard URL). It reveals the base URL, workspace, and regional variant — without requiring the user to know anything about auth.
+- **Infer the auth method from the URL, then try it.** Check the tool's `setup.md` to determine the auth method. For SSO/browser-session tools, attempt Playwright immediately — no further questions needed. For API token tools, check `.env` first — the token may already be there.
+- **Ask for credentials only if actually missing, and only for the specific thing that's missing.** Never ask vague questions like "do you have credentials?" Know what you need before you ask.
+- When you must ask, phrase it in plain language — not in technical terms.
 - As soon as you have what you need, do the work and verify it yourself. Tell the user what succeeded, not what they need to do next.
 
 **Minimum user input by tool:**
 
-| Tool | What to ask for | What you can infer / automate |
-|------|----------------|-------------------------------|
-| **Slack** | "Send me any Slack message link from your workspace" — that's it | Workspace URL from the link; run `playwright_sso.py --slack-only` to capture tokens automatically |
-| **Jira** | "Share any Jira ticket URL" + "Paste your API token (Jira → Profile → API Tokens)" + "Your Atlassian account email" | Base URL from the ticket link; auth is Basic base64(email:token) |
-| **GitHub** | "Paste your GitHub personal access token (Settings → Developer settings → Personal access tokens)" | Base URL is `https://api.github.com` unless they share a GHE URL |
-| **Confluence** | "Share any Confluence page URL" + "Paste your API token (Confluence → Profile → Personal Access Tokens)" | Base URL from the page link |
-| **Grafana** | "Share your Grafana URL" | Run `playwright_sso.py --grafana-only` to capture session automatically |
-| **PagerDuty** | "Paste your PagerDuty API key (My Profile → User Settings → API Access)" | Base URL is always `https://api.pagerduty.com` |
-| **Microsoft Teams** | "Share any Teams link or message URL" — infer personal (`teams.live.com`) vs enterprise (`teams.microsoft.com`) | Personal: run `playwright_sso.py --teams-only`; Enterprise: not yet supported (contribution welcome) |
-| **Outlook** | "Share any Outlook link or email URL" — infer Outlook.com (`outlook.live.com`) vs Microsoft 365 (`outlook.office.com`) | M365: run `playwright_sso.py --outlook-only`; Outlook.com: run `get_outlook_token.py` |
-| **Google Drive** | Nothing — just run the script | Run `playwright_sso.py --gdrive-only`; browser opens, user logs in once |
-| **Datadog** | "Share your Datadog URL" + "Paste your API key" + "Paste your Application key" | Base URL inferred from subdomain (e.g. `us5.datadoghq.com` → `api.us5.datadoghq.com`); both keys from org settings |
+| Tool | What to ask for | Auth method |
+|------|----------------|-------------|
+| **Slack** | Any Slack message link | SSO → run `tool_connections/slack/sso.py` |
+| **Jira** | Any Jira ticket URL + API token + email | API token (Basic auth) |
+| **GitHub** | PAT (+ repo URL if GHE) | API token (Bearer) |
+| **Confluence** | Any Confluence page URL + API token + email | API token (Basic auth) |
+| **Grafana** | Grafana URL | SSO → run `tool_connections/grafana/sso.py` |
+| **PagerDuty** | API key | API token |
+| **Microsoft Teams** | Any Teams link | SSO → run `tool_connections/microsoft-teams/sso.py` |
+| **Outlook / M365** | Any Outlook URL | SSO → run `tool_connections/outlook/sso.py` |
+| **Outlook.com** | Any Outlook URL | Token capture → run `tool_connections/outlook/get_outlook_token.py` |
+| **Google Drive** | Nothing | Browser session → run `tool_connections/google-drive/sso.py` |
+| **Datadog** | Datadog URL + API key + App key | API key |
 
 ---
 
@@ -61,444 +68,79 @@ Ask once, simply:
 > - Grafana
 > - PagerDuty / OpsGenie
 > - Google Drive / Google Workspace
-> - Notion
-> - Linear
 > - Datadog / Splunk
-> - Zendesk / ServiceNow
-> - Other (describe)
+> - Artifactory
+> - Bitbucket Server
+> - Jenkins
+> - Backstage
+> - Other (describe — check `personal/` for existing recipes, or run `add-new-tool.md` to build one)
 
 Only set up what they actually use. Don't touch tools they don't have.
 
----
-
-## How credentials work
-
-Tools fall into two categories:
-
-**API tokens** (Jira, GitHub, Confluence, PagerDuty) — generate a personal token in the tool's settings UI, paste it into `.env`. Long-lived, no browser needed.
-
-**Session cookies** (Slack, Grafana, Google Drive) — these tools use SSO and don't offer simple API tokens. You authenticate by extracting your existing browser session. You're already logged in; you just need to copy the cookie/token out.
-
-### How to extract a session cookie from any browser
-
-This is the universal approach for any SSO-based tool. You don't need to log in again — just copy what's already there.
-
-1. Open the tool in **Chrome or Firefox** (you should already be logged in)
-2. Press `F12` (or right-click → Inspect) to open DevTools
-3. Go to **Application** tab → **Cookies** → click the tool's URL in the left sidebar
-4. Find the cookie named in the per-tool instructions below, copy its **Value**
-5. Paste it into `.env`
-
-For **Slack only**, there's also a JS token to extract (in addition to the cookie) — see the Slack section below.
-
-**Managed machines with enterprise SSO (Okta, Azure AD, Google):** you can alternatively run the automated script which opens a browser and captures tokens automatically:
-```bash
-source .venv/bin/activate
-python3 tool_connections/assets/playwright_sso.py --slack-only    # or --grafana-only / --gdrive-only
-```
-Use whichever is faster for your setup.
+**Tool not in the list above?** Check `personal/` first — if a recipe exists there, use it. If not, run `add-new-tool.md` to build one from scratch (it will write to `personal/`).
 
 ---
 
 ## Step 2: Set up tools in priority order
 
-**Validation is mandatory.** For every tool you configure, you MUST run the **Verify** command and confirm it returns the expected output before moving on. If it fails, fix the credential before proceeding.
+**Validation is mandatory.** For every tool, run the verify snippet and confirm it returns expected output before moving on.
 
-Start with **Tier 1** (knowledge tools) — these make everything else easier because your agent can look up how to use the other tools, find credentials, and understand your team's context.
+Start with **Tier 1** — these make everything else easier.
 
-### Tier 1 — Knowledge & Context (do these first)
+### Tier 1 — Knowledge & Context
 
-#### 1. Confluence *(if used)*
-Knowledge base, runbooks, architecture docs — your agent's primary reference for "how does X work?"
-
-**Ask the user for:**
-- "Share any Confluence page URL" → infer `CONFLUENCE_BASE_URL` from it
-- "Paste your Confluence API token" → Confluence → Profile photo → Personal Access Tokens → Create token
-
-Set `.env`:
-```
-CONFLUENCE_TOKEN=<token>
-CONFLUENCE_BASE_URL=https://yourcompany.atlassian.net/wiki   # inferred from URL they shared
-```
-
-**Verify:**
-```python
-from pathlib import Path
-env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
-       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
-import urllib.request, json, ssl
-ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-req = urllib.request.Request(
-    f"{env['CONFLUENCE_BASE_URL']}/rest/api/content/search?cql=type=page&limit=1",
-    headers={"Authorization": f"Bearer {env['CONFLUENCE_TOKEN']}"})
-r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
-print(r['results'][0]['title'] if r.get('results') else r)
-# Should print a page title
-```
-
----
-
-#### 2. Slack *(if used)*
-Decisions, context, who to ask — the informal knowledge layer. Slack AI can answer "how do we do X?" in 0.2s.
-
-**Ask the user for:** "Send me any Slack message link from your workspace (right-click any message → Copy link)."
-
-> **Note:** Slack AI (natural-language Q&A over workspace history) requires Business+ or Enterprise+ plan. On Free/Pro plans, `search.messages` still works for keyword search.
-
-That's the only input needed. The workspace URL is inferred from the link. Then run the SSO script — it opens a browser, the user logs in once (if not already), and tokens are written to `.env` automatically.
-
-**What you do:**
-1. Extract workspace URL from the message link (e.g. `https://acme.slack.com/...` → `SLACK_WORKSPACE_URL=https://acme.slack.com/`). Update `.env`.
-2. Run the SSO script:
-```bash
-source .venv/bin/activate
-python3 tool_connections/assets/playwright_sso.py --slack-only
-```
-The script opens a Chromium window. On managed machines with enterprise SSO it completes automatically (~20s). On personal machines, the user logs in once through the browser.
-
-**Verify:**
-```python
-from pathlib import Path
-env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
-       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
-import urllib.request, json, ssl
-ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-req = urllib.request.Request("https://slack.com/api/auth.test",
-    headers={"Authorization": f"Bearer {env['SLACK_XOXC']}", "Cookie": f"d={env['SLACK_D_COOKIE']}"})
-r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
-print(r.get("user"), r.get("team"))
-# Should print your Slack username and workspace name
-```
-
----
-
-#### 3. Jira *(if used)*
-Your work queue, sprint, tickets — what needs to get done.
-
-**Ask the user for:**
-- "Share any Jira ticket URL" → infer `JIRA_BASE_URL` from it (e.g. `https://acme.atlassian.net/browse/ENG-123` → `https://acme.atlassian.net`)
-- "Paste your Jira API token" → Jira → Profile photo → Manage account → Security → API tokens → Create
-
-Set `.env`:
-```
-JIRA_EMAIL=you@yourcompany.com
-JIRA_API_TOKEN=<token>
-JIRA_BASE_URL=https://yourcompany.atlassian.net   # inferred from URL they shared
-```
-
-**Verify:**
-```python
-from pathlib import Path
-env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
-       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
-import urllib.request, json, ssl, base64
-ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
-req = urllib.request.Request(f"{env['JIRA_BASE_URL']}/rest/api/2/myself",
-    headers={"Authorization": f"Basic {creds}"})
-r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
-print(r.get('displayName'), r.get('emailAddress'))
-# Should print your name and email
-```
-
----
-
-#### 4. GitHub *(if used)*
-Code, PRs, READMEs — source of truth for implementation. Works with github.com and GitHub Enterprise.
-
-**Ask the user for:**
-- "Paste your GitHub personal access token" → GitHub → Settings → Developer settings → Personal access tokens → Generate new token (scopes: `repo`, `read:org`)
-- If GitHub Enterprise: "Share any repo or PR URL from your GitHub" → infer the GHE base URL
-
-Set `.env`:
-```
-GITHUB_TOKEN=<token>
-GITHUB_BASE_URL=https://api.github.com   # or https://your-ghe.example.com/api/v3
-```
-
-**Verify:**
-```python
-from pathlib import Path
-env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
-       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
-import urllib.request, json, ssl
-ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-req = urllib.request.Request(f"{env['GITHUB_BASE_URL']}/user",
-    headers={"Authorization": f"token {env['GITHUB_TOKEN']}"})
-r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
-print(r.get('login'), r.get('name'))
-# Should print your GitHub username and name
-```
-
----
-
-#### 5. Microsoft Teams
-
-> **Variant detection:** infer from the URL the user shares.
-> - `teams.live.com` → **Teams (personal)** — use the flow below.
-> - `teams.microsoft.com` → **Enterprise Teams** — not yet in core; contribution welcome via `create-connection/SKILL.md`.
-
-Auth uses your live browser session (Skype-derived `x-skypetoken`) — no API token page exists. Run the SSO script and log in with your Microsoft personal account:
-
-```bash
-source .venv/bin/activate
-python3 tool_connections/assets/playwright_sso.py --teams-only
-```
-
-The script opens a Chromium window, captures `TEAMS_SKYPETOKEN` and `TEAMS_SESSION_ID` from network headers, and writes them to `.env` automatically.
-
-**Verify:**
-```python
-from pathlib import Path
-env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
-       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
-import urllib.request, json, ssl
-ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-req = urllib.request.Request(
-    f"{env['TEAMS_BASE_URL']}/api/csa/api/v1/teams/users/me/updates"
-    "?isPrefetch=false&enableMembershipSummary=true",
-    headers={"x-skypetoken": env["TEAMS_SKYPETOKEN"],
-             "x-ms-session-id": env["TEAMS_SESSION_ID"]})
-r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
-chats = r.get("chats", [])
-print(f"{len(chats)} chats found")
-# Should print: 5 chats found (or similar)
-# If 401/403: token expired — run playwright_sso.py --teams-only to refresh
-```
-
-Full connection details: `tool_connections/microsoft-teams-personal-sso-session.md`
-
----
-
-#### 6. Outlook
-
-Email, calendar, contacts — your scheduled meetings, unread mail, and colleague lookup.
-
-> **Variant detection:** infer from the URL the user shares.
-> - `outlook.office.com` or `office365` → **Outlook / Microsoft 365** (work/Azure AD) — use the M365 flow below.
-> - `outlook.live.com` or `outlook.com` → **Outlook.com** (personal) — skip to section 7.
-
-Auth uses your existing browser session (two Bearer tokens captured from network requests). No API key page exists — run the SSO script:
-
-```bash
-source .venv/bin/activate
-python3 tool_connections/assets/playwright_sso.py --outlook-only
-```
-
-The script opens a Chromium window and navigates to `outlook.office.com`. On a managed machine (Workday, Intune, company MDM), Azure AD SSO auto-completes in ~30s. On unmanaged machines, complete the Microsoft 365 login once through the browser.
-
-Two tokens are captured:
-- `GRAPH_ACCESS_TOKEN` — for Microsoft Graph (`/me`, `/me/people`)
-- `OWA_ACCESS_TOKEN` — for Outlook REST API v2.0 (mail, calendar, contacts)
-
-**Verify:**
-```python
-from pathlib import Path
-env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
-       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
-import urllib.request, json, ssl
-ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-
-req = urllib.request.Request("https://graph.microsoft.com/v1.0/me",
-    headers={"Authorization": f"Bearer {env['GRAPH_ACCESS_TOKEN']}"})
-r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
-print(r["displayName"], r["mail"])
-# Should print your name and work email
-
-req = urllib.request.Request("https://outlook.office.com/api/v2.0/me/MailFolders/Inbox?$select=DisplayName,UnreadItemCount",
-    headers={"Authorization": f"Bearer {env['OWA_ACCESS_TOKEN']}"})
-r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
-print(r["DisplayName"], r["UnreadItemCount"])
-# Should print: Inbox  <count>
-```
-
-Full connection details: `tool_connections/outlook-sso-session.md`
-
----
-
-#### 7. Outlook.com
-
-Email (inbox), mail folders, and message search for personal Microsoft accounts (outlook.live.com).
-
-Refresh your read-only token by capturing it in a browser session:
-
-```bash
-source .venv/bin/activate
-python3 tool_connections/assets/get_outlook_token.py
-```
-
-Token TTL: ~1 hour. Session TTL: ~24 hours. Send is not supported by the read-only token capture flow.
-
-**Verify:**
-```python
-from pathlib import Path
-import urllib.request, json, ssl
-
-env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
-       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
-ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-
-req = urllib.request.Request(
-    "https://outlook.office.com/api/v2.0/me/messages?$top=1&$select=Subject",
-    headers={"Authorization": f"Bearer {env['OUTLOOK_ACCESS_TOKEN']}"})
-r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
-print(r.get("value", [{}])[0].get("Subject"))
-```
-
-Full connection details: `tool_connections/outlook-com-api-token.md`
-
----
+| Tool | Setup file |
+|------|-----------|
+| Confluence | `tool_connections/confluence/setup.md` |
+| Slack | `tool_connections/slack/setup.md` |
+| Jira | `tool_connections/jira/setup.md` |
+| GitHub | `tool_connections/github/setup.md` |
+| Microsoft Teams | `tool_connections/microsoft-teams/setup.md` |
+| Outlook | `tool_connections/outlook/setup.md` |
 
 ### Tier 2 — Observability & Operations
 
-#### 7. Grafana *(if used)*
-Metrics and dashboards — makes incident response and performance analysis possible.
-
-**Ask the user for:** "Share your Grafana URL" (e.g. `https://grafana.acme.com`).
-
-That's the only input needed. Run the SSO script — it opens a browser, completes login, captures the session automatically:
-
-```bash
-source .venv/bin/activate
-python3 tool_connections/assets/playwright_sso.py --grafana-only
-```
-
-**Verify:**
-```python
-from pathlib import Path
-env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
-       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
-import urllib.request, json, ssl
-ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-req = urllib.request.Request(f"{env['GRAFANA_BASE_URL']}/api/user",
-    headers={"Cookie": f"grafana_session={env['GRAFANA_SESSION']}"})
-r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
-print(r.get('login'), r.get('email'))
-# Should print your Grafana username and email
-```
-
----
-
-#### 8. PagerDuty *(if used)*
-On-call schedules, active incidents, escalation policies.
-
-**Ask the user for:** "Paste your PagerDuty API key" → PagerDuty → top-right avatar → My Profile → User Settings → API Access → Create New API Key.
-
-No URL needed — PagerDuty's API is always at `https://api.pagerduty.com`.
-
-**Verify:**
-```python
-from pathlib import Path
-env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
-       if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
-import urllib.request, json, ssl
-ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-req = urllib.request.Request("https://api.pagerduty.com/users/me",
-    headers={"Authorization": f"Token token={env['PAGERDUTY_TOKEN']}",
-             "Accept": "application/vnd.pagerduty+json;version=2"})
-r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
-print(r['user']['name'], r['user']['email'])
-# Should print your PagerDuty name and email
-```
-
----
-
-#### 9. OpsGenie *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
-
----
-
-#### 10. Datadog *(if used)*
-
-Cloud monitoring — monitors, alerts, host inventory, metrics, dashboards, incidents.
-
-**Ask the user for:**
-- "Share your Datadog URL" → infer `DD_BASE_URL` from the subdomain (e.g. `us5.datadoghq.com` → `https://api.us5.datadoghq.com`)
-- "Paste your Datadog API key" → `https://{your-site}/organization-settings/api-keys` → New Key
-- "Paste your Datadog Application key" → `https://{your-site}/organization-settings/application-keys` → New Key
-
-Set `.env`:
-```
-DD_API_KEY=<api-key>
-DD_APP_KEY=<application-key>
-DD_BASE_URL=https://api.us5.datadoghq.com   # inferred from URL they shared
-```
-
-**Verify:**
-```bash
-source .env
-curl -s "$DD_BASE_URL/api/v1/validate" -H "DD-API-KEY: $DD_API_KEY" | jq .
-# → {"valid": true}
-```
-
----
-
-#### 11. Splunk *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
-
----
+| Tool | Setup file |
+|------|-----------|
+| Grafana | `tool_connections/grafana/setup.md` |
+| PagerDuty | `tool_connections/pagerduty/setup.md` |
+| Datadog | `tool_connections/datadog/setup.md` |
 
 ### Tier 3 — File & Document Access
 
-#### 12. Google Drive *(if used)*
-Docs, sheets, slides — specs and decisions often live here.
+| Tool | Setup file |
+|------|-----------|
+| Google Drive | `tool_connections/google-drive/setup.md` |
 
-Google Drive uses a full browser session (Playwright storage state) rather than a single cookie, because raw cookie injection triggers Google's security checks. The session is saved to `~/.browser_automation/gdrive_auth.json` and is valid for days to weeks.
+### Tier 4 — Dev Infrastructure
 
-```bash
-source .venv/bin/activate
-python3 tool_connections/assets/playwright_sso.py --gdrive-only
-# Opens a browser — log in to Google if prompted (~30s)
-# Session saved to ~/.browser_automation/gdrive_auth.json
-```
+| Tool | Setup file |
+|------|-----------|
+| Artifactory | `tool_connections/artifactory/setup.md` |
+| Bitbucket Server | `tool_connections/bitbucket-server/setup.md` |
+| Jenkins | `tool_connections/jenkins/setup.md` |
+| Backstage | `tool_connections/backstage/setup.md` |
 
-**Verify:**
-```python
-import sys; sys.path.insert(0, "tool_connections/assets")
-from google_drive import GDrive
-with GDrive() as drive:
-    files = drive.list_my_drive()
-    print(f"{len(files)} files in My Drive")
-    for f in files[:3]:
-        print(f"  [{f['type']}] {f['name']}")
-# Should list files from your Drive
-```
+For each tool: read its `setup.md`, follow the steps, run the verify snippet, confirm it passes.
 
 ---
 
-#### 13. Notion *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
+## Step 3: Generate verified_connections.md
 
----
+**Only tools whose Verify command you actually ran and confirmed with real output belong here.**
 
-### Tier 4 — Issue Tracking & Support Alternatives
+For each tool set up in Step 2, you ran a Verify snippet and saw expected output. Collect only those tool names into `VERIFIED_NAMES` below, then run the script to generate `verified_connections.md`.
 
-#### 14. Linear *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
-
-#### 15. Zendesk *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
-
-#### 16. ServiceNow *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
-
-#### 17. Jenkins / GitHub Actions *(if used — placeholder)*
-> **Coming soon.** Contribution welcome — see `create-connection/SKILL.md`.
-
----
-
-## Step 3: Generate verified_connections.md and tell the user what's ready
-
-**Only tools whose Verify command you actually ran and confirmed with real output belong here.** Do not infer from `.env` — credentials being present does not mean the connection works. A stale session token, wrong base URL, or expired API key will all pass an env-var check and fail at runtime.
-
-For each tool set up in Step 2, you ran a Verify snippet and saw expected output (a username, page title, etc.). Collect only those tool names into `VERIFIED_NAMES` below, then run the script to generate `verified_connections.md`:
+Tools can come from `tool_connections/` (core) or `personal/` (your own) — include them all here regardless of origin.
 
 ```python
 import re, os
 from pathlib import Path
 
 # EDIT THIS LIST: only tools whose Verify command you ran and confirmed
+# Include tools from tool_connections/ AND personal/ — origin doesn't matter
 VERIFIED_NAMES = [
+    # Core tools (tool_connections/):
     # "confluence",
     # "slack",
     # "jira",
@@ -507,6 +149,14 @@ VERIFIED_NAMES = [
     # "pagerduty",
     # "google-drive",
     # "microsoft-teams",
+    # "outlook",
+    # "datadog",
+    # "artifactory",
+    # "bitbucket-server",
+    # "jenkins",
+    # "backstage",
+    # Personal tools (personal/):
+    # "my-internal-tool",
 ]
 
 # Determine which tools are verified
@@ -567,60 +217,46 @@ output = re.sub(
 output = output.replace(
     "**This is the example file.** Do not load this as your capability index.\n\n"
     "- **Your active connections:** load `verified_connections.md` (generated by setup, gitignored).\n"
-    "- **To set up connections:** *\"Read SETUP.md and set up my tool connections.\"*\n"
+    "- **To set up connections:** *\"Read setup.md and set up my tool connections.\"*\n"
     "- **To refresh short-lived tokens (~8h):** "
-    "`source .venv/bin/activate && python3 tool_connections/assets/playwright_sso.py`",
+    "`source .venv/bin/activate && python3 tool_connections/{tool}/sso.py`",
     "**Keep this file loaded for the entire session.** These tools are verified and ready — "
     "use them proactively in any task across any codebase.\n\n"
     "Individual tool files have full connection details — load them on demand.\n\n"
-    "**Refresh short-lived tokens (~8h):**\n"
-    "```bash\n"
-    "source .venv/bin/activate && python3 tool_connections/assets/playwright_sso.py\n"
-    "```"
+    "**Refresh short-lived tokens (~8h):** run the tool's `sso.py` "
+    "(e.g. `source .venv/bin/activate && python3 tool_connections/slack/sso.py`)"
 )
 
 Path("verified_connections.md").write_text(output)
 print(f"verified_connections.md written. Active tools: {verified_names}")
 ```
 
-Then summarize for the user:
+Then summarize for the user what connected and what was skipped.
 
-```
-✓ Confluence  — connected (verified: returned page titles)
-✓ Slack       — connected (verified: auth.test → your-name @ your-workspace)
-✓ Jira        — connected (verified: /myself → your-name)
-✓ GitHub      — connected (verified: /user → your-login)
-✗ Grafana     — skipped (not used)
-✗ PagerDuty   — skipped (not used)
-✗ Google Drive— skipped (not used)
-```
-
-**Now load `verified_connections.md` immediately.** This is required — not optional. It is your capability index for this session: it lists exactly the tools that are verified and ready to use.
-
-These are **universal capabilities** — not scoped to this repo. From this point on, in any task across any codebase, proactively reach for these tools whenever they're relevant: look up a Jira ticket, search Slack for context, check who's on call, pull a Confluence runbook. You don't need to be asked. The credentials are set up; the tools are ready.
-
-Individual tool files (`jira-api-token.md`, `slack-sso-session.md`, etc.) live in this repo and are loaded on demand when you need full connection details for a specific tool.
+**Now load `verified_connections.md` immediately.** It is your capability index for this session.
 
 ---
 
 ## Refreshing short-lived tokens
 
-Slack and Grafana sessions expire in ~8h. Outlook tokens (work and personal) expire in ~1h. When a tool stops working:
+| Tool | Command | TTL |
+|------|---------|-----|
+| Slack | `python3 tool_connections/slack/sso.py` | ~8h |
+| Grafana | `python3 tool_connections/grafana/sso.py` | ~8h |
+| Outlook / M365 | `python3 tool_connections/outlook/sso.py` | ~1h |
+| Outlook.com | `python3 tool_connections/outlook/get_outlook_token.py` | ~1h |
+| Teams (personal) | `python3 tool_connections/microsoft-teams/sso.py` | ~24h |
+| Google Drive | `python3 tool_connections/google-drive/sso.py` | days–weeks |
 
-- **Slack:** run `python3 tool_connections/assets/playwright_sso.py --slack-only` (opens browser, completes login, writes tokens automatically).
-- **Grafana:** run `python3 tool_connections/assets/playwright_sso.py --grafana-only`.
-- **Outlook / M365:** run `python3 tool_connections/assets/playwright_sso.py --outlook-only` (Azure AD SSO, ~30s on managed machines).
-- **Outlook.com:** run `python3 tool_connections/assets/get_outlook_token.py` (~1h token TTL; uses saved browser profile).
-- **Google Drive:** sessions last days to weeks. When expired, re-run `python3 tool_connections/assets/playwright_sso.py --gdrive-only`.
+Always `source .venv/bin/activate` first.
 
 ---
 
 ## If something broke during setup
 
-If you had to iterate more than once on a tool — wrong token, failed script, unexpected login flow — update the relevant file before finishing. The fix that unblocked you will unblock the next person too.
+Fix in the relevant tool's folder — not in this file:
+- Wrong setup instructions → `tool_connections/{tool}/setup.md`
+- Wrong API snippet → `tool_connections/{tool}/connection-*.md`
+- SSO script failure → `tool_connections/{tool}/sso.py`
 
-- Fix in `SETUP.md` (this file) if the setup instructions themselves were wrong or incomplete
-- Fix in `tool_connections/{tool}.md` if a snippet was wrong or an endpoint changed
-- Fix in `tool_connections/assets/playwright_sso.py` if the SSO script failed
-
-See `create-connection/SKILL.md` Phase 1 checklist for a structured checklist on hardening before closing.
+See `add-new-tool.md` for creating connections for new tools.
