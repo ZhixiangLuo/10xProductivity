@@ -81,6 +81,9 @@ staging/                    ← staging-contributed connections (lower validatio
 
 add-new-tool.md          ← playbook: research auth → ask URL first → try the most likely auth → ask only for missing credentials → validate → write → PR (contribution optional)
 
+utils/
+  generate_verified.py            ← generate verified_connections.md from the example catalog
+
 verified_connections.example.md  ← master catalog of all available connections
 env.sample                        ← stub only — real var templates live in each tool's setup.md
 ```
