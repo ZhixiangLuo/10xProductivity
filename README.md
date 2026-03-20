@@ -2,6 +2,10 @@
 
 > *Every tool you can use as a human on your laptop, your agent can use too — with zero infrastructure, zero cloud services, zero new permissions.*
 
+[![GitHub Stars](https://img.shields.io/github/stars/ZhixiangLuo/10xProductivity?style=social)](https://github.com/ZhixiangLuo/10xProductivity/stargazers)
+
+If this saves you time, consider giving it a ⭐ — it helps others discover it.
+
 ## The Philosophy
 
 Most "AI integration" approaches ask you to:
