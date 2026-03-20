@@ -45,7 +45,7 @@ Ask once, openly — don't limit the user to a preset list:
 
 To prompt recognition, you can offer examples of tools with pre-built recipes in `tool_connections/`:
 
-> *Examples with pre-built recipes: Confluence, Slack, Jira, GitHub, Microsoft Teams, Outlook, Grafana, PagerDuty, Google Drive, Datadog, Artifactory, Bitbucket Server, Jenkins, Backstage — but you're not limited to these.*
+> *Examples with pre-built recipes: Confluence, Slack, Jira, GitHub, Microsoft Teams, Outlook, Grafana, PagerDuty, Google Drive, Datadog, Artifactory, Bitbucket Server, Jenkins, Backstage, Linear — but you're not limited to these.*
 
 Only set up what they actually use. Don't touch tools they don't have.
 

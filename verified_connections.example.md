@@ -54,7 +54,7 @@ Tools are ordered by information value — start with Tier 1.
 | **Bitbucket Server** | api-token | `tool_connections/bitbucket-server/setup.md` | `tool_connections/bitbucket-server/connection-api-token.md` | Browsing projects/repos, reading file content, listing branches or commits |
 | **Jenkins** | api-token | `tool_connections/jenkins/setup.md` | `tool_connections/jenkins/connection-api-token.md` | Checking build status, reading console logs, triggering builds |
 | **Backstage** | api-token | `tool_connections/backstage/setup.md` | `tool_connections/backstage/connection-api-token.md` | Finding service owners, team members, PagerDuty/GitHub annotations |
-| **Linear** | — | *(coming soon)* | *(coming soon)* | Teams using Linear instead of Jira |
+| **Linear** | api-token | `tool_connections/linear/setup.md` | `tool_connections/linear/connection-api-token.md` | Teams using Linear instead of Jira |
 | **Zendesk** | — | *(coming soon)* | *(coming soon)* | Looking up customer tickets, support history |
 | **ServiceNow** | — | *(coming soon)* | *(coming soon)* | IT service management, change requests |
 
@@ -162,6 +162,13 @@ Env: `JENKINS_USER`, `JENKINS_TOKEN`, `JENKINS_BASE_URL`
 
 **Use when:** finding service owners, looking up team members or groups, discovering PagerDuty/GitHub/Slack annotations for any component, or browsing the software catalog.
 Env: `BACKSTAGE_TOKEN`, `BACKSTAGE_BASE_URL`
+
+---
+
+## Linear → `tool_connections/linear/connection-api-token.md`
+
+**Use when:** listing teams, browsing or filtering issues, searching issues by keyword, or checking issue state and assignee. For teams using Linear instead of Jira.
+Env: `LINEAR_API_TOKEN`, `LINEAR_BASE_URL` (long-lived token — no refresh needed unless manually revoked)
 
 ---
 

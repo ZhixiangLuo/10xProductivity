@@ -1,8 +1,7 @@
 ---
-tool: linear
+name: linear
 auth: api-token
-author: jeffreyluozx
-verified: 2026-03
+description: Linear — project management for software teams (GraphQL API). Use when listing teams, browsing or filtering issues, searching issues by keyword, or checking issue state and assignee.
 env_vars:
   - LINEAR_API_TOKEN
   - LINEAR_BASE_URL
