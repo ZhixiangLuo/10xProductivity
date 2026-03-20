@@ -166,6 +166,10 @@ This repo provides the foundational skills to unlock 10x productivity, but it wo
 
 ---
 
+If this repo helped you 10x your workflow, a ⭐ goes a long way — it helps others find it.
+
+---
+
 ## License
 
 MIT
