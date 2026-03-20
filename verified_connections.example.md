@@ -1,6 +1,6 @@
 ---
 name: verified_connections
-description: Master catalog of all available tool connections. This is the example/template — setup generates verified_connections.md with only the tools configured for your instance. When adding a new core connection, update this file in all 3 places (table row, inline section, and the connection file's env_vars frontmatter).
+description: Master catalog of all available tool connections. This is the example/template — setup generates verified_connections.md with only the tools configured for your instance. Add a new tool by adding connection-*.md with core frontmatter to tool_connections/{tool}/ — no changes to this file needed.
 ---
 
 # Tool Connections — Master Catalog
@@ -11,173 +11,24 @@ description: Master catalog of all available tool connections. This is the examp
 - **To set up connections:** *"Read setup.md and set up my tool connections."*
 - **To refresh short-lived tokens (~8h):** run the tool's `sso.py` (e.g. `source .venv/bin/activate && python3 tool_connections/slack/sso.py`)
 
----
-
-## All available connections
-
-Tools are ordered by information value — start with Tier 1.
-
-### Tier 1 — Knowledge & Context
-
-| Tool | Auth | Setup | Connection | Use when |
-|------|------|-------|-----------|----------|
-| **Confluence** | api-token | `tool_connections/confluence/setup.md` | `tool_connections/confluence/connection-api-token.md` | Looking up runbooks, architecture, procedures, how-tos |
-| **Slack** | sso-session | `tool_connections/slack/setup.md` | `tool_connections/slack/connection-sso.md` | Decisions, context, who to ask; Slack AI synthesizes answers from all Slack history |
-| **Jira** | api-token | `tool_connections/jira/setup.md` | `tool_connections/jira/connection-api-token.md` | Fetching/creating/updating tickets, JQL search, sprint management |
-| **GitHub** | api-token | `tool_connections/github/setup.md` | `tool_connections/github/connection-api-token.md` | Browsing repos, reading READMEs/API docs, searching code, PRs, issues |
-| **Microsoft Teams (personal)** | sso-session | `tool_connections/microsoft-teams/setup.md` | `tool_connections/microsoft-teams/connection-personal-sso.md` | Chats and decisions for personal Microsoft account Teams users |
-| **Outlook / M365** | sso-session | `tool_connections/outlook/setup.md` | `tool_connections/outlook/connection-m365.md` | Reading email/calendar, contacts, people suggestions for work Microsoft 365 accounts |
-| **Outlook.com** | api-token | `tool_connections/outlook/setup.md` | `tool_connections/outlook/connection-personal.md` | Reading personal email (outlook.live.com): inbox/mail folders, message details, search (read-only) |
-
-### Tier 2 — Observability & Operations
-
-| Tool | Auth | Setup | Connection | Use when |
-|------|------|-------|-----------|----------|
-| **Grafana** | sso-session | `tool_connections/grafana/setup.md` | `tool_connections/grafana/connection-sso.md` | Extracting PromQL from dashboard panels, finding dashboard UIDs |
-| **PagerDuty** | api-token | `tool_connections/pagerduty/setup.md` | `tool_connections/pagerduty/connection-api-token.md` | Who's on call, active incidents, service status, escalation policies |
-| **OpsGenie** | — | *(coming soon)* | *(coming soon)* | On-call and alerting for OpsGenie-based orgs |
-| **Datadog** | api-key | `tool_connections/datadog/setup.md` | `tool_connections/datadog/connection-api-key.md` | Querying monitors and alerts, host inventory, metrics time-series, dashboards, incidents |
-| **Splunk** | — | *(coming soon)* | *(coming soon)* | Log search and analysis |
-
-### Tier 3 — File & Document Access
-
-| Tool | Auth | Setup | Connection | Use when |
-|------|------|-------|-----------|----------|
-| **Google Drive** | browser-session | `tool_connections/google-drive/setup.md` | `tool_connections/google-drive/connection-browser-session.md` | Listing, searching, reading, exporting Google Docs/Sheets/Slides |
-| **Notion** | — | *(coming soon)* | *(coming soon)* | Teams using Notion as their primary knowledge base |
-
-### Tier 4 — Dev Infrastructure
-
-| Tool | Auth | Setup | Connection | Use when |
-|------|------|-------|-----------|----------|
-| **Artifactory** | api-token | `tool_connections/artifactory/setup.md` | `tool_connections/artifactory/connection-api-token.md` | Finding artifact versions, browsing repos, searching for packages |
-| **Bitbucket Server** | api-token | `tool_connections/bitbucket-server/setup.md` | `tool_connections/bitbucket-server/connection-api-token.md` | Browsing projects/repos, reading file content, listing branches or commits |
-| **Jenkins** | api-token | `tool_connections/jenkins/setup.md` | `tool_connections/jenkins/connection-api-token.md` | Checking build status, reading console logs, triggering builds |
-| **Backstage** | api-token | `tool_connections/backstage/setup.md` | `tool_connections/backstage/connection-api-token.md` | Finding service owners, team members, PagerDuty/GitHub annotations |
-| **Linear** | api-token | `tool_connections/linear/setup.md` | `tool_connections/linear/connection-api-token.md` | Teams using Linear instead of Jira |
-| **Zendesk** | — | *(coming soon)* | *(coming soon)* | Looking up customer tickets, support history |
-| **ServiceNow** | — | *(coming soon)* | *(coming soon)* | IT service management, change requests |
-
----
-
-## Confluence → `tool_connections/confluence/connection-api-token.md`
-
-**Use when:** looking up internal documentation, runbooks, architecture pages, procedures, or any "how does X work?" question.
-Env: `CONFLUENCE_EMAIL`, `CONFLUENCE_TOKEN`, `CONFLUENCE_BASE_URL`
-
----
-
-## Slack → `tool_connections/slack/connection-sso.md`
-
-**Use when:** asking natural-language questions over Slack content (Slack AI), searching for specific messages or decisions (`search.messages`), reading a channel's history, fetching a thread from a URL, or posting a message.
-Env: `SLACK_XOXC`, `SLACK_D_COOKIE` (~8h — refresh with `python3 tool_connections/slack/sso.py`)
+The sections below are generated by `utils/generate_verified.py` directly from each tool's `connection-*.md` frontmatter — no manual updates to this file are needed when adding new tools. The following two entries illustrate the format.
 
 ---
 
 ## Jira → `tool_connections/jira/connection-api-token.md`
 
-**Use when:** creating, updating, searching, or transitioning tickets; JQL queries; sprint or component management.
-Env: `JIRA_API_TOKEN`, `JIRA_EMAIL`, `JIRA_BASE_URL`
+All Jira operations — fetch issues, JQL search, update fields, write descriptions/comments, REST API quirks (components, editmeta, Agile/sprint API). Use when fetching a Jira issue, listing tickets, updating fields, writing Jira comments or descriptions, or using the Jira REST API.
+Env: `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_BASE_URL`
 
 ---
 
-## GitHub → `tool_connections/github/connection-api-token.md`
+## Slack → `tool_connections/slack/connection-sso.md`
 
-**Use when:** browsing repos, fetching READMEs or API docs, searching code, managing PRs or issues. Works with github.com and GitHub Enterprise.
-Env: `GITHUB_TOKEN`, `GITHUB_BASE_URL`
-
----
-
-## Grafana → `tool_connections/grafana/connection-sso.md`
-
-**Use when:** extracting PromQL from dashboard panels (for analysis or alerting), finding dashboard UIDs, querying the Grafana API.
-Env: `GRAFANA_BASE_URL` (set this first), `GRAFANA_SESSION` (~8h — refresh with `python3 tool_connections/grafana/sso.py`)
-
----
-
-## PagerDuty → `tool_connections/pagerduty/connection-api-token.md`
-
-**Use when:** looking up who is on call, querying active incidents, checking service status, reading escalation policies or schedules.
-Env: `PAGERDUTY_TOKEN` (personal REST API key — long-lived)
-
----
-
-## Google Drive → `tool_connections/google-drive/connection-browser-session.md`
-
-**Use when:** listing or searching Google Drive files, reading a Google Doc/Sheet/Slide's content, or exporting files when other search tools don't surface the raw content.
-Auth: `~/.browser_automation/gdrive_auth.json` (Playwright storage_state — refresh with `python3 tool_connections/google-drive/sso.py`)
-
----
-
-## Microsoft Teams (personal) → `tool_connections/microsoft-teams/connection-personal-sso.md`
-
-**Use when:** reading or sending messages in personal Microsoft Teams chats, listing chats for a personal Microsoft account (teams.live.com), or looking up conversation history in Teams (personal).
-Env: `TEAMS_SKYPETOKEN`, `TEAMS_SESSION_ID` (~24h — refresh with `python3 tool_connections/microsoft-teams/sso.py`)
-
----
-
-## Outlook / M365 → `tool_connections/outlook/connection-m365.md`
-
-**Use when:** reading work email (inbox, mail folders, message search), checking today's calendar meetings, looking up contacts, or finding colleague info (`/me/people`). Work Microsoft 365 accounts only (Azure AD).
-Env: `GRAPH_ACCESS_TOKEN` + `OWA_ACCESS_TOKEN` (~1h — refresh with `python3 tool_connections/outlook/sso.py`)
-
----
-
-## Outlook.com → `tool_connections/outlook/connection-personal.md`
-
-**Use when:** reading personal email in inbox/mail folders, fetching message details, and searching messages for personal Microsoft accounts (outlook.live.com). Read-only (send not supported by the token capture flow).
-Env: `OUTLOOK_ACCESS_TOKEN` (~1h — refresh with `python3 tool_connections/outlook/get_outlook_token.py`)
-
----
-
-## Datadog → `tool_connections/datadog/connection-api-key.md`
-
-**Use when:** querying monitor status and alerts, listing alerting monitors, checking host inventory, searching available metrics, querying metric time-series, listing dashboards, or looking up active incidents.
-Env: `DD_API_KEY`, `DD_APP_KEY`, `DD_BASE_URL` (site-specific — e.g. `https://api.us5.datadoghq.com`)
-
----
-
-## Artifactory → `tool_connections/artifactory/connection-api-token.md`
-
-**Use when:** finding artifact versions, browsing repos, searching for packages by name, or downloading build artifacts.
-Env: `ARTIFACTORY_USER`, `ARTIFACTORY_TOKEN`, `ARTIFACTORY_BASE_URL`
-
----
-
-## Bitbucket Server → `tool_connections/bitbucket-server/connection-api-token.md`
-
-**Use when:** browsing projects and repos, reading file content, listing branches or commits, or searching repos by name. Covers Bitbucket Server / Data Center only — not Bitbucket Cloud.
-Env: `BITBUCKET_TOKEN`, `BITBUCKET_BASE_URL`
-
----
-
-## Jenkins → `tool_connections/jenkins/connection-api-token.md`
-
-**Use when:** checking build status, reading console logs to diagnose failures, listing jobs, or triggering builds (with or without parameters).
-Env: `JENKINS_USER`, `JENKINS_TOKEN`, `JENKINS_BASE_URL`
-
----
-
-## Backstage → `tool_connections/backstage/connection-api-token.md`
-
-**Use when:** finding service owners, looking up team members or groups, discovering PagerDuty/GitHub/Slack annotations for any component, or browsing the software catalog.
-Env: `BACKSTAGE_TOKEN`, `BACKSTAGE_BASE_URL`
-
----
-
-## Linear → `tool_connections/linear/connection-api-token.md`
-
-**Use when:** listing teams, browsing or filtering issues, searching issues by keyword, or checking issue state and assignee. For teams using Linear instead of Jira.
-Env: `LINEAR_API_TOKEN`, `LINEAR_BASE_URL` (long-lived token — no refresh needed unless manually revoked)
+Slack — two complementary modes. (1) Slack AI: post a natural-language question to the Slackbot DM and get a synthesized AI answer drawn from all Slack content. (2) search.messages: raw full-text search. Also: read channel/thread history, post messages.
+Env: `SLACK_XOXC`, `SLACK_D_COOKIE` (~8h — refresh with `python3 tool_connections/slack/sso.py`)
 
 ---
 
 ## Adding new connections
 
-When a new tool folder is added to `tool_connections/`, update this file in **3 places**:
-
-1. **Table row** — add a row in the appropriate tier table above
-2. **Inline section** — add a `## ToolName → \`tool_connections/{tool}/connection-*.md\`` block above
-3. **Connection file frontmatter** — ensure `env_vars` (and `auth_file` if applicable) are set in the `connection-*.md` file
-
-See `add-new-tool.md` Phase 2 Step 8 for the full PR flow.
+Add `tool_connections/{tool}/connection-*.md` with core frontmatter (`name`, `auth`, `description`, `env_vars`). No changes to this file needed — `utils/generate_verified.py` discovers tools from their folders automatically.

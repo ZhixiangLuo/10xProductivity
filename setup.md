@@ -82,7 +82,7 @@ There is no fixed list of supported tools — any tool with an API or browser in
 
 **Only tools whose Verify command you actually ran and confirmed with real output belong here.**
 
-Edit `VERIFIED_NAMES` at the top of `utils/generate_verified.py` to include the tools you verified, then run it from the repo root:
+Edit `VERIFIED_NAMES` at the top of `utils/generate_verified.py`, then run it from the repo root:
 
 ```bash
 python3 utils/generate_verified.py

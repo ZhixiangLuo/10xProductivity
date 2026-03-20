@@ -82,9 +82,9 @@ staging/                    ← staging-contributed connections (lower validatio
 add-new-tool.md          ← playbook: research auth → ask URL first → try the most likely auth → ask only for missing credentials → validate → write → PR (contribution optional)
 
 utils/
-  generate_verified.py            ← generate verified_connections.md from the example catalog
+  generate_verified.py            ← generate verified_connections.md from each tool's connection-*.md frontmatter
 
-verified_connections.example.md  ← master catalog of all available connections
+verified_connections.example.md  ← preamble template and format examples (not a comprehensive list)
 env.sample                        ← stub only — real var templates live in each tool's setup.md
 ```
 
@@ -108,7 +108,7 @@ Read /path/to/10xProductivity/setup.md and set up my tool connections.
 
 Your agent will ask which tools you use, guide you to get each credential, run SSO where needed, and verify each connection works. Works for any tool — pre-built recipes for common tools, and a guided path to build your own for anything else.
 
-**Manual setup:** copy the `.env` block from each `tool_connections/{tool}/setup.md` you use into `.env`, then see `verified_connections.example.md` for the full tool catalog.
+**Manual setup:** copy the `.env` block from each `tool_connections/{tool}/setup.md` you use into `.env`, then run `python3 utils/generate_verified.py` to build your capability index.
 
 ---
 
@@ -122,7 +122,7 @@ Your agent will ask which tools you use, guide you to get each credential, run S
 
 `tool_connections/` is a starting point, not a ceiling. The pre-built recipes there cover the tools most developers share across teams. Everything else lives in `personal/` — built once, yours to keep and reuse.
 
-See `verified_connections.example.md` for the community catalog including staging contributions.
+Browse `tool_connections/` to see the available pre-built recipes.
 
 ---
 

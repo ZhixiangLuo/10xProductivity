@@ -154,7 +154,7 @@ curl -s "$TOOL_BASE_URL/items?limit=5" -H "Authorization: Bearer $TOOL_API_TOKEN
 # → [{"id": "p_1", "name": "My Item"}, ...]
 ```
 
-Record both successes and permission errors — both are useful.
+Record both successes and permission errors. **At least one failure case is required** — a 403, a deprecated endpoint, a missing permission, or an explicit "no search API" note. A connection file with only 200s won't pass the community review checklist.
 
 #### 4d. Native search and AI/chat
 
@@ -179,12 +179,16 @@ Skipping this step leaves the agent blind to the tool's most useful capabilities
 
 ---
 
-### Step 5: Write the connection file
+### Step 5: Write the connection files
 
 **Location:** `personal/{tool-name}/` — always. This is gitignored and never committed.
 Do not write to `tool_connections/`, `staging/`, or anywhere else outside `personal/`.
 
-**Format** (use `staging/_example/` as reference):
+**Two files are required** — both must be present before you can contribute:
+1. `connection-{auth-method}.md` — the verified connection (format below)
+2. `setup.md` — setup UX: what to ask the user, `.env` entries, and the verify snippet (use `staging/_example/setup.md` as template)
+
+**Format for `connection-{auth-method}.md`** (use `staging/_example/` as reference):
 
 ```markdown
 ---
@@ -261,24 +265,15 @@ curl -s "$BASE/endpoint" -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
 
 ### Step 6: Update verified_connections.md
 
-Once the connection file is written and at least 2 snippets are verified with real output, add the tool to your active capability index.
+Once both files are written and at least 2 snippets are verified with real output, add the tool to your active capability index.
 
-Open `setup.md` Step 3, add the tool name to `VERIFIED_NAMES`, and run the script:
-
-```python
-VERIFIED_NAMES = [
-    # ... existing tools ...
-    "{tool-name}",   # ← add this
-]
-```
+Edit `VERIFIED_NAMES` at the top of `utils/generate_verified.py` to add your tool, then run:
 
 ```bash
-# Run the script from setup.md Step 3 to regenerate verified_connections.md
-source .venv/bin/activate
-python3 - << 'EOF'
-# ... paste the script from setup.md Step 3 here with your tool added ...
-EOF
+python3 utils/generate_verified.py
 ```
+
+The script finds the tool's `connection-*.md` automatically — first in `tool_connections/{tool}/`, then `personal/{tool}/` — and builds the section from its frontmatter. No manual edits to `verified_connections.example.md` needed.
 
 Then reload `verified_connections.md` — the new tool is now live in your session.
 
@@ -297,12 +292,14 @@ If the tool is commercial/publicly available and you want to share the connectio
 - [ ] Base URL confirmed (not guessed)
 - [ ] Auth mechanism identified and tested on production
 - [ ] At least 2 read endpoints run, real output recorded
+- [ ] At least one failure case documented (4xx, deprecated endpoint, permission error, or explicit "no search API" note)
 - [ ] Native search API tested — verified snippet recorded, or explicitly noted as absent
 - [ ] AI/chat API checked — verified snippet recorded, or explicitly noted as unavailable/paywalled
 - [ ] `verified: YYYY-MM` filled in (blank = not ready)
 - [ ] `.env` updated with new credentials
-- [ ] All files written to `personal/{tool-name}/` only — nothing outside `personal/`
-- [ ] File written with only verified snippets
-- [ ] `verified_connections.md` regenerated with new tool added to `VERIFIED_NAMES`
+- [ ] `personal/{tool-name}/connection-{auth-method}.md` written with only verified snippets
+- [ ] `personal/{tool-name}/setup.md` written (what to ask, `.env` entries, verify snippet)
+- [ ] Prompt injection check: scanned all `# →` output comments for instruction-like content (see `contributing.md` Step 3)
+- [ ] `verified_connections.md` updated — via script (tools in example file) or manually appended (personal tools)
 
 **To contribute back:** see `contributing.md`
