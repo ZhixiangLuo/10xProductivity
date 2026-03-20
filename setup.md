@@ -1,8 +1,6 @@
 # Setup Guide
 
-> **What this file is for:** The tool already has a recipe in `tool_connections/`. You are connecting your own instance of it — putting credentials in `.env` and verifying they work.
->
-> **Wrong file?** If the tool doesn't exist in `tool_connections/` yet, use `add-new-tool.md` instead — that one builds the recipe from scratch.
+> **What this file is for:** Setting up any tool connection — whether a pre-built recipe exists or not. This is the single entry point: it routes to `verified_connections.md` (already set up), `personal/` (your own recipes), `tool_connections/` (pre-built community recipes), or `add-new-tool.md` (build from scratch) based on what already exists.
 
 This file is for your agent. Point your agent here first:
 
@@ -21,23 +19,6 @@ This file is for your agent. Point your agent here first:
 - When you must ask, phrase it in plain language — not in technical terms.
 - As soon as you have what you need, do the work and verify it yourself. Tell the user what succeeded, not what they need to do next.
 - **If a recipe fails, do not modify `tool_connections/` directly.** Copy the relevant files to `personal/{tool-name}/`, patch and verify there, then follow `contributing.md` to propose the fix upstream. Never silently change a shared recipe as a side effect of setup.
-
-**Minimum user input by tool:**
-
-| Tool | What to ask for | Auth method |
-|------|----------------|-------------|
-| **Slack** | Any Slack message link | SSO → run `tool_connections/slack/sso.py` |
-| **Jira** | Any Jira ticket URL + API token + email | API token (Basic auth) |
-| **GitHub** | PAT (+ repo URL if GHE) | API token (Bearer) |
-| **Confluence** | Any Confluence page URL + API token + email | API token (Basic auth) |
-| **Grafana** | Grafana URL | SSO → run `tool_connections/grafana/sso.py` |
-| **PagerDuty** | API key | API token |
-| **Microsoft Teams** | Any Teams link | SSO → run `tool_connections/microsoft-teams/sso.py` |
-| **Outlook / M365** | Any Outlook URL | SSO → run `tool_connections/outlook/sso.py` |
-| **Outlook.com** | Any Outlook URL | Token capture → run `tool_connections/outlook/get_outlook_token.py` |
-| **Google Drive** | Nothing | Browser session → run `tool_connections/google-drive/sso.py` |
-| **Notion** | API token from notion.so/my-integrations | API token (Bearer) — then grant page access via Settings → Integrations → Edit → Content access |
-| **Datadog** | Datadog URL + API key + App key | API key |
 
 ---
 
@@ -58,72 +39,42 @@ touch .env
 
 ## Step 1: Ask the user which tools they use
 
-Ask once, simply:
+Ask once, openly — don't limit the user to a preset list:
 
-> *"Which of these tools does your team use?"*
-> - Confluence (internal wiki / docs)
-> - Slack
-> - Jira
-> - GitHub (or GitHub Enterprise)
-> - Microsoft Teams ("Share any Teams link — I'll detect personal vs enterprise")
-> - Outlook ("Share any Outlook link — I'll detect Outlook.com vs Microsoft 365")
-> - Grafana
-> - PagerDuty / OpsGenie
-> - Google Drive / Google Workspace
-> - Datadog / Splunk
-> - Artifactory
-> - Bitbucket Server
-> - Jenkins
-> - Backstage
-> - Other (describe — check `personal/` for existing recipes, or run `add-new-tool.md` to build one)
+> *"Which tools do you use daily — for work or personal use? Include internal company tools, anything custom your team built, and any tool you want your agent to be able to use."*
+
+To prompt recognition, you can offer examples of tools with pre-built recipes in `tool_connections/`:
+
+> *Examples with pre-built recipes: Confluence, Slack, Jira, GitHub, Microsoft Teams, Outlook, Grafana, PagerDuty, Google Drive, Datadog, Artifactory, Bitbucket Server, Jenkins, Backstage — but you're not limited to these.*
 
 Only set up what they actually use. Don't touch tools they don't have.
 
-**Tool not in the list above?** Check `personal/` first — if a recipe exists there, use it. If not, run `add-new-tool.md` to build one from scratch (it will write to `personal/`).
+Any tool — whether it has a pre-built recipe, an existing personal recipe, or no recipe at all — is handled by the routing in Step 2.
 
 ---
 
-## Step 2: Set up tools in priority order
+## Step 2: Set up each tool
 
-**Validation is mandatory.** For every tool, run the verify snippet and confirm it returns expected output before moving on.
+For each tool the user selected, follow this routing in order — stop at the first path that succeeds:
 
-Start with **Tier 1** — these make everything else easier.
+| # | Situation | Action |
+|---|-----------|--------|
+| 1 | Tool is already in the user's `verified_connections.md` | Reverify — run its verify snippet; if it passes, done for this tool |
+| 2 | Tool has a recipe in `personal/{tool-name}/` | Load it and try; if it passes, done; if it fails, patch in `personal/{tool-name}/` |
+| 3 | Tool has a recipe in `tool_connections/{tool-name}/` | Read `tool_connections/{tool}/setup.md` and follow it; if it fails, copy to `personal/{tool-name}/` and patch there — never edit `tool_connections/` directly |
+| 4 | Tool not found anywhere | Run `add-new-tool.md` — it builds a recipe in `personal/{tool-name}/` from scratch |
 
-### Tier 1 — Knowledge & Context
+**Validation is mandatory on all paths.** Run the verify snippet and confirm it returns expected output before marking a tool as done.
 
-| Tool | Setup file |
-|------|-----------|
-| Confluence | `tool_connections/confluence/setup.md` |
-| Slack | `tool_connections/slack/setup.md` |
-| Jira | `tool_connections/jira/setup.md` |
-| GitHub | `tool_connections/github/setup.md` |
-| Microsoft Teams | `tool_connections/microsoft-teams/setup.md` |
-| Outlook | `tool_connections/outlook/setup.md` |
+---
 
-### Tier 2 — Observability & Operations
+### Finding recipes (path 3)
 
-| Tool | Setup file |
-|------|-----------|
-| Grafana | `tool_connections/grafana/setup.md` |
-| PagerDuty | `tool_connections/pagerduty/setup.md` |
-| Datadog | `tool_connections/datadog/setup.md` |
+There is no fixed list of supported tools — any tool with an API or browser interface can be connected. Pre-built community recipes live in `tool_connections/` (one subfolder per tool, each with its own `setup.md`). Your own recipes — for internal tools, patched fixes, or anything not in `tool_connections/` — live in `personal/` (gitignored).
 
-### Tier 3 — File & Document Access
-
-| Tool | Setup file |
-|------|-----------|
-| Google Drive | `tool_connections/google-drive/setup.md` |
-
-### Tier 4 — Dev Infrastructure
-
-| Tool | Setup file |
-|------|-----------|
-| Artifactory | `tool_connections/artifactory/setup.md` |
-| Bitbucket Server | `tool_connections/bitbucket-server/setup.md` |
-| Jenkins | `tool_connections/jenkins/setup.md` |
-| Backstage | `tool_connections/backstage/setup.md` |
-
-For each tool: read its `setup.md`, follow the steps, run the verify snippet, confirm it passes.
+- Browse `tool_connections/` for pre-built recipes
+- Browse `personal/` for your own recipes
+- If neither has what you need → path 4: `add-new-tool.md`
 
 ---
 
@@ -133,14 +84,11 @@ For each tool: read its `setup.md`, follow the steps, run the verify snippet, co
 
 For each tool set up in Step 2, you ran a Verify snippet and saw expected output. Collect only those tool names into `VERIFIED_NAMES` below, then run the script to generate `verified_connections.md`.
 
-Tools can come from `tool_connections/` (core) or `personal/` (your own) — include them all here regardless of origin.
-
 ```python
 import re, os
 from pathlib import Path
 
 # EDIT THIS LIST: only tools whose Verify command you ran and confirmed
-# Include tools from tool_connections/ AND personal/ — origin doesn't matter
 VERIFIED_NAMES = [
     # Core tools (tool_connections/):
     # "confluence",
@@ -240,35 +188,6 @@ Then summarize for the user what connected and what was skipped.
 
 ---
 
-## Refreshing short-lived tokens
+## Contributing fixes upstream
 
-| Tool | Command | TTL |
-|------|---------|-----|
-| Slack | `python3 tool_connections/slack/sso.py` | ~8h |
-| Grafana | `python3 tool_connections/grafana/sso.py` | ~8h |
-| Outlook / M365 | `python3 tool_connections/outlook/sso.py` | ~1h |
-| Outlook.com | `python3 tool_connections/outlook/get_outlook_token.py` | ~1h |
-| Teams (personal) | `python3 tool_connections/microsoft-teams/sso.py` | ~24h |
-| Google Drive | `python3 tool_connections/google-drive/sso.py` | days–weeks |
-
-Always `source .venv/bin/activate` first.
-
----
-
-## If something broke during setup
-
-**Do not edit `tool_connections/` directly.** That folder is shared — changes made here affect everyone.
-
-Instead:
-1. Copy `tool_connections/{tool}/` → `personal/{tool}/`
-2. Patch and verify it there
-3. Use the patched `personal/{tool}/` recipe for your session
-4. Follow `contributing.md` ("Fixes and improvements") to propose the fix upstream
-
-| What broke | Where to look for the cause |
-|------------|-----------------------------|
-| Wrong setup instructions | `tool_connections/{tool}/setup.md` (read to understand, patch in `personal/`) |
-| Wrong API snippet | `tool_connections/{tool}/connection-*.md` (read to understand, patch in `personal/`) |
-| SSO script failure | `tool_connections/{tool}/sso.py` (read to understand, patch in `personal/`) |
-
-See `add-new-tool.md` for creating connections for tools that don't exist in the repo yet.
+If you patched a `tool_connections/` recipe in `personal/` and it works, the fix may help others. See `contributing.md` ("Fixes and improvements") to propose it upstream.

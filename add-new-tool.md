@@ -5,9 +5,9 @@ description: Add a new tool from scratch — research auth, validate against a l
 
 # Add a New Tool
 
-> **What this file is for:** The tool has no recipe yet. You are building one from scratch — researching auth, validating against a live instance, and writing the files to `personal/{tool-name}/` for your own use.
+> **What this file is for:** The tool has no recipe yet anywhere (`tool_connections/` or `personal/`). You are building one from scratch — researching auth, validating against a live instance, and writing the files to `personal/{tool-name}/` for your own use.
 >
-> **Wrong file?** If the tool already exists in `tool_connections/`, use `setup.md` instead — that one connects your own instance using an existing recipe.
+> **Wrong file?** If the tool already exists in `tool_connections/` or `personal/`, use `setup.md` instead — it will route you to the right recipe and handle patching if something is broken.
 >
 > **Want to contribute back?** After completing Phase 1, read `contributing.md`.
 

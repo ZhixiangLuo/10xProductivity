@@ -36,10 +36,17 @@ If every individual is 10x productive, the team and company is 10x as a result. 
 
 ## What's in this repo
 
-**Agent-readable playbooks** for connecting your local agent to the tools you already use. Each playbook is a skill file — not a tutorial for humans, but a structured document an LLM agent can read, understand, and execute.
+**Agent-readable playbooks** for connecting your local agent to the tools you already use — with no limit on what those tools can be. Each playbook is a skill file — not a tutorial for humans, but a structured document an LLM agent can read, understand, and execute.
+
+`tool_connections/` covers the tools developers commonly share across teams (GitHub, Slack, Jira, etc.), but the same approach works for anything: internal company tools, proprietary systems, niche SaaS products, personal tools you use daily. If it has an API or a browser interface, your agent can use it.
 
 ```
-tool_connections/             ← one folder per tool
+personal/                     ← your own recipes (gitignored) — internal tools, patched recipes, anything not in tool_connections/
+  {tool-name}/
+    setup.md
+    connection-{auth-method}.md
+
+tool_connections/             ← pre-built recipes for common tools
   slack/
     setup.md                  ← how to connect (what to ask, which script to run, verify snippet)
     connection-sso.md         ← how to use once connected (API surface, snippets, gotchas)
@@ -96,23 +103,23 @@ Then point your agent at the setup guide — the most effective way is to paste 
 Read /path/to/10xProductivity/setup.md and set up my tool connections.
 ```
 
-Your agent will ask which tools you use, guide you to get each credential, run SSO where needed, and verify each connection works.
+Your agent will ask which tools you use, guide you to get each credential, run SSO where needed, and verify each connection works. Works for any tool — pre-built recipes for common tools, and a guided path to build your own for anything else.
 
 **Manual setup:** copy the `.env` block from each `tool_connections/{tool}/setup.md` you use into `.env`, then see `verified_connections.example.md` for the full tool catalog.
 
 ---
 
-## Supported tools
+## What you can connect
 
-The repo currently covers the tools developers use most across their daily work — and the list grows with every contribution.
+**There is no limit.** Any tool accessible via API, CLI, or browser on your laptop can be connected. The approach is the same whether the tool is:
 
-**Dev tools:** GitHub (repos, PRs, issues, code search), Jira (fetch, search, create, update tickets), Confluence (search and read internal docs), Grafana (extract PromQL, find dashboards), PagerDuty (on-call schedules, active incidents).
+- A common developer tool already in `tool_connections/` (GitHub, Slack, Jira, Confluence, Grafana, PagerDuty, Google Drive, and more)
+- An internal company tool your team built or licensed — connect it via `personal/` using `add-new-tool.md`
+- A personal tool you use daily for your own work — same path, same approach, stays private in `personal/` (gitignored)
 
-**Communication:** Slack (AI search, message search, read threads, post messages).
+`tool_connections/` is a starting point, not a ceiling. The pre-built recipes there cover the tools most developers share across teams. Everything else lives in `personal/` — built once, yours to keep and reuse.
 
-**File access:** Google Drive (list, search, read, export Docs/Sheets/Slides).
-
-See `verified_connections.example.md` for the full catalog including staging contributions.
+See `verified_connections.example.md` for the community catalog including staging contributions.
 
 ---
 
