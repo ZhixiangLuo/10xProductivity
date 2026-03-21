@@ -162,7 +162,7 @@ The approach is the same regardless of what you're connecting:
 **User** — you want to connect your agent to tools you already use:
 1. Follow the [Quick start](#quick-start) above
 2. Ask your agent: *"Read /path/to/10xProductivity/setup.md and set up my tool connections"*
-3. Setup connects your tools, generates `verified_connections.md`, and creates a local agent skill — from that point your tools and the search workflow are available automatically at the start of every session
+3. Setup connects your tools, generates `verified_connections.md`, and creates a local agent skill — from that point your tools and the search workflow are available automatically at the start of every session. No MCP server, no plugin, no admin approval — just your agent reading files and calling APIs you already have access to.
 
 **Contributor** — you want to add a new tool or improve an existing connection:
 1. Ask your agent: *"Load add-new-tool.md and add a connection for [Tool]"*
