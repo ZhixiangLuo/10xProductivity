@@ -43,9 +43,9 @@ Ask once, openly — don't limit the user to a preset list:
 
 > *"Which tools do you use daily — for work or personal use? Include internal company tools, anything custom your team built, and any tool you want your agent to be able to use."*
 
-To prompt recognition, you can offer examples of tools with pre-built recipes in `tool_connections/`:
+To prompt recognition, you can offer examples — lead with internal tools, since those are often the most valuable:
 
-> *Examples with pre-built recipes: Confluence, Slack, Jira, GitHub, Microsoft Teams, Outlook, Grafana, PagerDuty, Google Drive, Datadog, Artifactory, Bitbucket Server, Jenkins, Backstage, Linear — but you're not limited to these.*
+> *Your internal tools matter most: deployment portals, incident trackers, internal knowledge bases, custom dashboards, HR systems — anything your company built or runs internally. Also: Confluence, Slack, Jira, GitHub, Microsoft Teams, Outlook, Grafana, PagerDuty, Google Drive, Datadog, and more. Pre-built recipes exist for common tools; internal tools follow the same setup path and stay private on your machine.*
 
 Only set up what they actually use. Don't touch tools they don't have.
 
@@ -91,6 +91,59 @@ python3 utils/generate_verified.py
 Then summarize for the user what connected and what was skipped.
 
 **Now load `verified_connections.md` immediately.** It is your capability index for this session.
+
+---
+
+## Step 4: Create the agent skill
+
+This step makes your tools available automatically in every future session — no manual loading required.
+
+Determine the absolute path to this repo:
+
+```bash
+pwd
+# → /absolute/path/to/10xProductivity
+```
+
+Create the skill file at `~/.cursor/skills/tool-connections/SKILL.md` with that path filled in:
+
+```markdown
+---
+name: tool-connections
+description: Loads connected tools and enables cross-tool search. Use at the start of any session where the user may want to use connected tools (Slack, Confluence, Jira, Linear, Notion, GitHub, etc.), when the user asks to search for something, or when the user mentions any tool by name.
+---
+
+# Tool Connections
+
+Repo: `/absolute/path/to/10xProductivity`
+
+## Session start
+
+Read these two files immediately:
+
+1. `/absolute/path/to/10xProductivity/verified_connections.md` — active tool connections and capability index
+2. `/absolute/path/to/10xProductivity/workflows/search/search.md` — cross-tool search workflow
+
+## Routing
+
+| Situation | Action |
+|-----------|--------|
+| User asks to search for something | Follow `workflows/search/search.md` (already loaded) |
+| User wants to use a specific tool | Read its connection file — path is listed in `verified_connections.md` |
+| A tool is mentioned but not in `verified_connections.md` | Read `setup.md` to connect it |
+| A tool has no recipe in `tool_connections/` | Read `add-new-tool.md` to build one |
+```
+
+Replace every occurrence of `/absolute/path/to/10xProductivity` with the actual path from `pwd`.
+
+Create the directory and write the file:
+
+```bash
+mkdir -p ~/.cursor/skills/tool-connections
+# then write the file above to ~/.cursor/skills/tool-connections/SKILL.md
+```
+
+Once written, the skill is active. Cursor and Claude Code will load `verified_connections.md` and the search workflow automatically at the start of every session.
 
 ---
 

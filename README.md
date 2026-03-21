@@ -38,6 +38,28 @@ If every individual is 10x productive, the team and company is 10x as a result. 
 
 ---
 
+## What becomes possible
+
+Each connection you add isn't just a new tool — it compounds with everything else.
+
+Once your agent can see across your tools simultaneously, a new class of capability emerges:
+
+**Connected knowledge**
+Ask questions that span systems. "What was the decision behind this change?" pulls the GitHub PR, the Jira ticket it closed, the Slack thread where it was debated, and the Confluence doc that captured the outcome — in one answer, in seconds.
+
+**Cross-tool reasoning**
+"Show me all PagerDuty incidents from last week that still have open Jira follow-ups with no activity in 3 days." That query touches three systems, requires no new integration layer, and runs right now. The agent is the integration layer.
+
+**Compound automation**
+Repetitive multi-step work — triage a Slack alert, file a Jira ticket, assign it, post a summary back to the channel — becomes a single agent instruction. The tools are already connected; the only thing left is telling it what to do.
+
+**Institutional memory**
+Your agent stops being a generic assistant and starts being a contextual one — aware of how your team works, who owns what, what's in flight, and what happened before. That context doesn't live in any one tool. It lives in the connections between them.
+
+The pre-built recipes in this repo are a starting point. The actual ceiling is "everything you can do on your laptop" — which is everything.
+
+---
+
 ## What's in this repo
 
 **Agent-readable playbooks** for connecting your local agent to the tools you already use — with no limit on what those tools can be. Each playbook is a skill file — not a tutorial for humans, but a structured document an LLM agent can read, understand, and execute.
@@ -80,6 +102,10 @@ tool_connections/             ← pre-built recipes for common tools
     ...
     get_outlook_token.py      ← token capture script (Outlook.com only)
 
+workflows/                  ← pre-built workflows that compose multiple tool connections
+  search/
+    search.md             ← search institutional knowledge across all connected tools simultaneously
+
 staging/                    ← staging-contributed connections (lower validation bar)
   {tool-name}-{auth-method}.md  ← e.g. staging/linear-api-token.md
 
@@ -110,7 +136,7 @@ Then point your agent at the setup guide — the most effective way is to paste 
 Read /path/to/10xProductivity/setup.md and set up my tool connections.
 ```
 
-Your agent will ask which tools you use, guide you to get each credential, run SSO where needed, and verify each connection works. Works for any tool — pre-built recipes for common tools, and a guided path to build your own for anything else.
+Your agent will ask which tools you use — including your company's internal tools, custom dashboards, and proprietary systems — guide you to get each credential, run SSO where needed, and verify each connection works. Works for any tool: pre-built recipes for common tools, and an identical setup path for anything else.
 
 **Manual setup:** copy the `.env` block from each `tool_connections/{tool}/setup.md` you use into `.env`, then run `python3 utils/generate_verified.py` to build your capability index.
 
@@ -118,15 +144,16 @@ Your agent will ask which tools you use, guide you to get each credential, run S
 
 ## What you can connect
 
-**There is no limit.** Any tool accessible via API, CLI, or browser on your laptop can be connected. The approach is the same whether the tool is:
+**There is no limit.** Any tool accessible via API, CLI, or browser on your laptop can be connected.
 
-- A common developer tool already in `tool_connections/` (GitHub, Slack, Jira, Confluence, Grafana, PagerDuty, Google Drive, and more)
-- An internal company tool your team built or licensed — connect it via `personal/` using `add-new-tool.md`
-- A personal tool you use daily for your own work — same path, same approach, stays private in `personal/` (gitignored)
+The most valuable connections are usually the internal tools your company runs — the deployment portal, the incident tracker, the internal knowledge base, the custom dashboards. No one outside your org can pre-build those for you, but the setup experience is identical: paste a URL, your agent handles auth, done. They live in `personal/` (gitignored) and never leave your machine.
 
-`tool_connections/` is a starting point, not a ceiling. The pre-built recipes there cover the tools most developers share across teams. Everything else lives in `personal/` — built once, yours to keep and reuse.
+The pre-built recipes in `tool_connections/` are a head start for the tools most developers share across companies — GitHub, Slack, Jira, Confluence, Grafana, PagerDuty, Google Drive, and more. They save you setup time for the common ones, but they're not the ceiling.
 
-Browse `tool_connections/` to see the available pre-built recipes.
+The approach is the same regardless of what you're connecting:
+- **Internal company tools** — your team's custom systems, internal portals, proprietary platforms → `personal/` via `add-new-tool.md`
+- **Common developer tools** — already in `tool_connections/`, ready to use
+- **Personal tools** — anything you use for your own work → same `personal/` path, stays private
 
 ---
 
@@ -135,7 +162,7 @@ Browse `tool_connections/` to see the available pre-built recipes.
 **User** — you want to connect your agent to tools you already use:
 1. Follow the [Quick start](#quick-start) above
 2. Ask your agent: *"Read /path/to/10xProductivity/setup.md and set up my tool connections"*
-3. Your agent generates `verified_connections.md` — load it at session start
+3. Setup connects your tools, generates `verified_connections.md`, and creates a local agent skill — from that point your tools and the search workflow are available automatically at the start of every session
 
 **Contributor** — you want to add a new tool or improve an existing connection:
 1. Ask your agent: *"Load add-new-tool.md and add a connection for [Tool]"*
