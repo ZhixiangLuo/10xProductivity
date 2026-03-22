@@ -7,7 +7,7 @@ author: zhixiangluo
 
 # Tool Connector — Connect Any Work Tool to Your Agent
 
-> **Requires the repo cloned locally.** Clone it first, then read `setup.md` — that is the full entry point. The sections below summarize the approach for reference.
+> **Requires the repo cloned locally.** Check if it's already present (`ls setup.md`), then read `setup.md` — that is the full entry point. The sections below summarize the approach for reference.
 
 Full methodology and pre-built recipes: https://github.com/zhixiangluo/10xProductivity
 
@@ -53,11 +53,19 @@ Internal and custom tools follow the same path — they stay private in `persona
 
 ## Getting started
 
-Clone the repo, then read `setup.md`:
+First, check if you already have the repo:
+
+```bash
+ls setup.md 2>/dev/null && echo "repo present" || echo "need to clone"
+```
+
+**Repo present** → read `setup.md` now — it is the full entry point.
+
+**Need to clone** →
 
 ```bash
 git clone https://github.com/zhixiangluo/10xProductivity.git
 cd 10xProductivity
 ```
 
-`setup.md` is the full entry point — it routes to pre-built recipes, your own recipes, and `add-new-tool.md` for anything new.
+Then read `setup.md`. It routes to pre-built recipes, your own recipes, and `add-new-tool.md` for anything new.
