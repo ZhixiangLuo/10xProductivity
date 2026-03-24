@@ -1,8 +1,7 @@
 ---
-tool: notion
+name: notion
 auth: api-token
-author: jeffrey.luo
-verified: 2026-03
+description: Notion — workspace tool for notes, docs, databases, and task management (Bearer API token). Use when searching pages by title, reading page content, appending blocks to a page, or creating child pages.
 env_vars:
   - NOTION_API_TOKEN
   - NOTION_BASE_URL
@@ -19,8 +18,6 @@ API docs: https://developers.notion.com/reference/authentication
 ---
 
 ## Credentials
-
-Setup: `staging/notion/setup.md`
 
 ```bash
 # .env entries:
