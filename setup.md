@@ -78,15 +78,22 @@ There is no fixed list of supported tools — any tool with an API or browser in
 
 ---
 
-## Step 3: Generate verified_connections.md
+## Step 3: Update verified_connections.md
 
 **Only tools whose Verify command you actually ran and confirmed with real output belong here.**
 
-Edit `VERIFIED_NAMES` at the top of `utils/generate_verified.py`, then run it from the repo root:
+After each tool passes verification, append its section to `verified_connections.md`. Read the tool's `connection-*.md` frontmatter and write:
 
-```bash
-python3 utils/generate_verified.py
+```markdown
+---
+
+## {Tool Display Name} → `{path/to/connection-*.md}`
+
+{description from frontmatter}
+Env: `ENV_VAR_1`, `ENV_VAR_2`
 ```
+
+The preamble (frontmatter + intro block) comes from `verified_connections.example.md` — copy it on first run, then only append sections for each new tool.
 
 Then summarize for the user what connected and what was skipped.
 
