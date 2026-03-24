@@ -39,7 +39,7 @@ curl -s "$NOTION_BASE_URL/users/me" \
 # → {"object":"user","name":"{integration-name}","type":"bot","bot":{"workspace_name":"..."}}
 ```
 
-**Connection details:** `staging/notion/connection-api-token.md`
+**Connection details:** `tool_connections/notion/connection-api-token.md`
 
 ---
 
