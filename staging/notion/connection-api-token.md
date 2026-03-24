@@ -1,7 +1,7 @@
 ---
 tool: notion
 auth: api-token
-author: jeffrey.luo
+author: jeffreyluozx
 verified: 2026-03
 env_vars:
   - NOTION_API_TOKEN
