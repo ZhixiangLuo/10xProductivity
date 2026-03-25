@@ -64,6 +64,30 @@ The pre-built recipes in this repo are a starting point. The actual ceiling is "
 
 ---
 
+## Enterprise search: one question, every tool
+
+Once your tools are connected, the built-in enterprise search workflow lets your agent query all of them simultaneously — Slack, Confluence, Jira, Linear, Notion, GitHub, and more — and synthesize a single answer.
+
+**One prompt, every connected source:**
+
+```
+Search for everything related to the decision to deprecate the v1 API.
+```
+
+The agent fans out across every connected tool, pulls relevant results, and returns a synthesized answer with citations — no tab switching, no copy-paste, no hunting across systems.
+
+**What it replaces:**
+- Opening Slack, searching, scrolling, opening threads
+- Switching to Confluence, searching again
+- Checking Jira, checking GitHub PRs, checking Linear
+- Mentally stitching together five partial answers
+
+**When to use it:** Any time you're asking a question that might be answered in more than one place — "what was the decision on X", "who owns Y", "is there a doc on Z", "any context on this incident", "what did we decide about this feature".
+
+To activate: `Read /path/to/10xProductivity/workflows/enterprise-search/enterprise-search.md`
+
+---
+
 ## What's in this repo
 
 **Agent-readable playbooks** for connecting your local agent to the tools you already use — with no limit on what those tools can be.
