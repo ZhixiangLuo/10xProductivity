@@ -84,7 +84,7 @@ There is no fixed list of supported tools — any tool with an API or browser in
 
 **Only tools whose Verify command you actually ran and confirmed with real output belong here.**
 
-After each tool passes verification, append its section to `verified_connections.md`. Read the tool's `connection-*.md` frontmatter and write:
+After each tool passes verification, append its section to `verified_connections.md`. Write the **resolved** state — not the generic frontmatter. The entry must reflect what actually worked on this device, so the agent can use it immediately without re-reading the connection file or re-inferring the auth method.
 
 ```markdown
 ---
@@ -92,8 +92,19 @@ After each tool passes verification, append its section to `verified_connections
 ## {Tool Display Name} → `{path/to/connection-*.md}`
 
 {description from frontmatter}
-Env: `ENV_VAR_1`, `ENV_VAR_2`
+Instance: `{actual base URL — not a template, the real URL}`
+Auth: {exact method and header format — e.g. "Bearer PAT — `Authorization: Bearer $TOKEN`"}
+Active env: `ACTIVE_VAR_1`, `ACTIVE_VAR_2`  ← only vars that are set and used; omit placeholders
+Refresh: {how and how often, if token is short-lived}  ← omit if long-lived
+Note: {any critical gotcha that would cause silent failure}  ← omit if none
 ```
+
+**Rules for each field:**
+- **Instance** — the real URL the verify snippet hit (e.g. `https://jira2.workday.com`, not `https://jira.yourcompany.com`). Include prod vs dev if both exist.
+- **Auth** — the method that actually passed verification. For tools with Cloud vs Server/DC variants (Jira, Confluence), name the variant explicitly. Never list both — only the one in use.
+- **Active env** — only vars that are populated with real values. If a var is present in `.env` but is a placeholder (e.g. `you@yourcompany.com`), omit it and add a Note explaining it should be ignored.
+- **Refresh** — include for any token with a lifetime under ~24h (SSO sessions, Coveo JWTs, xoxc). Omit for long-lived API tokens and PATs.
+- **Note** — include only if there is a silent failure risk: a placeholder var that must be ignored, a CLI that must be used instead of REST, a required prerequisite (VPN, `/etc/hosts`, Zscaler), or a common misidentification (e.g. PHX-XXXXX vs PHOENIX-XXXX).
 
 The preamble (frontmatter + intro block) comes from `verified_connections.example.md` — copy it on first run, then only append sections for each new tool.
 
