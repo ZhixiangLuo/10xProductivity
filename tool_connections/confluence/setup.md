@@ -10,8 +10,10 @@ description: Set up Confluence connection. Supports Cloud (API token + Basic aut
 Ask the user: "Share any Confluence page URL."
 
 Infer variant from the URL:
-- `yourcompany.atlassian.net/wiki` → **Confluence Cloud** → API token + Basic auth (`connection-api-token.md`)
-- `confluence.yourcompany.com` (self-hosted) → **Confluence Server/Data Center** → Bearer PAT (`connection-server-pat.md`)
+- `yourcompany.atlassian.net/wiki` → **Confluence Cloud** → API token + Basic auth (`email:token`)
+- `confluence.yourcompany.com` (self-hosted) → **Confluence Server/Data Center** → Personal Access Token (Bearer)
+
+Both variants use `connection-api-token.md`. The difference is auth format only — see below.
 
 Infer `CONFLUENCE_BASE_URL` from the URL (e.g. `https://acme.atlassian.net/wiki/spaces/...` → `https://acme.atlassian.net/wiki`).
 
@@ -65,7 +67,7 @@ curl -s -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
   | jq '{total: .size, first: .results[0].title}'
 ```
 
-**Connection details:** `tool_connections/confluence/connection-server-pat.md` *(coming soon)*
+**Connection details:** `tool_connections/confluence/connection-api-token.md`
 
 ---
 

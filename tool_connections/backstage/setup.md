@@ -26,6 +26,8 @@ DevTools → Application → Local Storage → your Backstage URL → look for a
 
 **What to ask the user:** "Paste your Backstage token" (either static or SSO JWT from browser local storage).
 
+> **Check `.env` first** — some deployments store the token under a non-standard name (e.g. `PORTAL_IDP_TOKEN`, `BACKSTAGE_JWT`). If any token-shaped value exists for the Backstage URL's domain, try it before asking the user.
+
 ---
 
 ## Set `.env`
@@ -56,8 +58,9 @@ curl -s -k "$BACKSTAGE_BASE_URL/api/catalog/entity-facets?facet=kind" \
 
 ```bash
 # --- Backstage ---
-BACKSTAGE_TOKEN=your-backstage-token
+BACKSTAGE_TOKEN=your-backstage-token         # or whatever name your deployment uses
 BACKSTAGE_BASE_URL=https://backstage.yourcompany.com
 # Static token (long-lived): ask your platform team or set in app-config.yaml backend.auth.keys
 # SSO JWT (short-lived ~8h): capture from browser DevTools → Application → Local Storage → backstage
+# Note: some deployments use a different env var name (e.g. PORTAL_IDP_TOKEN) — check .env before asking user
 ```

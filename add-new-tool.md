@@ -61,6 +61,12 @@ Before asking the user for anything:
 
 **Stop and explain** if the only viable path requires the user to create an app or register OAuth credentials. Don't propose it as an option — it violates this repo's zero-friction goal.
 
+**SSO-only tools:** If the tool uses enterprise SSO and has no API token path, the only option is browser session capture (Priority 2). This is fine — but document two things explicitly in the connection file:
+1. The refresh command (`playwright_sso.py --tool-only`) — the agent cannot self-refresh without the user present.
+2. Token TTL (usually ~8h) — so the user knows when to expect re-authentication prompts.
+
+**When to stop trying:** If browser session auth succeeds (you can log in and see data in the browser) but REST API calls return 401 anyway, the instance has API-level access restrictions that session cookies can't bypass. This is an admin policy, not a fixable bug. Document it as "API access restricted — this tool cannot be automated at this instance" and move on. Do not keep probing different endpoints.
+
 If a viable zero-friction method exists → ask the user only for what that method requires, then proceed to Step 1.
 
 ---
@@ -188,7 +194,7 @@ Do not write to `tool_connections/`, `staging/`, or anywhere else outside `perso
 1. `connection-{auth-method}.md` — the verified connection (format below)
 2. `setup.md` — setup UX: what to ask the user, `.env` entries, and the verify snippet (use `staging/_example/setup.md` as template)
 
-**Format for `connection-{auth-method}.md`** (use `staging/_example/` as reference):
+**Format for `connection-{auth-method}.md`** (use `staging/_example/` as reference, and `tool_connections/slack/connection-sso.md` as a real-world example of good style):
 
 ```markdown
 ---
@@ -254,6 +260,14 @@ curl -s "$BASE/endpoint" -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
 - {VPN requirement}
 - {Known limitations}
 ```
+
+**Writing style — the connection file is read by an LLM agent, not a human:**
+
+- **Don't explain what the LLM already knows.** Skip boilerplate like "Bearer tokens are sent in the Authorization header" or "HTTP 200 means success." Document only what's specific to this tool: its URL patterns, quirks, header names, token format, known failures.
+- **Be concise.** One sentence beats three. A table beats a paragraph. Cut every word that doesn't add tool-specific information.
+- **Inline code over helper functions.** The agent will copy and adapt snippets — it doesn't need a library. Write flat, readable code that shows exactly what's happening.
+- **Examples teach faster than prose.** Where you'd write "use the `after:` filter for date queries", instead show: `"query": "from:@me after:2026-03-24"`. A concrete example with real values is worth more than a description.
+- **⚠ marks the non-obvious.** Use it only for gotchas that would cause silent failure — things the agent couldn't infer from the API docs. e.g. `# ⚠ bash truncates long xoxc tokens silently — always load .env in Python`.
 
 **Snippet rules:**
 - Only include commands you actually ran and saw succeed

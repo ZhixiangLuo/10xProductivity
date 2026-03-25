@@ -133,18 +133,26 @@ Full-text CQL search across all pages.
 source .env
 
 # Search page body text
+# ⚠ Cloud: uses Basic auth (-u email:token). Server/DC: uses Bearer token (-H "Authorization: Bearer $CONFLUENCE_TOKEN")
+# Check CONFLUENCE_BASE_URL — atlassian.net = Cloud, anything else = Server/DC
+
+# Cloud
 curl -s -u "$CONFLUENCE_EMAIL:$CONFLUENCE_TOKEN" \
   "$CONFLUENCE_BASE_URL/rest/api/content/search?cql=text~%22<KEYWORD>%22+AND+type=page&limit=5&expand=space" \
   | jq '.results[] | {title, space: .space.key, id,
       url: ("'"$CONFLUENCE_BASE_URL"'" + "/pages/" + .id)}'
 
-# To fetch the full content of a result page:
+# Server/DC
+curl -s -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
+  "$CONFLUENCE_BASE_URL/rest/api/content/search?cql=text~%22<KEYWORD>%22+AND+type=page&limit=5&expand=space" \
+  | jq '.results[] | {title, space: .space.key, id,
+      url: ("'"$CONFLUENCE_BASE_URL"'" + "/pages/" + .id)}'
+
+# To fetch the full content of a result page (same auth swap applies):
 curl -s -u "$CONFLUENCE_EMAIL:$CONFLUENCE_TOKEN" \
   "$CONFLUENCE_BASE_URL/rest/api/content/<PAGE_ID>?expand=body.view" \
   | jq -r '.body.view.value' | sed 's/<[^>]*>//g' | tr -s ' \n' | head -c 3000
 ```
-
-For Confluence Server/Data Center, replace `-u "$CONFLUENCE_EMAIL:$CONFLUENCE_TOKEN"` with `-H "Authorization: Bearer $CONFLUENCE_TOKEN"`.
 
 ---
 
@@ -200,8 +208,12 @@ import urllib.request, json, ssl, base64, urllib.parse
 env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
        if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
 ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
-headers = {"Authorization": f"Basic {creds}", "Accept": "application/json"}
+# ⚠ Cloud: Basic auth (email:token). Server/DC: Bearer token (no email needed)
+if "JIRA_EMAIL" in env:
+    creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
+    headers = {"Authorization": f"Basic {creds}", "Accept": "application/json"}
+else:
+    headers = {"Authorization": f"Bearer {env['JIRA_API_TOKEN']}", "Accept": "application/json"}
 
 jql = 'text ~ "<KEYWORD>" ORDER BY updated DESC'
 params = urllib.parse.urlencode({"jql": jql, "maxResults": 5,

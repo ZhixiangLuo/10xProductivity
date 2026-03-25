@@ -3,36 +3,44 @@ name: jira
 auth: api-token
 description: All Jira operations — fetch issues, JQL search, update fields, write descriptions/comments, REST API quirks (components, editmeta, Agile/sprint API). Use when fetching a Jira issue, listing tickets, updating fields, writing Jira comments or descriptions, or using the Jira REST API.
 env_vars:
-  - JIRA_EMAIL
   - JIRA_API_TOKEN
   - JIRA_BASE_URL
+  - JIRA_EMAIL       # Cloud only — omit for Server/Data Center
 ---
 
 # Jira
 
-Env: `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_BASE_URL`
+**Cloud** (`*.atlassian.net`): Basic auth — `JIRA_EMAIL` + `JIRA_API_TOKEN`
+**Server / Data Center** (self-hosted): Bearer PAT — `JIRA_API_TOKEN` only, no email
 
 ```bash
-# Set in .env:
+# Cloud (.env):
 # JIRA_EMAIL=you@yourcompany.com
 # JIRA_API_TOKEN=your-jira-api-token
-# JIRA_BASE_URL=https://yourcompany.atlassian.net   # or your self-hosted Jira URL
-```
+# JIRA_BASE_URL=https://yourcompany.atlassian.net
 
-Auth: **Basic auth** — `Authorization: Basic base64(email:token)`. Atlassian Cloud personal API tokens require Basic auth, not Bearer.
+# Server/DC (.env) — no JIRA_EMAIL:
+# JIRA_API_TOKEN=your-jira-pat
+# JIRA_BASE_URL=https://jira.yourcompany.com
+```
 
 **⚠ Always load credentials in Python, not bash `source .env`** — avoids silent truncation of long tokens.
 
 ```python
 from pathlib import Path
+import base64
 env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
        if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
-import base64
-creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
-# Use: headers={"Authorization": f"Basic {creds}"}
+if "JIRA_EMAIL" in env:
+    creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
+    headers = {"Authorization": f"Basic {creds}", "Accept": "application/json"}
+else:
+    headers = {"Authorization": f"Bearer {env['JIRA_API_TOKEN']}", "Accept": "application/json"}
 ```
 
-**Generate token:** Jira → Profile photo → Manage account → Security → API tokens → Create
+**Generate token:**
+- Cloud: Jira → Profile photo → Manage account → Security → API tokens → Create
+- Server/DC: Jira → Profile photo → Personal Access Tokens → Create token
 
 When mentioning issues, link them: `[KEY-123]($JIRA_BASE_URL/browse/KEY-123)`
 
@@ -44,13 +52,17 @@ import urllib.request, json, ssl, base64
 env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
        if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
 ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
+if "JIRA_EMAIL" in env:
+    creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
+    auth_header = f"Basic {creds}"
+else:
+    auth_header = f"Bearer {env['JIRA_API_TOKEN']}"
 req = urllib.request.Request(f"{env['JIRA_BASE_URL']}/rest/api/2/myself",
-    headers={"Authorization": f"Basic {creds}"})
+    headers={"Authorization": auth_header})
 r = json.loads(urllib.request.urlopen(req, context=ctx, timeout=10).read())
 print(r.get('displayName'), r.get('emailAddress'))
 # → Alice Smith alice@example.com
-# If you see 401: wrong email or token. If 403: token lacks permissions.
+# If 401: wrong email or token. If 403: token lacks permissions.
 ```
 
 ---
@@ -63,8 +75,12 @@ import urllib.request, json, ssl, base64, urllib.parse
 env = {k.strip(): v.strip() for line in Path(".env").read_text().splitlines()
        if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
 ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
-headers = {"Authorization": f"Basic {creds}", "Accept": "application/json", "Content-Type": "application/json"}
+if "JIRA_EMAIL" in env:
+    creds = base64.b64encode(f"{env['JIRA_EMAIL']}:{env['JIRA_API_TOKEN']}".encode()).decode()
+    auth_header = f"Basic {creds}"
+else:
+    auth_header = f"Bearer {env['JIRA_API_TOKEN']}"
+headers = {"Authorization": auth_header, "Accept": "application/json", "Content-Type": "application/json"}
 
 def jira_get(path):
     req = urllib.request.Request(f"{env['JIRA_BASE_URL']}{path}", headers=headers)

@@ -29,6 +29,7 @@ curl -s "$GRAFANA_BASE_URL/api/user" \
   -H "Cookie: grafana_session=$GRAFANA_SESSION" \
   | jq '{login, email, name}'
 # → {"login": "alice", "email": "alice@example.com", "name": "Alice Smith"}
+# ⚠ Fresh clone: GRAFANA_SESSION doesn't exist until playwright_sso.py has run once — go to Refresh session below first.
 # If you see 401/redirect: session expired — run playwright_sso.py to refresh.
 # If you see connection refused: check GRAFANA_BASE_URL in .env.
 ```

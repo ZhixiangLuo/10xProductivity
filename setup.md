@@ -66,6 +66,8 @@ For each tool the user selected, follow this routing in order — stop at the fi
 
 **Validation is mandatory on all paths.** Run the verify snippet and confirm it returns expected output before marking a tool as done.
 
+**SSO tools need bootstrapping first.** For tools that use browser session auth (Slack, Grafana, Google Drive, etc.), credentials are not manually filled in — they are written to `.env` by `playwright_sso.py`. The verify snippet will fail with a missing key error until you run the SSO script at least once. Check the tool's `setup.md` for the exact command (usually `source .venv/bin/activate && python3 tool_connections/shared_utils/playwright_sso.py --tool-only`).
+
 ---
 
 ### Finding recipes (path 3)
@@ -98,6 +100,14 @@ The preamble (frontmatter + intro block) comes from `verified_connections.exampl
 Then summarize for the user what connected and what was skipped.
 
 **Now load `verified_connections.md` immediately.** It is your capability index for this session.
+
+---
+
+## Step 3b: Test the search workflow
+
+Read `workflows/search/search.md` and run a test search across all connected tools using a simple query the user would actually care about — e.g. the name of a project, team, or recent topic they mentioned. This confirms the tools work end-to-end together, not just in isolation.
+
+If any tool fails during the search (wrong auth format, missing env var, etc.), patch it now before moving on.
 
 ---
 
