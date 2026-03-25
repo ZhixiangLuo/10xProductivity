@@ -1,6 +1,6 @@
 ---
 name: tool-connector
-description: Connect any tool you use at work to your agent — including internal company tools, custom-built systems, deployment portals, incident trackers, internal knowledge bases, HR systems, and commercial tools like Slack, Confluence, Jira, Linear, GitHub, Outlook, Datadog, and PagerDuty. Use when the user wants to search across tools, set up a tool connection, connect an internal or custom-built tool, or add a new tool integration from scratch.
+description: Connect any tool you use at work to your agent — including internal company tools, custom-built systems, deployment portals, incident trackers, internal knowledge bases, HR systems, and commercial tools like Slack, Confluence, Jira, Linear, GitHub, Outlook, Datadog, and PagerDuty. Use when the user wants to set up a tool connection, connect an internal or custom-built tool, or add a new tool integration from scratch.
 source: https://github.com/zhixiangluo/10xProductivity
 author: zhixiangluo
 ---

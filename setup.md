@@ -142,13 +142,13 @@ Repo: `/absolute/path/to/10xProductivity`
 Read these two files immediately:
 
 1. `/absolute/path/to/10xProductivity/verified_connections.md` — active tool connections and capability index
-2. `/absolute/path/to/10xProductivity/workflows/search/search.md` — cross-tool search workflow
+2. `/absolute/path/to/10xProductivity/workflows/enterprise-search/enterprise-search.md` — cross-tool search workflow
 
 ## Routing
 
 | Situation | Action |
 |-----------|--------|
-| User asks to search for something | Follow `workflows/search/search.md` (already loaded) |
+| User asks to search for something | Follow `workflows/enterprise-search/enterprise-search.md` (already loaded) |
 | User wants to use a specific tool | Read its connection file — path is listed in `verified_connections.md` |
 | A tool is mentioned but not in `verified_connections.md` | Read `setup.md` to connect it |
 | A tool has no recipe in `tool_connections/` | Read `add-new-tool.md` to build one |

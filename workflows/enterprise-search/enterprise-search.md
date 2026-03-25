@@ -9,7 +9,7 @@ description: Search institutional knowledge across all connected tools simultane
 
 Point your agent here:
 
-> *"Read workflows/search/search.md and search for [your question or topic]."*
+> *"Read workflows/enterprise-search/enterprise-search.md and search for [your question or topic]."*
 
 ---
 
@@ -62,7 +62,9 @@ Two modes — try Slack AI first if available, fall back to `search.messages`.
 
 **Mode 1: Slack AI** *(requires Business+ or Enterprise+ plan)*
 
-Best for natural-language questions. Posts to your Slackbot DM and synthesizes a cited answer from all channels you have access to. Response arrives in ~0.2s — poll immediately.
+Best for natural-language questions. Posts to your Slackbot DM and synthesizes a cited answer from all channels you have access to. Response arrives in ~0.2s — poll immediately with 1s sleep, not longer.
+
+**Key gotcha:** Slack AI puts its answer in `blocks` (rich text), not the `text` field. Use `extract_ai_answer()` below — reading `.get("text", "")` will return "_Thinking..._" instead of the real answer.
 
 ```python
 from pathlib import Path
@@ -84,20 +86,52 @@ def slack_api(method, endpoint, data=None, params=None):
     with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as resp:
         return json.loads(resp.read())
 
+def extract_element(item):
+    t = item.get("type", "")
+    if t == "text":    return item.get("text", "")
+    if t == "link":    return item.get("text") or item.get("url", "")
+    if t == "channel": return f"#{item.get('channel_id', '?')}"
+    if t == "user":    return f"@{item.get('user_id', '?')}"
+    if t == "emoji":   return f":{item.get('name', '')}:"
+    return ""
+
+def extract_ai_answer(msg):
+    """Read Slack AI answer from blocks, not text field."""
+    parts = []
+    for block in msg.get("blocks", []):
+        if block.get("type") == "timeline":
+            continue  # skip Slack AI's internal search traces
+        if block.get("type") == "rich_text":
+            for el in block.get("elements", []):
+                el_type = el.get("type", "")
+                items = el.get("elements", [])
+                if el_type == "rich_text_list":
+                    for li in items:
+                        parts.append("  • " + "".join(extract_element(i) for i in li.get("elements", [])))
+                elif el_type == "rich_text_preformatted":
+                    parts.append("```" + "".join(extract_element(i) for i in items) + "```")
+                else:
+                    parts.append("".join(extract_element(i) for i in items))
+        elif block.get("type") == "section" and block.get("text"):
+            parts.append(block["text"].get("text", ""))
+    return "\n".join(p for p in parts if p.strip())
+
 # Get your Slackbot DM channel
 dm = slack_api("POST", "conversations.open", {"users": "USLACKBOT"})["channel"]["id"]
 
 # Post question and poll for AI response
 r = slack_api("POST", "chat.postMessage", {"channel": dm, "text": "<YOUR QUERY>"})
 msg_ts = r["ts"]
-for _ in range(30):
+for _ in range(60):
     time.sleep(1)
-    replies = slack_api("GET", "conversations.replies", params={"channel": dm, "ts": msg_ts, "limit": "10"})
+    replies = slack_api("GET", "conversations.replies", params={"channel": dm, "ts": msg_ts, "limit": "20"})
     ai = [m for m in replies.get("messages", [])
           if float(m.get("ts","0")) > float(msg_ts) and m.get("subtype") == "ai"]
     if ai:
-        print(ai[-1].get("text", ""))
-        break
+        answer = extract_ai_answer(ai[-1])
+        if answer and "Thinking" not in answer:
+            print(answer)
+            break
 ```
 
 If Slack AI returns an error or is unavailable (plan restriction), fall back to Mode 2.

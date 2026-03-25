@@ -80,8 +80,8 @@ personal/            ← your own recipes (gitignored) — internal tools stay p
     connection-{auth-method}.md
 
 workflows/           ← pre-built workflows that compose multiple tool connections
-  search/
-    search.md        ← search across all your connected tools simultaneously in one query
+  enterprise-search/
+    enterprise-search.md  ← search across all your connected tools simultaneously in one query
 
 add-new-tool.md      ← connect anything not in tool_connections/ — internal portals, custom systems, any tool with an API or browser interface
 ```
