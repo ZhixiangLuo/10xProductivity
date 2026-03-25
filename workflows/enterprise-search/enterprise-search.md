@@ -1,11 +1,11 @@
 ---
-name: search
-description: Search institutional knowledge across all connected tools simultaneously. Covers Slack, Confluence, Linear, Notion, Jira, and GitHub. Reads verified_connections.md to determine what is available and adapts accordingly.
+name: enterprise-search
+description: Search institutional knowledge across all connected tools. Always searches Slack and Confluence; may include AI-synthesized search tools listed in verified_connections; adds Jira, Linear, Notion, or GitHub as needed. Reads verified_connections.md to determine what is available and adapts accordingly.
 ---
 
-# Search — Institutional Knowledge
+# Enterprise Search — Institutional Knowledge
 
-> **What this file is for:** You have a question or need to find something. This workflow searches every connected tool in parallel, synthesizes the results, and tells you where the knowledge lives — without you having to open each tool manually.
+> **What this file is for:** You have a question or need to find something. This workflow searches your connected tools, synthesizes the results, and tells you where the knowledge lives — without you having to open each tool manually.
 
 Point your agent here:
 
@@ -15,42 +15,34 @@ Point your agent here:
 
 ## Step 1: Load your connected tools
 
-Read `verified_connections.md`. Identify which of the following tools are connected:
+Read `verified_connections.md`. Note which tools are available. Only search tools listed there — skip anything not connected.
 
 | Tool | What it finds |
 |------|--------------|
-| Slack | Recent decisions, incident threads, informal knowledge, "why did we do X" |
+| Slack | Decisions, incident threads, informal knowledge, "why did we do X" |
 | Confluence | Documented knowledge, runbooks, architecture docs, procedures |
+| Jira | Tickets, bug reports, epics, sprint work |
 | Linear | Project issues, bugs, feature requests |
 | Notion | Pages and databases shared with your integration |
-| Jira | Tickets, bug reports, epics, sprint work |
-| GitHub | Code, PRs, issues, commit history — for code-related queries only |
-
-Only search tools that are listed in `verified_connections.md`. Skip any that are not connected.
+| GitHub | Code, PRs, issues, commit history |
 
 ---
 
-## Step 2: Classify the query
+## Step 2: Search
 
-Before searching, determine:
+**Always run Slack + Confluence in parallel** (when each is connected). They cover the widest ground for any question — Slack has real-time conversational knowledge, Confluence has deliberate documentation.
 
-1. **Is this code-related?** (references a function, file, repo, PR, error, or implementation detail) → include GitHub
-2. **Is this about project status or tickets?** → prioritize Jira/Linear
-3. **General question about how something works or why a decision was made?** → prioritize Slack + Confluence
+**Also scan `verified_connections.md` for AI-synthesized search** — connections whose descriptions say they answer natural-language questions across *multiple* backends (internal AI assistants, enterprise knowledge search, “institutional memory,” etc.). They are not the same as a single-source tool like Jira. If you find any, open the linked `connection-*.md` and run the query flow it documents **in the same parallel batch** as Slack and Confluence. Those tools often return one answer that already spans several systems.
 
----
+Add the named tools below based on what you see or what was asked:
 
-## Step 3: Search in parallel
+| Add this tool | When |
+|---------------|------|
+| Jira / Linear | Query mentions a ticket, feature, bug, sprint, or "is X done?" |
+| GitHub | Query mentions code, a function, file, PR, error, or implementation detail |
+| Notion | Connected and Confluence didn't return enough |
 
-Run all applicable searches simultaneously. Do not wait for one to finish before starting the next.
-
-### Priority order for presenting results
-
-1. **Slack** — highest recency and conversational signal
-2. **Confluence** — highest documentation signal
-3. **Linear / Notion** — parallel with Confluence
-4. **Jira** — structured ticket lookup
-5. **GitHub** — only if query is code-related
+Run all selected searches simultaneously. Do not wait for one to finish before starting the next.
 
 ---
 
@@ -290,28 +282,21 @@ To scope to a specific repo: append `+repo:{owner}/{repo}` to the query.
 
 ---
 
-### Google Drive *(on-demand only)*
-
-Google Drive uses a browser session — Playwright launches on every call, which is slow. Do not include in the default parallel search. Offer it explicitly after presenting other results:
-
-> *"I didn't find a clear answer in the connected sources. Do you want me to also search Google Drive?"*
-
----
-
-## Step 4: Synthesize and present results
+## Step 3: Synthesize and present results
 
 After all searches complete:
 
-1. **Group by source** — present results tool by tool, in priority order (Slack → Confluence → Linear/Notion → Jira → GitHub)
+1. **Group by source** — present results tool by tool: Slack → Confluence → any AI-synthesized tools you queried → Jira/Linear/Notion → GitHub
 2. **For each result, show:** title or summary, source tool, direct link
 3. **Synthesize across sources** — if multiple sources point to the same topic, surface that connection explicitly (e.g., "The Slack thread and the Confluence runbook both describe this incident")
-4. **Surface the most relevant 3-5 results total**, not a raw dump of everything — prioritize recency and relevance
+4. **Surface the most relevant 3-5 results total**, not a raw dump — prioritize recency and relevance
 5. **If a result looks directly relevant**, offer to fetch its full content: *"The Confluence page 'Incident Response Runbook' looks relevant — want me to read the full page?"*
 
 ---
 
 ## Notes
 
+- **AI-synthesized tools in `verified_connections.md`:** Use only what each connection file documents — no vendor-specific names are required in this workflow. Skip if the description is clearly a single-purpose API (e.g. only metrics or only tickets).
 - **Slack AI vs. search.messages:** Slack AI gives synthesized answers but requires Business+ plan. `search.messages` always works but returns raw messages. Try AI first; fall back automatically if it fails.
 - **Notion searches titles only.** Body text is not indexed by the API. A "no results" from Notion doesn't mean the knowledge isn't there — it may just not be in the page title.
 - **GitHub is expensive for non-code queries.** Skip it unless the query is clearly code-related; it adds noise and burns API rate limits.

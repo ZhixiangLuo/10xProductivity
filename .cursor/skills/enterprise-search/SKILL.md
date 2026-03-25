@@ -2,7 +2,8 @@
 name: enterprise-search
 description: >
   Search your entire company's institutional knowledge in one query — Slack,
-  Confluence, Jira, Linear, Notion, GitHub, and any custom tool you've connected.
+  Confluence, Jira, Linear, Notion, GitHub, plus any AI or multi-source search
+  tool listed in verified_connections.md. Follow workflows/enterprise-search.
   One question, every connected tool, synthesized answer in seconds. No tab
   switching. No copy-paste. Use when the user asks about a decision, an incident,
   a topic, a person, a past discussion, or anything that might be documented
@@ -26,7 +27,7 @@ GitHub, and more — simultaneously, in a single query.
 ls verified_connections.md 2>/dev/null && grep -c "^##" verified_connections.md || echo "0"
 ```
 
-- **1+ tools connected** → read `verified_connections.md` (capability index), then follow `workflows/enterprise-search/enterprise-search.md` for the search.
+- **1+ tools connected** → read `verified_connections.md` (capability index), then follow `workflows/enterprise-search/enterprise-search.md` for the search. That workflow always uses Slack + Confluence when connected, may include AI-synthesized search tools listed only in `verified_connections.md` (per each connection file), and adds Jira/Linear/Notion/GitHub when relevant.
 - **Not connected / empty** → read `setup.md`. Your agent handles the full connection flow — credentials, SSO, verification — in one session. ~5 minutes per tool.
 
 ---

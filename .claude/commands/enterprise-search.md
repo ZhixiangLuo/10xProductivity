@@ -2,7 +2,7 @@
 
 Search institutional knowledge across every connected tool simultaneously.
 
-One query → Slack + Confluence + Jira + Linear + Notion + GitHub → synthesized answer.
+One query → Slack + Confluence (always when connected) + any AI-synthesized search tools in `verified_connections.md` + Jira/Linear/Notion/GitHub when relevant → synthesized answer.
 
 ## Steps
 
@@ -28,5 +28,6 @@ One query → Slack + Confluence + Jira + Linear + Notion + GitHub → synthesiz
 | Linear | Project issues and feature requests |
 | Notion | Pages and databases |
 | GitHub | Code, PRs, issues (code-related queries only) |
+| *Other* | If `verified_connections.md` lists an AI assistant or multi-source knowledge search, follow that connection file in parallel — see the workflow. |
 
 Only connected tools are searched. The workflow adapts to whatever is in `verified_connections.md`.
