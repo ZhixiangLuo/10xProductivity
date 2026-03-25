@@ -41,6 +41,7 @@ Add the named tools below based on what you see or what was asked:
 | Jira / Linear | Query mentions a ticket, feature, bug, sprint, or "is X done?" |
 | GitHub | Query mentions code, a function, file, PR, error, or implementation detail |
 | Notion | Connected and Confluence didn't return enough |
+| Docs.build | Query is specifically about a **named Workday internal developer service, SDK, or tool** (e.g. "how does the FooService API work?", "Extend scripting docs"). Skip for general questions about tools, policies, people, processes, or "how do I install X" — those belong in Slack/Confluence/Aura/Sana. |
 
 Run all selected searches simultaneously. Do not wait for one to finish before starting the next.
 
@@ -284,13 +285,13 @@ To scope to a specific repo: append `+repo:{owner}/{repo}` to the query.
 
 ## Step 3: Synthesize and present results
 
-After all searches complete:
+After all searches complete, give the user **one direct answer** — not a tool-by-tool breakdown.
 
-1. **Group by source** — present results tool by tool: Slack → Confluence → any AI-synthesized tools you queried → Jira/Linear/Notion → GitHub
-2. **For each result, show:** title or summary, source tool, direct link
-3. **Synthesize across sources** — if multiple sources point to the same topic, surface that connection explicitly (e.g., "The Slack thread and the Confluence runbook both describe this incident")
-4. **Surface the most relevant 3-5 results total**, not a raw dump — prioritize recency and relevance
-5. **If a result looks directly relevant**, offer to fetch its full content: *"The Confluence page 'Incident Response Runbook' looks relevant — want me to read the full page?"*
+- **Lead with the answer**, not with which tool found it. The user doesn't care that "Slack AI said X" or "Sana found Y" — they asked a question, give them the answer.
+- **Merge all results** into a single coherent response. If multiple sources agree, state the conclusion once. If they conflict, surface the conflict briefly.
+- **Include links** only when they point to something directly actionable or worth reading (e.g. a doc page, a ticket). Skip links to raw Slack messages or intermediate search results.
+- **If a source found nothing useful, do not mention it.** Omit empty-handed tools entirely — "Sana didn't find anything" adds no value.
+- **If a result looks like a full doc worth reading**, offer to fetch it: *"There's a Confluence page 'Cursor Install Guide' — want me to read the full content?"*
 
 ---
 
@@ -300,5 +301,6 @@ After all searches complete:
 - **Slack AI vs. search.messages:** Slack AI gives synthesized answers but requires Business+ plan. `search.messages` always works but returns raw messages. Try AI first; fall back automatically if it fails.
 - **Notion searches titles only.** Body text is not indexed by the API. A "no results" from Notion doesn't mean the knowledge isn't there — it may just not be in the page title.
 - **GitHub is expensive for non-code queries.** Skip it unless the query is clearly code-related; it adds noise and burns API rate limits.
+- **Docs.build is narrow — internal service/SDK docs only.** It indexes only content published to `docs.workday.build` (services with a `docs.json` in GHE). Do **not** use it for general questions (install steps, policies, people, team decisions). It uses AI/RAG internally but is **not** an enterprise-wide AI search tool — do not treat it as one.
 - **Confluence vs. Jira overlap:** Confluence has the narrative ("how it works"), Jira has the status ("is it done"). Both are worth searching for most topics.
 - **Credentials:** always load from `.env` in Python, not `bash source .env` — long tokens (especially `SLACK_XOXC`) are silently truncated by bash.
