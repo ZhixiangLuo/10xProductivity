@@ -1,49 +1,62 @@
-#!/usr/bin/env python3
 """
-Grafana SSO session capture via Playwright.
+Grafana SSO capture — plugin for playwright_sso.py discovery.
 
-Opens a headed Chromium window, completes SSO login, and captures:
-  - GRAFANA_SESSION  — session cookie (~8h TTL)
+Navigates to your Grafana instance, completes SSO login, and captures
+the grafana_session cookie.
 
-Usage:
+Standalone usage:
     python3 tool_connections/grafana/sso.py
-    python3 tool_connections/grafana/sso.py --force      # skip validity check
-    python3 tool_connections/grafana/sso.py --env-file /path/to/.env
-
-Requirements:
-    pip install playwright && playwright install chromium
-    GRAFANA_BASE_URL must be set in .env (e.g. https://grafana.yourcompany.com)
+    python3 tool_connections/grafana/sso.py --force
 """
 
-import argparse
 import sys
 import time
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
-from shared_utils.browser import (
-    sync_playwright, load_env_var, load_env_file,
-    update_env_file, http_get, DEFAULT_ENV_FILE,
-)
+try:
+    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+except ImportError:
+    import os
+    os.system(f"{sys.executable} -m pip install playwright -q")
+    os.system(f"{sys.executable} -m playwright install chromium -q")
+    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-GRAFANA_BASE_URL = load_env_var("GRAFANA_BASE_URL", "https://grafana.yourcompany.com")
+import ssl
+import urllib.request
+
+TOOL_NAME = "grafana"
+ENV_KEYS = ["GRAFANA_SESSION"]
 
 
-def is_valid(env_path: Path) -> bool:
-    env = load_env_file(env_path)
+def check(env: dict) -> bool:
+    """Return True if GRAFANA_SESSION is valid."""
     session = env.get("GRAFANA_SESSION", "")
-    if not session:
+    base = env.get("GRAFANA_BASE_URL", "")
+    if not session or not base or "yourcompany" in base:
         return False
-    status = http_get(
-        f"{GRAFANA_BASE_URL}/api/user",
-        {"Cookie": f"grafana_session={session}"},
-    )
-    return status == 200
+    try:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        req = urllib.request.Request(
+            f"{base.rstrip('/')}/api/user",
+            headers={"Cookie": f"grafana_session={session}"},
+        )
+        with urllib.request.urlopen(req, context=ctx, timeout=8) as r:
+            return r.status == 200
+    except Exception:
+        return False
 
 
-def capture(base_url: str) -> dict:
-    """Open Grafana, complete SSO, return {grafana_session}."""
-    print(f"  Opening Grafana ({base_url})...")
+def capture(env: dict) -> dict:
+    """Open Grafana in headed browser, complete SSO, return grafana_session cookie."""
+    base = env.get("GRAFANA_BASE_URL", "")
+    if not base or "yourcompany" in base:
+        raise RuntimeError(
+            "GRAFANA_BASE_URL not set in .env. "
+            "Add GRAFANA_BASE_URL=https://grafana.yourcompany.com and retry."
+        )
+
+    print(f"  Opening Grafana ({base}) — SSO should auto-complete...")
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=False,
@@ -51,18 +64,17 @@ def capture(base_url: str) -> dict:
         )
         ctx = browser.new_context(ignore_https_errors=True)
         page = ctx.new_page()
-
-        page.goto(base_url, wait_until="networkidle", timeout=60_000)
+        page.goto(base, wait_until="networkidle", timeout=60_000)
         time.sleep(2)
 
-        grafana_cookies = {c["name"]: c["value"] for c in ctx.cookies([base_url])}
+        grafana_cookies = {c["name"]: c["value"] for c in ctx.cookies([base])}
         session = grafana_cookies.get("grafana_session")
 
         if not session:
             print("  Waiting for manual login (3 min timeout)...", flush=True)
             for _ in range(90):
                 time.sleep(2)
-                grafana_cookies = {c["name"]: c["value"] for c in ctx.cookies([base_url])}
+                grafana_cookies = {c["name"]: c["value"] for c in ctx.cookies([base])}
                 session = grafana_cookies.get("grafana_session")
                 if session:
                     break
@@ -72,29 +84,44 @@ def capture(base_url: str) -> dict:
     if not session:
         raise RuntimeError("No grafana_session cookie captured.")
 
-    print(f"  Captured: GRAFANA_SESSION ({len(session)} chars)")
-    return {"grafana_session": session}
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV_FILE)
-    parser.add_argument("--force", action="store_true", help="Refresh even if token is still valid")
-    args = parser.parse_args()
-
-    if "yourcompany" in GRAFANA_BASE_URL:
-        print("ERROR: GRAFANA_BASE_URL is not set in .env")
-        print("  Add: GRAFANA_BASE_URL=https://grafana.yourcompany.com")
-        sys.exit(1)
-
-    if not args.force and is_valid(args.env_file):
-        print("GRAFANA_SESSION is valid — nothing to do. Use --force to refresh anyway.")
-        return
-
-    tokens = capture(GRAFANA_BASE_URL)
-    update_env_file(args.env_file, tokens)
-    print("\nDone.")
+    print(f"    Grafana session captured ({len(session)} chars)")
+    return {"GRAFANA_SESSION": session}
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    from pathlib import Path
+
+    ENV_FILE = Path(__file__).parents[2] / ".env"
+
+    def _load_env():
+        if not ENV_FILE.exists():
+            return {}
+        return {k.strip(): v.strip() for line in ENV_FILE.read_text().splitlines()
+                if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+
+    def _write_env(tokens):
+        import re
+        content = ENV_FILE.read_text() if ENV_FILE.exists() else ""
+        for key, value in tokens.items():
+            new_line = f"{key}={value}"
+            if re.search(rf"^{re.escape(key)}=", content, flags=re.MULTILINE):
+                content = re.sub(rf"^{re.escape(key)}=.*$", new_line, content, flags=re.MULTILINE)
+            elif "# --- Grafana" in content:
+                content = content.replace("# --- Grafana\n", f"# --- Grafana\n{new_line}\n", 1)
+            else:
+                content += f"\n# --- Grafana\n{new_line}\n"
+        ENV_FILE.write_text(content)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--force", action="store_true")
+    args = parser.parse_args()
+
+    env = _load_env()
+    if not args.force and check(env):
+        print("GRAFANA_SESSION: ok — nothing to do. Use --force to refresh.")
+        sys.exit(0)
+
+    tokens = capture(env)
+    _write_env(tokens)
+    print(f"  Written to {ENV_FILE}")

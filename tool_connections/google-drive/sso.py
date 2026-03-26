@@ -1,68 +1,78 @@
-#!/usr/bin/env python3
 """
-Google Drive SSO session capture via Playwright.
+Google Drive SSO capture — plugin for playwright_sso.py discovery.
 
-Opens a headed Chromium window, completes Google Workspace SSO, and saves:
-  - ~/.browser_automation/gdrive_auth.json  — Playwright storage_state (days/weeks TTL)
-  - GDRIVE_COOKIES, GDRIVE_SAPISID in .env  — informational only
+Navigates to Google Drive, completes Google Workspace SSO, and saves
+the full browser storage_state plus SAPISID cookie for API access.
 
-NOTE: Raw cookie injection triggers Google's CookieMismatch security check.
-Playwright's storage_state is the only approach that works for Google Drive.
-
-Usage:
+Standalone usage:
     python3 tool_connections/google-drive/sso.py
     python3 tool_connections/google-drive/sso.py --force
-    python3 tool_connections/google-drive/sso.py --env-file /path/to/.env
-
-Requirements:
-    pip install playwright && playwright install chromium
 """
 
-import argparse
 import sys
 import time
+import hashlib
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
-from shared_utils.browser import (
-    sync_playwright, PlaywrightTimeout, load_env_file,
-    update_env_file, DEFAULT_ENV_FILE,
-)
+try:
+    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+except ImportError:
+    import os
+    os.system(f"{sys.executable} -m pip install playwright -q")
+    os.system(f"{sys.executable} -m playwright install chromium -q")
+    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-GDRIVE_URL      = "https://drive.google.com/drive/my-drive"
+import ssl
+import urllib.request
+
+TOOL_NAME = "gdrive"
+ENV_KEYS = ["GDRIVE_COOKIES", "GDRIVE_SAPISID"]
 GDRIVE_AUTH_FILE = Path.home() / ".browser_automation" / "gdrive_auth.json"
+GDRIVE_URL = "https://drive.google.com/drive/my-drive"
 
 
-def is_valid() -> bool:
-    """Check if the saved storage_state is still usable."""
-    if not GDRIVE_AUTH_FILE.exists():
+def check(env: dict) -> bool:
+    """Return True if GDRIVE session is valid."""
+    sapisid = env.get("GDRIVE_SAPISID", "")
+    cookies = env.get("GDRIVE_COOKIES", "")
+    if not sapisid or not cookies:
         return False
-    # Quick heuristic: file exists and is non-empty
-    return GDRIVE_AUTH_FILE.stat().st_size > 1000
-
-
-def capture() -> dict:
-    """Open Google Drive, complete SSO, save storage_state, return cookie info."""
-    print("  Opening Google Drive (~30s to sign in)...")
-    # Use a persistent context so Google sees a real browser profile, not a fresh
-    # automation session — this avoids the "browser may not be secure" block that
-    # personal accounts trigger when cookies are absent.
-    user_data_dir = str(Path.home() / ".browser_automation" / "gdrive_profile")
-    with sync_playwright() as p:
-        ctx = p.chromium.launch_persistent_context(
-            user_data_dir,
-            headless=False,
-            args=[
-                "--window-size=1200,800",
-                "--window-position=100,100",
-                "--disable-blink-features=AutomationControlled",
-            ],
-            ignore_https_errors=True,
+    try:
+        ts = str(int(time.time()))
+        sha1 = hashlib.sha1(f"{ts} {sapisid} https://drive.google.com".encode()).hexdigest()
+        auth = f"SAPISIDHASH {ts}_{sha1}"
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        req = urllib.request.Request(
+            "https://drive.google.com/drive/v2internal/about?fields=user",
+            headers={"Authorization": auth, "Cookie": cookies, "X-Goog-AuthUser": "0"},
         )
+        with urllib.request.urlopen(req, context=ctx, timeout=8) as r:
+            return r.status == 200
+    except Exception:
+        return False
+
+
+def capture(env: dict) -> dict:
+    """
+    Open Google Drive in headed browser, complete Google Workspace SSO,
+    save storage_state, and return GDRIVE_COOKIES + GDRIVE_SAPISID.
+
+    ⚠ Raw cookie injection triggers Google's CookieMismatch check.
+    storage_state correctly replays the full browser session and is the
+    only approach that works.
+    """
+    print(f"  Opening Google Drive — Google Workspace SSO (~30s)...")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=False,
+            args=["--window-size=1200,800", "--window-position=100,100"],
+        )
+        ctx = browser.new_context(ignore_https_errors=True)
         page = ctx.new_page()
 
         page.goto(GDRIVE_URL, wait_until="commit", timeout=30_000)
-
         try:
             page.wait_for_url("https://drive.google.com/**", timeout=60_000)
         except PlaywrightTimeout:
@@ -70,7 +80,7 @@ def capture() -> dict:
                 print("  Google sign-in page — complete login manually (3 min timeout)...", flush=True)
                 page.wait_for_url("https://drive.google.com/**", timeout=180_000)
             else:
-                raise RuntimeError(f"Unexpected URL after Drive navigation: {page.url}")
+                raise RuntimeError(f"Unexpected URL after Google Drive navigation: {page.url}")
 
         try:
             page.wait_for_load_state("networkidle", timeout=30_000)
@@ -80,7 +90,7 @@ def capture() -> dict:
 
         GDRIVE_AUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
         ctx.storage_state(path=str(GDRIVE_AUTH_FILE))
-        print(f"  Session saved to {GDRIVE_AUTH_FILE} ({GDRIVE_AUTH_FILE.stat().st_size} bytes)")
+        print(f"    storage_state saved to {GDRIVE_AUTH_FILE}")
 
         google_cookies = ctx.cookies([
             "https://google.com", "https://www.google.com",
@@ -88,6 +98,7 @@ def capture() -> dict:
         ])
         cookie_dict = {c["name"]: c["value"] for c in google_cookies}
         sapisid = cookie_dict.get("SAPISID", "")
+
         cookie_keys = [
             "SID", "HSID", "SSID", "APISID", "SAPISID",
             "__Secure-1PSID", "__Secure-3PSID",
@@ -100,26 +111,45 @@ def capture() -> dict:
             f"{k}={cookie_dict[k]}" for k in cookie_keys
             if k in cookie_dict and cookie_dict[k]
         )
-        ctx.close()
+        browser.close()
 
-    print(f"  Captured: GDRIVE_SAPISID ({len(sapisid)} chars)")
-    return {"gdrive_cookies": cookie_str, "gdrive_sapisid": sapisid}
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV_FILE)
-    parser.add_argument("--force", action="store_true", help="Refresh even if session file exists")
-    args = parser.parse_args()
-
-    if not args.force and is_valid():
-        print(f"Google Drive session exists at {GDRIVE_AUTH_FILE} — nothing to do. Use --force to refresh.")
-        return
-
-    tokens = capture()
-    update_env_file(args.env_file, tokens)
-    print("\nDone.")
+    print(f"    SAPISID captured ({len(sapisid)} chars)")
+    return {"GDRIVE_COOKIES": cookie_str, "GDRIVE_SAPISID": sapisid}
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    ENV_FILE = Path(__file__).parents[2] / ".env"
+
+    def _load_env():
+        if not ENV_FILE.exists():
+            return {}
+        return {k.strip(): v.strip() for line in ENV_FILE.read_text().splitlines()
+                if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+
+    def _write_env(tokens):
+        import re
+        content = ENV_FILE.read_text() if ENV_FILE.exists() else ""
+        for key, value in tokens.items():
+            new_line = f"{key}={value}"
+            if re.search(rf"^{re.escape(key)}=", content, flags=re.MULTILINE):
+                content = re.sub(rf"^{re.escape(key)}=.*$", new_line, content, flags=re.MULTILINE)
+            elif "# --- Google Drive" in content:
+                content = content.replace("# --- Google Drive\n", f"# --- Google Drive\n{new_line}\n", 1)
+            else:
+                content += f"\n# --- Google Drive\n{new_line}\n"
+        ENV_FILE.write_text(content)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--force", action="store_true")
+    args = parser.parse_args()
+
+    env = _load_env()
+    if not args.force and check(env):
+        print("GDRIVE: ok — nothing to do. Use --force to refresh.")
+        sys.exit(0)
+
+    tokens = capture(env)
+    _write_env(tokens)
+    print(f"  Written to {ENV_FILE}")

@@ -14,7 +14,7 @@ Personal/consumer Microsoft Teams, accessed at `https://teams.live.com/v2/`. Use
 
 **⚠ Private API:** These endpoints are undocumented and not officially supported by Microsoft for third-party use. They may change without notice. Enterprise Teams users (work/school accounts at `teams.microsoft.com`) should use Microsoft Graph API instead.
 
-Env: `TEAMS_SKYPETOKEN`, `TEAMS_SESSION_ID` (~24h — refresh with `assets/playwright_sso.py --teams-only`)
+Env: `TEAMS_SKYPETOKEN`, `TEAMS_SESSION_ID` (~24h — refresh with `python3 tool_connections/shared_utils/playwright_sso.py --teams-only`)
 API docs: none (private API — community-discovered)
 
 **Verified:** Production (teams.live.com + msgapi.teams.live.com) — list chats, read messages, send message — 2026-03. No VPN required. Personal Microsoft account. Token capture via Playwright network header interception.

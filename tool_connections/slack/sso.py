@@ -1,58 +1,62 @@
-#!/usr/bin/env python3
 """
-Slack SSO session capture via Playwright.
+Slack SSO capture — plugin for playwright_sso.py discovery.
 
-Opens a headed Chromium window, completes SSO login, and captures:
-  - SLACK_XOXC       — client token (~8h TTL)
-  - SLACK_D_COOKIE   — session cookie (~8h TTL)
+Navigates to your Slack workspace, completes Okta/SSO login, and extracts
+the xoxc client token + d cookie from localStorage and browser cookies.
 
-Usage:
+Standalone usage:
     python3 tool_connections/slack/sso.py
-    python3 tool_connections/slack/sso.py --force      # skip validity check
-    python3 tool_connections/slack/sso.py --env-file /path/to/.env
-
-Requirements:
-    pip install playwright && playwright install chromium
-    SLACK_WORKSPACE_URL must be set in .env (e.g. https://yourcompany.slack.com/)
+    python3 tool_connections/slack/sso.py --force
 """
 
-import argparse
 import sys
 import time
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
-from shared_utils.browser import (
-    sync_playwright, load_env_var, load_env_file,
-    update_env_file, http_get, DEFAULT_ENV_FILE,
-)
+try:
+    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+except ImportError:
+    import os
+    os.system(f"{sys.executable} -m pip install playwright -q")
+    os.system(f"{sys.executable} -m playwright install chromium -q")
+    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-SLACK_WORKSPACE_URL = load_env_var("SLACK_WORKSPACE_URL", "https://yourcompany.slack.com/")
+import ssl
+import urllib.request
+import json
+
+TOOL_NAME = "slack"
+ENV_KEYS = ["SLACK_XOXC", "SLACK_D_COOKIE"]
 
 
-def is_valid(env_path: Path) -> bool:
-    env = load_env_file(env_path)
+def check(env: dict) -> bool:
+    """Return True if SLACK_XOXC is valid."""
     xoxc = env.get("SLACK_XOXC", "")
     if not xoxc or xoxc.startswith("xoxc-your-"):
         return False
-    import ssl, json, urllib.request
     try:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
         req = urllib.request.Request(
             "https://slack.com/api/auth.test",
             headers={"Authorization": f"Bearer {xoxc}"},
         )
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
-            return json.loads(resp.read()).get("ok") is True
+        with urllib.request.urlopen(req, context=ctx, timeout=8) as r:
+            return json.loads(r.read()).get("ok") is True
     except Exception:
         return False
 
 
-def capture(workspace_url: str) -> dict:
-    """Open Slack workspace, complete SSO, return {slack_xoxc, slack_d_cookie}."""
-    print(f"  Opening Slack ({workspace_url})...")
+def capture(env: dict) -> dict:
+    """Open Slack workspace in headed browser, extract xoxc + d cookie."""
+    workspace_url = env.get("SLACK_WORKSPACE_URL", "")
+    if not workspace_url or "yourcompany" in workspace_url:
+        raise RuntimeError(
+            "SLACK_WORKSPACE_URL not set in .env. "
+            "Add SLACK_WORKSPACE_URL=https://yourcompany.slack.com/ and retry."
+        )
+
+    print(f"  Opening Slack ({workspace_url}) — SSO should auto-complete...")
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=False,
@@ -62,7 +66,7 @@ def capture(workspace_url: str) -> dict:
         page = ctx.new_page()
 
         page.goto(workspace_url, wait_until="commit", timeout=30_000)
-        print("  Waiting for Slack login to complete (up to 3 min)...", flush=True)
+        print("    Waiting for Slack login to complete (up to 3 min)...", flush=True)
 
         xoxc = None
         deadline = time.time() + 180
@@ -91,39 +95,53 @@ def capture(workspace_url: str) -> dict:
                 break
 
         if not xoxc:
-            browser.close()
             raise RuntimeError("No xoxc token found — login may not have completed within 3 minutes.")
 
         all_cookies = ctx.cookies(["https://slack.com", "https://app.slack.com"])
         d_cookie = {c["name"]: c["value"] for c in all_cookies}.get("d", "")
+        if not d_cookie:
+            raise RuntimeError("No 'd' cookie found after Slack SSO.")
+
         browser.close()
 
-    if not d_cookie:
-        raise RuntimeError("No 'd' cookie found after Slack SSO.")
-
-    print(f"  Captured: SLACK_XOXC ({len(xoxc)} chars), SLACK_D_COOKIE ({len(d_cookie)} chars)")
-    return {"slack_xoxc": xoxc, "slack_d_cookie": d_cookie}
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV_FILE)
-    parser.add_argument("--force", action="store_true", help="Refresh even if token is still valid")
-    args = parser.parse_args()
-
-    if "yourcompany" in SLACK_WORKSPACE_URL:
-        print("ERROR: SLACK_WORKSPACE_URL is not set in .env")
-        print("  Add: SLACK_WORKSPACE_URL=https://yourcompany.slack.com/")
-        sys.exit(1)
-
-    if not args.force and is_valid(args.env_file):
-        print("SLACK_XOXC is valid — nothing to do. Use --force to refresh anyway.")
-        return
-
-    tokens = capture(SLACK_WORKSPACE_URL)
-    update_env_file(args.env_file, tokens)
-    print("\nDone.")
+    print(f"    Slack xoxc captured ({len(xoxc)} chars)")
+    return {"SLACK_XOXC": xoxc, "SLACK_D_COOKIE": d_cookie}
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    from pathlib import Path
+
+    ENV_FILE = Path(__file__).parents[2] / ".env"
+
+    def _load_env():
+        if not ENV_FILE.exists():
+            return {}
+        return {k.strip(): v.strip() for line in ENV_FILE.read_text().splitlines()
+                if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+
+    def _write_env(tokens):
+        import re
+        content = ENV_FILE.read_text() if ENV_FILE.exists() else ""
+        for key, value in tokens.items():
+            new_line = f"{key}={value}"
+            if re.search(rf"^{re.escape(key)}=", content, flags=re.MULTILINE):
+                content = re.sub(rf"^{re.escape(key)}=.*$", new_line, content, flags=re.MULTILINE)
+            elif "# --- Slack" in content:
+                content = content.replace("# --- Slack\n", f"# --- Slack\n{new_line}\n", 1)
+            else:
+                content += f"\n# --- Slack\n{new_line}\n"
+        ENV_FILE.write_text(content)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--force", action="store_true")
+    args = parser.parse_args()
+
+    env = _load_env()
+    if not args.force and check(env):
+        print("SLACK_XOXC: ok — nothing to do. Use --force to refresh.")
+        sys.exit(0)
+
+    tokens = capture(env)
+    _write_env(tokens)
+    print(f"  Written to {ENV_FILE}")

@@ -1,52 +1,60 @@
-#!/usr/bin/env python3
 """
-Microsoft Teams (personal) SSO session capture via Playwright.
+Microsoft Teams (personal) SSO capture — plugin for playwright_sso.py discovery.
 
-Opens a headed Chromium window, completes Microsoft personal account login, and captures:
-  - TEAMS_SKYPETOKEN  — x-skypetoken (~24h TTL)
-  - TEAMS_SESSION_ID  — x-ms-session-id (~24h TTL)
+Navigates to teams.live.com, completes Microsoft account login, and captures
+the skypetoken from network request headers or localStorage.
 
-NOTE: This is for personal Microsoft accounts (teams.live.com).
-Enterprise Teams (teams.microsoft.com) uses Microsoft Graph API instead.
-
-Usage:
+Standalone usage:
     python3 tool_connections/microsoft-teams/sso.py
     python3 tool_connections/microsoft-teams/sso.py --force
-    python3 tool_connections/microsoft-teams/sso.py --env-file /path/to/.env
-
-Requirements:
-    pip install playwright && playwright install chromium
 """
 
-import argparse
 import sys
 import time
-from pathlib import Path
+import uuid
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
-from shared_utils.browser import (
-    sync_playwright, load_env_file, update_env_file,
-    http_get, DEFAULT_ENV_FILE,
-)
+try:
+    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+except ImportError:
+    import os
+    os.system(f"{sys.executable} -m pip install playwright -q")
+    os.system(f"{sys.executable} -m playwright install chromium -q")
+    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
+import ssl
+import urllib.request
+
+TOOL_NAME = "teams"
+ENV_KEYS = ["TEAMS_SKYPETOKEN", "TEAMS_SESSION_ID"]
 TEAMS_URL = "https://teams.live.com/v2/"
 
 
-def is_valid(env_path: Path) -> bool:
-    env = load_env_file(env_path)
+def check(env: dict) -> bool:
+    """Return True if TEAMS_SKYPETOKEN is valid."""
     token = env.get("TEAMS_SKYPETOKEN", "")
     if not token or token.startswith("your-"):
         return False
-    status = http_get(
-        "https://teams.live.com/api/csa/api/v1/teams/users/me",
-        {"x-skypetoken": token},
-    )
-    return status == 200
+    try:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        req = urllib.request.Request(
+            "https://teams.live.com/api/csa/api/v1/teams/users/me",
+            headers={"x-skypetoken": token},
+        )
+        with urllib.request.urlopen(req, context=ctx, timeout=8) as r:
+            return r.status == 200
+    except Exception:
+        return False
 
 
-def capture() -> dict:
-    """Open Teams (personal), complete login, return {teams_skypetoken, teams_session_id}."""
-    print(f"  Opening Microsoft Teams personal ({TEAMS_URL})...")
+def capture(env: dict) -> dict:
+    """Open Teams (personal) in headed browser, capture skypetoken."""
+    print(f"  Opening Microsoft Teams ({TEAMS_URL}) — login should auto-complete...")
+    captured_headers: list[dict] = []
+    skypetoken = None
+    session_id = None
+
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=False,
@@ -55,21 +63,16 @@ def capture() -> dict:
         ctx = browser.new_context(ignore_https_errors=True)
         page = ctx.new_page()
 
-        page.goto(TEAMS_URL, wait_until="commit", timeout=30_000)
-        print("  Waiting for Teams login to complete (up to 3 min)...", flush=True)
-
-        skypetoken = None
-        session_id = None
-        captured_headers: list[dict] = []
-
         def _on_request(req):
             hdrs = req.headers
             if "x-skypetoken" in hdrs:
                 captured_headers.append(hdrs)
 
         page.on("request", _on_request)
-        deadline = time.time() + 180
+        page.goto(TEAMS_URL, wait_until="commit", timeout=30_000)
+        print("    Waiting for Teams login to complete (up to 3 min)...", flush=True)
 
+        deadline = time.time() + 180
         while time.time() < deadline:
             time.sleep(2)
             for hdrs in captured_headers:
@@ -105,28 +108,48 @@ def capture() -> dict:
         raise RuntimeError("No x-skypetoken captured — login may not have completed within 3 minutes.")
 
     if not session_id:
-        import uuid
         session_id = str(uuid.uuid4())
-        print("  x-ms-session-id not captured — generated a new UUID.")
 
-    print(f"  Captured: TEAMS_SKYPETOKEN ({len(skypetoken)} chars)")
-    return {"teams_skypetoken": skypetoken, "teams_session_id": session_id}
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV_FILE)
-    parser.add_argument("--force", action="store_true", help="Refresh even if token is still valid")
-    args = parser.parse_args()
-
-    if not args.force and is_valid(args.env_file):
-        print("TEAMS_SKYPETOKEN is valid — nothing to do. Use --force to refresh anyway.")
-        return
-
-    tokens = capture()
-    update_env_file(args.env_file, tokens)
-    print("\nDone.")
+    print(f"    Teams skypetoken captured ({len(skypetoken)} chars)")
+    return {"TEAMS_SKYPETOKEN": skypetoken, "TEAMS_SESSION_ID": session_id}
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    from pathlib import Path
+
+    ENV_FILE = Path(__file__).parents[2] / ".env"
+
+    def _load_env():
+        if not ENV_FILE.exists():
+            return {}
+        return {k.strip(): v.strip() for line in ENV_FILE.read_text().splitlines()
+                if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
+
+    def _write_env(tokens):
+        import re
+        content = ENV_FILE.read_text() if ENV_FILE.exists() else ""
+        for key, value in tokens.items():
+            new_line = f"{key}={value}"
+            if re.search(rf"^{re.escape(key)}=", content, flags=re.MULTILINE):
+                content = re.sub(rf"^{re.escape(key)}=.*$", new_line, content, flags=re.MULTILINE)
+            elif "# --- Microsoft Teams (personal)" in content:
+                content = content.replace(
+                    "# --- Microsoft Teams (personal)\n",
+                    f"# --- Microsoft Teams (personal)\n{new_line}\n", 1)
+            else:
+                content += f"\n# --- Microsoft Teams (personal)\n{new_line}\n"
+        ENV_FILE.write_text(content)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--force", action="store_true")
+    args = parser.parse_args()
+
+    env = _load_env()
+    if not args.force and check(env):
+        print("TEAMS_SKYPETOKEN: ok — nothing to do. Use --force to refresh.")
+        sys.exit(0)
+
+    tokens = capture(env)
+    _write_env(tokens)
+    print(f"  Written to {ENV_FILE}")
