@@ -27,11 +27,14 @@ Notes:
 Verified: 2026-03-14, jeffrey.luo@workday.com
 """
 
-import re, time
+import re, sys, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-AUTH_FILE = Path.home() / ".browser_automation" / "gdrive_auth.json"
+sys.path.insert(0, str(Path(__file__).parents[1]))
+from shared_utils.browser import BROWSER_AUTOMATION_DIR
+
+AUTH_FILE = BROWSER_AUTOMATION_DIR / "gdrive_auth.json"
 
 _ID_PATTERNS = [
     r"/document/d/([a-zA-Z0-9_-]{20,})",

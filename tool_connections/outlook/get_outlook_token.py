@@ -43,7 +43,10 @@ except ImportError:
     print("ERROR: playwright not installed. Run: pip install playwright && playwright install chromium")
     sys.exit(1)
 
-OUTLOOK_PROFILE = Path.home() / ".browser_automation" / "outlook_profile"
+sys.path.insert(0, str(Path(__file__).parents[2] / "tool_connections"))
+from shared_utils.browser import BROWSER_AUTOMATION_DIR
+
+OUTLOOK_PROFILE = BROWSER_AUTOMATION_DIR / "outlook_profile"
 ENV_KEY = "OUTLOOK_ACCESS_TOKEN"
 VERIFY_URL = "https://outlook.office.com/api/v2.0/me/messages?$top=1&$select=Subject"
 

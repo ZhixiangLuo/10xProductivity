@@ -25,9 +25,12 @@ except ImportError:
 import ssl
 import urllib.request
 
+sys.path.insert(0, str(Path(__file__).parents[2] / "tool_connections"))
+from shared_utils.browser import BROWSER_AUTOMATION_DIR
+
 TOOL_NAME = "gdrive"
 ENV_KEYS = ["GDRIVE_COOKIES", "GDRIVE_SAPISID"]
-GDRIVE_AUTH_FILE = Path.home() / ".browser_automation" / "gdrive_auth.json"
+GDRIVE_AUTH_FILE = BROWSER_AUTOMATION_DIR / "gdrive_auth.json"
 GDRIVE_URL = "https://drive.google.com/drive/my-drive"
 
 

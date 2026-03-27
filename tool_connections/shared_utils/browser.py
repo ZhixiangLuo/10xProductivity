@@ -28,10 +28,15 @@ __all__ = [
     "sync_playwright", "PlaywrightTimeout",
     "load_env_var", "load_env_file", "update_env_file",
     "http_get", "http_get_no_redirect",
-    "DEFAULT_ENV_FILE",
+    "DEFAULT_ENV_FILE", "BROWSER_AUTOMATION_DIR",
 ]
 
 DEFAULT_ENV_FILE = Path(__file__).parents[2] / ".env"
+
+# Shared home for all persistent browser profiles and auth snapshots.
+# Lives outside the repo (~/.browser_automation/) so sessions survive
+# repo re-clones and are never accidentally committed.
+BROWSER_AUTOMATION_DIR = Path.home() / ".browser_automation"
 
 
 def load_env_var(key: str, default: str = "") -> str:
