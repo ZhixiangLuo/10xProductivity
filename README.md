@@ -1,6 +1,7 @@
 # 10xProductivity
 
 **Turn your coding agent into a personal assistant at work — without any IT hassle.**
+**10x the output (not just a single task) of every person in your company — from executives to ICs.**
 
 Cursor, Claude Code, and similar tools are far more than coding assistants. Connected to your work tools, they become agents that can search, triage, draft, and automate — for anyone on your team, from top executives to product managers, analysts, sales, HR, and developers — with full access to the institutional knowledge you can access.
 
@@ -35,6 +36,16 @@ Your personal token. Your name on every action. This is a stronger audit trail t
 
 **4. Zero friction to start**
 No OAuth app approval. No IT ticket. No staging environment. If you can log in, your agent can act. Clone the repo, point your agent at `setup.md`, and it handles the rest.
+
+### Read vs read+write+act
+
+Most AI tools — enterprise search platforms, knowledge bases, even ChatGPT — are **read-only**. They find information and surface it in a chat box. You then manually take that answer and do something with it.
+
+10xProductivity is **read + write + act**. The agent doesn't just find the Jira ticket — it updates it. It doesn't just summarize the Slack thread — it posts the summary back. It doesn't just locate the bug — it opens the PR that fixes it.
+
+The output isn't text in a box. The output is the thing done, in the right place, in the right tool.
+
+This is a categorical difference. Any AI tool that only answers can be replaced by a better search engine. An agent that acts is a different class of capability entirely.
 
 ### The result
 
@@ -130,6 +141,26 @@ Read /path/to/10xProductivity/setup.md and set up my tool connections.
 ```
 
 Your agent handles the rest — it will ask which tools you use, get the credentials it needs, run SSO where required, and verify each connection works. Works for any tool: pre-built recipes for common tools, and an identical setup path for internal or custom tools.
+
+---
+
+## Who this is for
+
+**It works for everyone — not just developers.**
+
+The agent is the same for a CTO and a support rep. What differs is the content: the tools they connect, the skills they build, the workflows they automate. A developer writes a skill to triage GitHub issues. A sales rep writes one to pull CRM context before a call. An executive writes one to get a cross-tool status summary every morning.
+
+Same setup. Same chat interface. Completely different leverage depending on what you do.
+
+The comparison isn't "AI vs no AI." It's **AI vs hiring**. A new hire takes months to onboard, needs hand-holding, and costs $100k+/year. The agent is set up in a day, already knows all your tools, never forgets context, and works at any hour.
+
+**Enterprise deployment model:**
+- **IT** installs Cursor, connects shared tools once, sets company-wide rules and skills, runs onboarding workshops
+- **Power users** (one or two per team) build the skills and workflows that matter for their team's work
+- **Everyone** benefits — the whole team gets access to those skills without building anything themselves
+- **Credentials stay personal** — each person's agent acts as them, sees only what they can see, with their name on every action
+
+The skills and workflows a team builds accumulate over time. The longer it runs, the more capable it becomes. That's a compounding advantage no static tool can match.
 
 ---
 
