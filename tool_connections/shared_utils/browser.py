@@ -87,19 +87,22 @@ def update_env_file(env_path: Path, tokens: dict) -> None:
 
 
 def _section_hint(env_key: str) -> str:
-    """Return the .env section comment that precedes the given env var."""
-    hints = {
-        "GRAFANA_SESSION": "# --- Grafana",
-        "SLACK_XOXC": "# --- Slack",
-        "SLACK_D_COOKIE": "# --- Slack",
-        "GDRIVE_COOKIES": "# --- Google Drive",
-        "GDRIVE_SAPISID": "# --- Google Drive",
-        "TEAMS_SKYPETOKEN": "# --- Microsoft Teams (personal)",
-        "TEAMS_SESSION_ID": "# --- Microsoft Teams (personal)",
-        "GRAPH_ACCESS_TOKEN": "# --- Outlook / Microsoft 365",
-        "OWA_ACCESS_TOKEN": "# --- Outlook / Microsoft 365",
+    """Return the .env section comment that precedes the given env var.
+
+    Derived automatically from the env key prefix (TOOL_... → # --- Tool),
+    with overrides only for tools whose env key prefix doesn't match the tool name.
+    No edits needed when adding new tools.
+    """
+    # Overrides for tools with irregular env key prefixes
+    _overrides = {
+        "GRAPH": "# --- Outlook / Microsoft 365",
+        "OWA": "# --- Outlook / Microsoft 365",
+        "GDRIVE": "# --- Google Drive",
     }
-    return hints.get(env_key, "")
+    prefix = env_key.split("_")[0]
+    if prefix in _overrides:
+        return _overrides[prefix]
+    return f"# --- {prefix.title()}"
 
 
 def http_get(url: str, headers: dict) -> int:
