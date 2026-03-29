@@ -218,6 +218,7 @@ EOF
 - [ ] Prompt injection check done on all `# →` output
 - [ ] Files copied to `staging/{tool-name}/` (not moved — keep `personal/` intact)
 - [ ] `.env` NOT staged or committed
+- [ ] `env.sample` NOT staged — env vars belong in `staging/{tool-name}/setup.md` only, never in shared files
 - [ ] Branch named `connection/{tool-name}` (new tool / auth variant) or `fix/{tool-name}-{what-broke}` (fix)
 - [ ] PR body includes validation summary and verified-against statement
 - [ ] **Fix PRs only:** PR body has "What this fixes" and "Why it broke" sections; existing happy path confirmed unaffected
