@@ -18,7 +18,8 @@ This file is for your agent. Point your agent here first:
 - **Ask for credentials only if actually missing, and only for the specific thing that's missing.** Never ask vague questions like "do you have credentials?" Know what you need before you ask.
 - When you must ask, phrase it in plain language — not in technical terms.
 - As soon as you have what you need, do the work and verify it yourself. Tell the user what succeeded, not what they need to do next.
-- **If a recipe fails, do not modify `tool_connections/` directly.** Copy the relevant files to `personal/{tool-name}/`, patch and verify there, then follow `contributing.md` to propose the fix upstream. Never silently change a shared recipe as a side effect of setup.
+- **Always run tools from `personal/{tool-name}/`, not directly from `tool_connections/`.** On first setup, copy `tool_connections/{tool-name}/` → `personal/{tool-name}/` and work from the copy. This isolates your working connections from upstream repo changes — a `git pull` will never silently break a tool you depend on.
+- **If a recipe fails, patch `personal/{tool-name}/` directly — never modify `tool_connections/`.** Then follow `contributing.md` to propose the fix upstream.
 
 ---
 
@@ -55,13 +56,15 @@ Any tool — whether it has a pre-built recipe, an existing personal recipe, or 
 
 ## Step 2: Set up each tool
 
+**`personal/` is the active working layer.** All tools are run from `personal/{tool-name}/` — whether the recipe was built from scratch or copied from `tool_connections/`. This means upstream changes to `tool_connections/` never silently break your working connections; you opt in to updates manually.
+
 For each tool the user selected, follow this routing in order — stop at the first path that succeeds:
 
 | # | Situation | Action |
 |---|-----------|--------|
 | 1 | Tool is already in the user's `verified_connections.md` | Reverify — run its verify snippet; if it passes, done for this tool |
 | 2 | Tool has a recipe in `personal/{tool-name}/` | Load it and try; if it passes, done; if it fails, patch in `personal/{tool-name}/` |
-| 3 | Tool has a recipe in `tool_connections/{tool-name}/` | Read `tool_connections/{tool}/setup.md` and follow it; if it fails, copy to `personal/{tool-name}/` and patch there — never edit `tool_connections/` directly |
+| 3 | Tool has a recipe in `tool_connections/{tool-name}/` | Copy `tool_connections/{tool-name}/` → `personal/{tool-name}/` (exact copy), then load `personal/{tool-name}/setup.md` and follow it — never run directly from `tool_connections/`, never edit `tool_connections/` directly |
 | 4 | Tool not found anywhere | Run `add-new-tool.md` — it builds a recipe in `personal/{tool-name}/` from scratch |
 
 **Validation is mandatory on all paths.** Run the verify snippet and confirm it returns expected output before marking a tool as done.
@@ -72,10 +75,10 @@ For each tool the user selected, follow this routing in order — stop at the fi
 
 ### Finding recipes (path 3)
 
-There is no fixed list of supported tools — any tool with an API or browser interface can be connected. Pre-built community recipes live in `tool_connections/` (one subfolder per tool, each with its own `setup.md`). Your own recipes — for internal tools, patched fixes, or anything not in `tool_connections/` — live in `personal/` (gitignored).
+There is no fixed list of supported tools — any tool with an API or browser interface can be connected. Pre-built community recipes live in `tool_connections/` (one subfolder per tool, each with its own `setup.md`). Your active recipes — copies from `tool_connections/`, internal tools, patched fixes, or anything you built — live in `personal/` (gitignored).
 
-- Browse `tool_connections/` for pre-built recipes
-- Browse `personal/` for your own recipes
+- Browse `personal/` first — your active copies live here
+- Browse `tool_connections/` for pre-built recipes to copy from
 - If neither has what you need → path 4: `add-new-tool.md`
 
 ---
