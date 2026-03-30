@@ -45,4 +45,4 @@ If multiple auth variants exist for the same tool, prefer the one matching what'
 
 For manual guidance see `contributing.md` → **Community contributions** section.
 
-The bar is lower than core: one working verified snippet is enough to submit. Community files can be promoted to `tool_connections/` after review — the original staging file is kept as a record.
+The bar is lower than core: one working verified snippet is enough to submit. Community files are promoted to `tool_connections/` and removed from `staging/` after review. See `workflows/review-staging-pr/` for the full review + merge + promote process.
