@@ -5,7 +5,6 @@ description: LinkedIn — personal use via browser session cookie. Read/send mes
 env_vars:
   - LINKEDIN_LI_AT
   - LINKEDIN_JSESSIONID
-verified: 2026-03
 ---
 
 # LinkedIn — session cookie (li_at)

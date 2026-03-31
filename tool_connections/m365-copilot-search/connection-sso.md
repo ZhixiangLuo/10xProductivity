@@ -1,8 +1,7 @@
 ---
-tool: m365-copilot-search
+name: m365-copilot-search
 auth: sso
-author: jeffrey.luo
-verified: 2026-03
+description: Microsoft 365 Copilot Search — searches across SharePoint files, calendar events, SharePoint sites, and list items via Microsoft Graph Search API. Use when searching company knowledge in SharePoint, finding files or calendar events, or querying M365 content.
 env_vars:
   - M365_SEARCH_TOKEN
 ---
