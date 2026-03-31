@@ -1,7 +1,7 @@
 ---
 name: backstage
 auth: api-token
-description: Backstage — Internal Developer Portal for software catalog management. Use when finding service owners, looking up team members, discovering PagerDuty/GitHub/Slack annotations for any component, or browsing the catalog.
+description: Backstage — Internal Developer Portal for software catalog management (services, components, resources). Use when finding service ownership metadata, PagerDuty/GitHub/Slack annotations, or browsing the catalog — not as an employee directory.
 env_vars:
   - BACKSTAGE_TOKEN
   - BACKSTAGE_BASE_URL
@@ -9,7 +9,7 @@ env_vars:
 
 # Backstage — API token (Bearer auth)
 
-Backstage is Spotify's open-source Internal Developer Portal, used by many engineering organizations to manage a software catalog of services, teams, users, and resources. Common use cases: find who owns a service, look up a team's members, discover PagerDuty/Slack/GitHub annotations for any component.
+Backstage is Spotify's open-source Internal Developer Portal, used to manage a **software catalog** (services, components, systems, resources) and ownership references (`spec.owner`, catalog groups). Common use cases: find who owns a **service**, read component annotations (PagerDuty, Slack, GitHub), filter the catalog. For **people** and HR org data, use your company’s directory APIs — not user entities as a source of truth.
 
 API docs: https://backstage.io/docs/features/software-catalog/software-catalog-api
 
@@ -92,13 +92,7 @@ curl -s -k "$BASE/api/catalog/entities/by-name/component/default/{service-name}"
   | jq '{name: .metadata.name, type: .spec.type, owner: .spec.owner, lifecycle: .spec.lifecycle, annotations: .metadata.annotations}'
 # → {"name": "my-service", "type": "service", "owner": "group:platform-team", "lifecycle": "production", "annotations": {...}}
 
-# User lookup by username
-curl -s -k "$BASE/api/catalog/entities/by-name/user/default/{username}" \
-  -H "Authorization: Bearer $BACKSTAGE_TOKEN" \
-  | jq '{name: .metadata.name, email: .spec.profile.email, displayName: .spec.profile.displayName, memberOf: .spec.memberOf}'
-# → {"name": "alice", "email": "alice@example.com", "displayName": "Alice Smith", "memberOf": ["group:platform-team"]}
-
-# Group lookup by name
+# Group entity (catalog ownership group — not HR org)
 curl -s -k "$BASE/api/catalog/entities/by-name/group/default/{group-name}" \
   -H "Authorization: Bearer $BACKSTAGE_TOKEN" \
   | jq '{name: .metadata.name, members: .spec.members[:5]}'
