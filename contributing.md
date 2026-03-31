@@ -146,7 +146,7 @@ Production ({base-url}) — {YYYY-MM}. {No VPN required / VPN required.}
 ## Checklist
 
 - [x] Files in staging/{tool-name}/
-- [x] Frontmatter complete (tool, auth, author, verified, env_vars)
+- [x] Frontmatter complete (tool, auth, author, env_vars)
 - [x] Every snippet run against live instance with real output
 - [x] Personal/org-specific data scrubbed
 - [x] Prompt injection check done

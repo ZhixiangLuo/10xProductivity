@@ -2,7 +2,6 @@
 tool: {tool-name}
 auth: {api-token | sso | oauth | session-cookie | ad-sso | ldap}
 author: {your-github-username}
-verified: {YYYY-MM}
 env_vars:
   - {TOOL_API_TOKEN}
   - {TOOL_BASE_URL}
