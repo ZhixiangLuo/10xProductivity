@@ -34,9 +34,6 @@ pip install playwright && playwright install chromium
 
 # Create .env (empty — fill from each tool's setup.md as you connect)
 touch .env
-
-# Install pre-push hook (blocks sensitive data from reaching the public repo)
-cp hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
 ```
 
 ---
