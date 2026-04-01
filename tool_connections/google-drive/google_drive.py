@@ -1,54 +1,454 @@
 """
-Google Drive helper — Playwright storage_state auth (no OAuth app needed).
+Google Drive helper — hybrid local filesystem + Playwright daemon.
 
-Usage:
-    from google_drive import GDrive
+## Primary method: Google Drive for Desktop (local filesystem)
+No auth, no tokens, no expiry. Google Drive for Desktop mounts your Drive at:
+    ~/Library/CloudStorage/GoogleDrive-<email>/
 
-    with GDrive() as drive:
-        files   = drive.search("coe")
-        mine    = drive.search("owner:me")
-        listing = drive.list_my_drive()
-        content = drive.read(file_id, file_type)   # doc/sheet/slides → text/csv
-        drive.write_document_append(file_id, "new text")  # Docs only (append at end)
-        drive.write_presentation_append(file_id, "note text")  # Slides (notes or canvas)
+Use GDriveLocal for:
+    - Listing folders and files (instant, no browser)
+    - Reading non-Google files (PDF, docx, txt, csv, etc.)
+    - Searching by filename/content (mdfind/Spotlight — macOS only)
+    - Getting file IDs from .gdoc/.gsheet/.gslides stubs
+    - smart_search(): local-first with automatic online fallback + caching
 
-Auth:
-    Run once to capture session:
-        python3 playwright_sso.py --gdrive-only
-    Session saved to ~/.browser_automation/gdrive_auth.json (days/weeks lifetime).
-    Re-run --gdrive-only if Drive redirects to sign-in.
+Use GDrive for:
+    - Reading Google Docs/Sheets/Slides content (stubs don't contain content)
+    - Searching all of Drive including "Shared with me" and cloud-only files
+    - Full-text search across Drive content
 
-Reuse the same browser session (optional):
-    GDRIVE_CDP_URL=http://127.0.0.1:9222
-        Connect to Chrome you already opened with a debugging port, e.g.:
-        /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\
-          --remote-debugging-port=9222 --user-data-dir=\"$HOME/.chrome-gdrive-debug\"
-        Then every script run uses that same logged-in browser (no new Chromium).
-    GDRIVE_USE_PERSISTENT_PROFILE=1
-        Use a single on-disk profile under ~/.browser_automation/gdrive_chromium_profile/
-        so repeated runs share cookies without starting a fresh incognito-like context.
-        Cookies from gdrive_auth.json are applied via add_cookies (Playwright
-        persistent contexts do not all support storage_state on launch).
+## Write support
+Not supported. Google Docs and Slides have no write path without OAuth2.
+Google Sheets keyboard-navigation write exists but is too fragile for production use.
+
+## Quick start
+
+    from google_drive import GDriveLocal
+
+    local = GDriveLocal()               # no setup needed
+    files = local.list_folder("My Drive")
+    results = local.search("budget")    # local Spotlight search (instant)
+
+    # Smart search: local first, online fallback + auto-cache
+    results = local.smart_search("AI projects")
+
+    # Read Google Docs/Sheets/Slides content via daemon
+    file_id, ftype = local.get_id_and_type("My Drive/plan.gdoc")
+    content = local.drive.read(file_id, ftype)
+
+## Setup
+
+GDriveLocal: Google Drive for Desktop must be installed and signed in.
+    Mount path auto-detected from ~/Library/CloudStorage/GoogleDrive-*.
+    macOS only.
+
+GDrive (daemon): Run once to capture session, then start the daemon:
+    python3 tool_connections/google-drive/sso.py --force
+    python3 tool_connections/google-drive/gdrive_server.py start &
+
+    Session saved to ~/.browser_automation/gdrive_auth.json (~7 day lifetime).
+    Re-run sso.py --force + restart daemon when session expires.
 
 Notes:
-    - headless=False required — SSO needs it, and headed mode is 5× faster than
-      headless for Drive (hardware-accelerated JS rendering vs software-only)
+    - headless=False required for Playwright — SSO needs it, and headed mode is
+      faster than headless for Drive (hardware-accelerated JS rendering)
     - data-id in Drive DOM is truncated; full 44-char IDs come from href
     - read() uses browser download interception (temp path, NOT ~/Downloads)
-    - Google Docs use canvas rendering — DOM text extraction not possible;
-      read() calls the export URL which Playwright intercepts as a download
-
-Verified: 2026-03-14, jeffrey.luo@workday.com
+    - Bridge cache lives in tool_connections/google-drive/bridge_cache/ (gitignored)
 """
 
-import os, re, sys, time
+import json, re, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
-from shared_utils.browser import BROWSER_AUTOMATION_DIR
+AUTH_FILE = Path.home() / ".browser_automation" / "gdrive_auth.json"
 
-AUTH_FILE = BROWSER_AUTOMATION_DIR / "gdrive_auth.json"
+_STUB_EXTENSIONS = {".gdoc", ".gsheet", ".gslides", ".gform", ".gdraw", ".gmap", ".gsite"}
+# Bridge cache files use .gdrive.json (Drive for Desktop drops writes to _STUB_EXTENSIONS)
+_BRIDGE_SUFFIX = ".gdrive.json"
+_STUB_TO_TYPE = {
+    ".gdoc": "document",
+    ".gsheet": "spreadsheet",
+    ".gslides": "presentation",
+    ".gform": "form",
+}
+
+
+def _find_drive_root() -> Path:
+    """Auto-detect the Google Drive for Desktop mount path."""
+    cloud = Path.home() / "Library" / "CloudStorage"
+    if cloud.exists():
+        candidates = sorted(cloud.glob("GoogleDrive-*"))
+        if candidates:
+            return candidates[0]
+    raise RuntimeError(
+        "Google Drive for Desktop mount not found. "
+        "Install Google Drive for Desktop and sign in, then the Drive will appear at "
+        "~/Library/CloudStorage/GoogleDrive-<email>/"
+    )
+
+
+# ── Local filesystem helper ────────────────────────────────────────────────────
+
+class GDriveLocal:
+    """
+    Google Drive via local filesystem (Google Drive for Desktop).
+
+    No auth, no tokens, no browser. Instant access to all files.
+    Google Docs/Sheets/Slides appear as .gdoc/.gsheet/.gslides stubs — use
+    get_id() to extract the file ID, then pass to GDrive.read() for content.
+
+    For online operations (smart_search fallback, read), a single GDrive
+    (daemon) connection is used lazily on first use and reused for all
+    subsequent calls — no repeated auth prompts.
+
+    Usage:
+        local = GDriveLocal()
+
+        # Local operations — no browser
+        files = local.list_folder("My Drive")
+        files = local.list_folder("My Drive/AI initiative")
+        results = local.search("AIOps")
+        file_id, ftype = local.get_id_and_type("My Drive/AIOps plan.gdoc")
+
+        # Smart search — local first, online fallback (daemon reused)
+        results = local.smart_search("AI projects")
+        results = local.smart_search("budget 2026")   # instant from cache
+
+        # Read via daemon
+        content = local.drive.read(file_id, ftype)
+    """
+
+    def __init__(self, drive_root: Path | str | None = None,
+                 auth_file: Path | str | None = None):
+        self.root = Path(drive_root) if drive_root else _find_drive_root()
+        self._auth_file = Path(auth_file) if auth_file else AUTH_FILE
+        self._drive: "GDrive | None" = None  # lazy — opened on first online operation
+
+    @property
+    def drive(self) -> "GDrive":
+        """
+        The shared GDrive instance — connected to the persistent daemon.
+
+        Use this for read() operations. The daemon must be running:
+            python3 tool_connections/google-drive/gdrive_server.py start &
+        """
+        if self._drive is None or not self._drive._is_alive():
+            self._drive = GDrive(self._auth_file)
+            self._drive.__enter__()
+        return self._drive
+
+    def close(self) -> None:
+        """Close the shared connection. Call when done with all Drive operations."""
+        if self._drive is not None:
+            try:
+                self._drive.__exit__(None, None, None)
+            except Exception:
+                pass
+            self._drive = None
+
+    def __del__(self) -> None:
+        self.close()
+
+    def _resolve(self, path: str) -> Path:
+        """Resolve a relative path (e.g. 'My Drive/foo') to an absolute Path."""
+        return self.root / path
+
+    def list_folder(self, folder_path: str = "My Drive") -> list[dict]:
+        """
+        List files and folders at the given path.
+
+        folder_path: relative to Drive root, e.g. "My Drive" or "My Drive/AI initiative"
+
+        Returns list of {name, path, type, is_stub}.
+        type: 'folder' | 'document' | 'spreadsheet' | 'presentation' | 'file' | ...
+        is_stub: True for .gdoc/.gsheet/.gslides (content must be read via GDrive)
+
+        Note: uses subprocess ls to avoid Python iterdir() blocking on the FUSE-mounted
+        network filesystem. Shell ls is fast because macOS caches the directory metadata.
+        """
+        import subprocess
+        p = self._resolve(folder_path)
+        proc = subprocess.run(
+            ["ls", "-1Ap", str(p)],
+            capture_output=True, text=True, timeout=10,
+        )
+        if proc.returncode != 0:
+            raise FileNotFoundError(f"Folder not found or unreadable: {p}\n{proc.stderr}")
+        results = []
+        for name in proc.stdout.splitlines():
+            if not name:
+                continue
+            is_dir = name.endswith("/")
+            clean_name = name.rstrip("/")
+            lower = clean_name.lower()
+            ext = Path(clean_name).suffix.lower()
+            is_stub = ext in _STUB_EXTENSIONS or lower.endswith(_BRIDGE_SUFFIX)
+            if is_dir:
+                ftype = "folder"
+            elif lower.endswith(_BRIDGE_SUFFIX):
+                ftype = "cached"
+            else:
+                ftype = _STUB_TO_TYPE.get(ext, "file")
+            results.append({
+                "name": clean_name,
+                "path": str((p / clean_name).relative_to(self.root)),
+                "type": ftype,
+                "is_stub": is_stub,
+            })
+        return results
+
+    def search(self, query: str, folder_path: str = "My Drive") -> list[dict]:
+        """
+        Search for files by name or content (macOS Spotlight / mdfind).
+
+        query: text to search for — matches filenames AND file content indexed by Spotlight
+        folder_path: where to search (default: "My Drive"; use "." for entire Drive)
+
+        Returns list of {name, path, type, is_stub}.
+
+        Note: uses mdfind (Spotlight) which queries the local metadata index and is
+        instant even on large Drive mounts. find/glob block on the FUSE filesystem.
+        macOS only.
+        """
+        import subprocess
+        base = self._resolve(folder_path)
+        proc = subprocess.run(
+            ["mdfind", "-onlyin", str(base), query],
+            capture_output=True, text=True, timeout=10,
+        )
+        results = []
+        seen: set[str] = set()
+        for line in proc.stdout.splitlines():
+            item = Path(line)
+            if str(item) in seen:
+                continue
+            seen.add(str(item))
+            ext = item.suffix.lower()
+            is_stub = ext in _STUB_EXTENSIONS
+            is_dir = item.is_dir() if not is_stub else False
+            ftype = "folder" if is_dir else _STUB_TO_TYPE.get(ext, "file")
+            try:
+                rel = str(item.relative_to(self.root))
+            except ValueError:
+                rel = line
+            results.append({
+                "name": item.name,
+                "path": rel,
+                "type": ftype,
+                "is_stub": is_stub,
+            })
+        return results
+
+    def get_id(self, file_path: str) -> str:
+        """
+        Extract the Google file ID from a .gdoc/.gsheet/.gslides stub or
+        a .gdrive.json bridge cache file.
+
+        file_path: relative to Drive root, e.g. "My Drive/plan.gdoc"
+                   or absolute path to a bridge cache file from smart_search()
+
+        Returns the doc_id string (44 chars), which can be passed to GDrive.read().
+        """
+        p = Path(file_path) if Path(file_path).is_absolute() else self._resolve(file_path)
+        name = p.name.lower()
+        if p.suffix.lower() not in _STUB_EXTENSIONS and not name.endswith(_BRIDGE_SUFFIX):
+            raise ValueError(
+                f"{file_path!r} is not a Google stub (.gdoc/.gsheet/.gslides) "
+                f"or bridge cache file (.gdrive.json). "
+                f"Read it directly with Path.read_text() instead."
+            )
+        data = json.loads(p.read_text())
+        doc_id = data.get("doc_id", "")
+        if not doc_id:
+            raise ValueError(f"No doc_id found in: {file_path}")
+        return doc_id
+
+    def get_id_and_type(self, file_path: str) -> tuple[str, str]:
+        """
+        Extract the Google file ID and file type from a stub or bridge cache file.
+
+        file_path: relative to Drive root, or absolute path to a bridge cache file,
+                   or result['path'] from smart_search().
+
+        Returns (doc_id, file_type) where file_type is 'document', 'spreadsheet',
+        'presentation', or 'form'.
+        """
+        p = Path(file_path) if Path(file_path).is_absolute() else self._resolve(file_path)
+        doc_id = self.get_id(file_path)
+        if p.name.lower().endswith(_BRIDGE_SUFFIX):
+            data = json.loads(p.read_text())
+            ftype = data.get("type", "document")
+        else:
+            ftype = _STUB_TO_TYPE.get(p.suffix.lower(), "document")
+        return doc_id, ftype
+
+    def read_file(self, file_path: str) -> str:
+        """
+        Read a non-Google file as text (txt, csv, md, json, etc.).
+        For .docx/.xlsx use python-docx/openpyxl separately.
+
+        file_path: relative to Drive root, e.g. "My Drive/report.txt"
+
+        Raises ValueError for stub files (use get_id + GDrive.read instead).
+        """
+        p = self._resolve(file_path)
+        if p.suffix.lower() in _STUB_EXTENSIONS:
+            raise ValueError(
+                f"{file_path!r} is a Google stub — use get_id() + GDrive.read() to get content."
+            )
+        return p.read_text(errors="replace")
+
+    # ── Bridge cache ──────────────────────────────────────────────────────────
+
+    # Cache lives in personal/tool_connections/google-drive/bridge_cache/ —
+    # user-specific data (searched file IDs) that must stay gitignored.
+    # Resolved by walking up from this file to the repo root, then into personal/.
+    @property
+    def _bridge_cache_dir(self) -> Path:
+        repo_root = Path(__file__).parent.parent.parent  # tool_connections/google-drive → repo root
+        cache_dir = repo_root / "personal" / "tool_connections" / "google-drive" / "bridge_cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return cache_dir
+
+    def cache_stub(self, name: str, file_id: str, file_type: str,
+                   queries: list[str] | None = None) -> Path:
+        """
+        Write a bridge cache entry to bridge_cache/.
+
+        This is inside the repo so the agent can write to it without sandbox
+        restrictions. smart_search() checks this cache before going online,
+        so repeated searches for the same file are instant.
+
+        name:      display name of the file
+        file_id:   Google Drive file ID (44-char string)
+        file_type: 'document' | 'spreadsheet' | 'presentation' | 'form' | 'file'
+        queries:   list of search queries that found this file (stored for cache lookup)
+
+        Returns the Path of the written cache file.
+        """
+        safe_name = re.sub(r'[/\\:*?"<>|]', "_", name)
+        cache_path = self._bridge_cache_dir / f"{safe_name}.gdrive.json"
+
+        existing_queries: list[str] = []
+        if cache_path.exists():
+            try:
+                existing_queries = json.loads(cache_path.read_text()).get("queries", [])
+            except Exception:
+                pass
+        merged_queries = list(dict.fromkeys(existing_queries + (queries or [])))
+
+        cache_path.write_text(json.dumps({
+            "doc_id": file_id,
+            "type": file_type,
+            "name": name,
+            "queries": merged_queries,
+        }, indent=2))
+        return cache_path
+
+    def _search_bridge_cache(self, query: str) -> list[dict]:
+        """
+        Search bridge_cache/ by:
+        1. Original query match — returns all files found by the same query before
+        2. Filename substring match — catches partial name matches
+        """
+        q = query.lower()
+        results = []
+        seen: set[str] = set()
+        for p in self._bridge_cache_dir.glob("*.gdrive.json"):
+            try:
+                data = json.loads(p.read_text())
+            except Exception:
+                continue
+            name = data.get("name", p.stem)
+            doc_id = data.get("doc_id", "")
+            if doc_id in seen:
+                continue
+            stored_queries = [sq.lower() for sq in data.get("queries", [])]
+            if q in stored_queries or q in name.lower():
+                seen.add(doc_id)
+                results.append({
+                    "name": name,
+                    "path": str(p),
+                    "type": data.get("type", "document"),
+                    "is_stub": True,
+                    "id": doc_id,
+                    "source": "cache",
+                    "cached": True,
+                })
+        return results
+
+    def get_cached_id_and_type(self, name: str) -> tuple[str, str] | None:
+        """
+        Look up a file by name in the bridge cache.
+        Returns (doc_id, file_type) if found, None if not cached.
+        """
+        safe_name = re.sub(r'[/\\:*?"<>|]', "_", name)
+        cache_path = self._bridge_cache_dir / f"{safe_name}.gdrive.json"
+        if not cache_path.exists():
+            return None
+        data = json.loads(cache_path.read_text())
+        return data.get("doc_id", ""), data.get("type", "document")
+
+    def smart_search(self, query: str, folder_path: str = "My Drive") -> list[dict]:
+        """
+        Search for files — three-tier lookup, fastest first:
+
+        1. mdfind (Spotlight) on local Drive mount — instant, covers synced files.
+        2. bridge_cache/ in the repo — instant, covers previously found online files.
+        3. Online Drive search via daemon — covers "Shared with me" and cloud-only files.
+           Writes results to bridge_cache/ so future calls skip this step.
+
+        Returns list of {name, path, type, is_stub, source} where
+        source is 'local' | 'cache' | 'online'.
+
+        Online fallback requires the daemon to be running:
+            python3 tool_connections/google-drive/gdrive_server.py start &
+        Re-run sso.py --force + restart daemon if session expired (~7 days).
+        """
+        local_results = self.search(query, folder_path)
+        if local_results:
+            for r in local_results:
+                r["source"] = "local"
+            return local_results
+
+        cache_results = self._search_bridge_cache(query)
+        if cache_results:
+            return cache_results
+
+        print(f"[smart_search] Not found locally — searching online for '{query}'...")
+        online_results = self.drive.search(query)
+
+        if not online_results:
+            return []
+
+        result = []
+        for f in online_results:
+            if f.get("type") != "folder":
+                try:
+                    stub_path = self.cache_stub(
+                        f["name"], f["id"], f["type"], queries=[query]
+                    )
+                    cached = True
+                except Exception:
+                    stub_path = None
+                    cached = False
+            else:
+                stub_path = None
+                cached = False
+
+            result.append({
+                "name": f["name"],
+                "path": str(stub_path) if stub_path else f["name"],
+                "type": f["type"],
+                "is_stub": cached,
+                "source": "online",
+                "id": f["id"],
+                "cached": cached,
+            })
+
+        return result
+
 
 _ID_PATTERNS = [
     r"/document/d/([a-zA-Z0-9_-]{20,})",
@@ -98,67 +498,6 @@ def _extract_id(link: str) -> str | None:
     return None
 
 
-def _slides_click_main_slide(page) -> None:
-    """
-    Focus the main slide editing surface. Google's class names change; we try
-    several selectors, then the largest wide canvas (skipping narrow left filmstrip),
-    then a viewport click in the usual slide area.
-    """
-    page.wait_for_url(re.compile(r".*/presentation/d/[^/]+/edit.*"), timeout=90_000)
-    time.sleep(2.0)
-
-    for sel in (
-        ".punch-viewport",
-        "[class*='punch-viewport']",
-        "#workspace",
-        "[data-log-pane='body']",
-        "div[role='application'] canvas",
-    ):
-        loc = page.locator(sel).first
-        try:
-            loc.wait_for(state="visible", timeout=10_000)
-            box = loc.bounding_box()
-            if box and box["width"] >= 80 and box["height"] >= 80:
-                loc.click(
-                    position={
-                        "x": min(400, max(40, box["width"] / 2)),
-                        "y": min(300, max(40, box["height"] / 2)),
-                    },
-                    timeout=15_000,
-                )
-                return
-        except Exception:
-            continue
-
-    pt = page.evaluate(
-        """() => {
-            const canvases = Array.from(document.querySelectorAll('canvas'));
-            let best = null;
-            let area = 0;
-            for (const c of canvases) {
-                const r = c.getBoundingClientRect();
-                if (r.width < 180 || r.height < 120) continue;
-                if (r.left < 100) continue;
-                const a = r.width * r.height;
-                if (a > area) {
-                    area = a;
-                    best = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-                }
-            }
-            return best;
-        }"""
-    )
-    if pt and isinstance(pt, dict) and pt.get("x") is not None and pt.get("y") is not None:
-        page.mouse.click(float(pt["x"]), float(pt["y"]))
-        return
-
-    vs = page.viewport_size
-    if vs:
-        page.mouse.click(vs["width"] * 0.56, vs["height"] * 0.40)
-    else:
-        page.mouse.click(720, 380)
-
-
 def _parse_raw(raw: list[dict]) -> list[dict]:
     result = []
     seen: set[str] = set()
@@ -187,117 +526,43 @@ def _parse_raw(raw: list[dict]) -> list[dict]:
 
 class GDrive:
     """
-    Context manager for Google Drive operations.
+    Playwright-based Google Drive — routes all browser operations through a
+    persistent background daemon (gdrive_server.py) so the browser stays open
+    across Python process invocations. No repeated SSO auth.
 
-    with GDrive() as drive:
-        files = drive.search("coe")
-        content = drive.read(files[0]["id"], files[0]["type"])
+    The daemon starts automatically on first use and keeps running until
+    explicitly stopped. One browser open = all agent calls reuse it.
+
+    Usage:
+        # Via GDriveLocal (preferred — handles search + read in one object)
+        local = GDriveLocal()
+        content = local.drive.read(file_id, ftype)
+
+        # Standalone
+        drive = GDrive()
+        results = drive.search("AI projects")   # daemon starts if needed
+        content = drive.read(file_id, "document")
+
+    Daemon management:
+        python3 gdrive_server.py status   # check if running
+        python3 gdrive_server.py stop     # shut it down
     """
 
     def __init__(self, auth_file: Path | str | None = None):
         self._auth_file = Path(auth_file) if auth_file else AUTH_FILE
-        self._pw = None
-        self._browser = None
-        self._ctx = None
-        self._page = None
-        self._mode = "default"
 
     def __enter__(self) -> "GDrive":
-        self._pw = sync_playwright().start()
-        cdp_url = os.environ.get("GDRIVE_CDP_URL", "").strip()
-        use_persistent = os.environ.get("GDRIVE_USE_PERSISTENT_PROFILE", "").strip().lower() in (
-            "1",
-            "true",
-            "yes",
-            "on",
-        )
-
-        if cdp_url:
-            self._mode = "cdp"
-            self._browser = self._pw.chromium.connect_over_cdp(cdp_url)
-            if not self._browser.contexts:
-                self._pw.stop()
-                self._pw = None
-                raise RuntimeError(
-                    "GDRIVE_CDP_URL is set but the browser reports no contexts. "
-                    "Start Chrome with --remote-debugging-port=9222 and keep a window open."
-                )
-            self._ctx = self._browser.contexts[0]
-            # New tab — do not hijack whatever the user already had open.
-            self._page = self._ctx.new_page()
-        elif use_persistent:
-            import json
-
-            self._mode = "persistent"
-            profile_dir = BROWSER_AUTOMATION_DIR / "gdrive_chromium_profile"
-            profile_dir.mkdir(parents=True, exist_ok=True)
-            self._ctx = self._pw.chromium.launch_persistent_context(
-                user_data_dir=str(profile_dir),
-                headless=False,
-                args=["--window-size=1400,900"],
-                ignore_https_errors=True,
-                accept_downloads=True,
-                viewport={"width": 1400, "height": 900},
-            )
-            self._browser = None
-            if self._auth_file.exists():
-                try:
-                    data = json.loads(self._auth_file.read_text())
-                    cookies = data.get("cookies")
-                    if isinstance(cookies, list) and cookies:
-                        self._ctx.add_cookies(cookies)
-                except Exception:
-                    pass
-            self._page = self._ctx.pages[0] if self._ctx.pages else self._ctx.new_page()
-        else:
-            self._mode = "default"
-            self._browser = self._pw.chromium.launch(
-                headless=False,
-                args=["--window-size=1400,900"],
-            )
-            self._ctx = self._browser.new_context(
-                storage_state=str(self._auth_file),
-                ignore_https_errors=True,
-                accept_downloads=True,
-            )
-            self._page = self._ctx.new_page()
-
-        try:
-            self._page.goto(
-                "https://drive.google.com/drive/my-drive",
-                wait_until="networkidle",
-                timeout=45_000,
-            )
-        except PlaywrightTimeout:
-            pass
-        time.sleep(1)
-        if "accounts.google.com" in self._page.url:
-            hint = ""
-            if self._mode != "cdp":
-                hint = (
-                    " Or start Chrome with --remote-debugging-port=9222, sign in once, "
-                    "and set GDRIVE_CDP_URL=http://127.0.0.1:9222 to reuse that window."
-                )
-            raise RuntimeError(
-                "Google Drive session expired. Re-run: "
-                "python3 playwright_sso.py --gdrive-only" + hint
-            )
         return self
 
     def __exit__(self, *_):
-        if self._mode == "persistent":
-            if self._ctx:
-                self._ctx.close()
-        elif self._browser:
-            self._browser.close()
-        self._browser = None
-        self._ctx = None
-        self._page = None
-        if self._pw:
-            self._pw.stop()
-            self._pw = None
+        # Don't stop the daemon — it should stay running across calls
+        pass
 
-    # ── Core operations ─────────────────────────────────────────────────────
+    def _is_alive(self) -> bool:
+        import gdrive_server
+        return gdrive_server.is_running()
+
+    # ── Core operations — proxied to daemon ──────────────────────────────────
 
     def search(self, query: str) -> list[dict]:
         """
@@ -306,45 +571,19 @@ class GDrive:
         query: any text, or Drive operators:
             owner:me            — files you own (guaranteed exportable)
             "exact phrase"      — exact match
-            owner:me coe        — combine
+            owner:me keyword    — combine operators
         """
-        import urllib.parse
-        try:
-            self._page.goto(
-                f"https://drive.google.com/drive/search?q={urllib.parse.quote(query)}",
-                wait_until="networkidle",
-                timeout=30_000,
-            )
-        except PlaywrightTimeout:
-            pass
-        time.sleep(1)
-        return _parse_raw(self._page.evaluate(_EXTRACT_JS))
+        import gdrive_server
+        return gdrive_server.search(query)
 
     def list_my_drive(self) -> list[dict]:
         """List files/folders in My Drive root."""
-        try:
-            self._page.goto(
-                "https://drive.google.com/drive/my-drive",
-                wait_until="networkidle",
-                timeout=30_000,
-            )
-        except PlaywrightTimeout:
-            pass
-        time.sleep(1)
-        return _parse_raw(self._page.evaluate(_EXTRACT_JS))
+        return self.search("owner:me")
 
     def list_folder(self, folder_id: str) -> list[dict]:
-        """List contents of a specific folder by ID."""
-        try:
-            self._page.goto(
-                f"https://drive.google.com/drive/folders/{folder_id}",
-                wait_until="networkidle",
-                timeout=30_000,
-            )
-        except PlaywrightTimeout:
-            pass
-        time.sleep(1)
-        return _parse_raw(self._page.evaluate(_EXTRACT_JS))
+        """List contents of a specific folder by ID (online, via daemon)."""
+        import gdrive_server
+        return gdrive_server.search(f"parents:{folder_id}")
 
     def read(self, file_id: str, file_type: str) -> str:
         """
@@ -354,269 +593,61 @@ class GDrive:
                    'spreadsheet' → CSV
                    'presentation' → text (slide titles + speaker notes)
 
-        Note: Google Docs use canvas rendering — DOM text extraction is not
-        possible. This triggers an export download that Playwright intercepts
-        to a temp path (/var/folders/.../playwright-artifacts-...).
-        ~/Downloads is NOT touched.
-
-        Only works for files you can open. Use search("owner:me") for owned files.
+        Routed through the persistent daemon — no new browser launch.
+        Only works for files you can open.
         """
-        url = _EXPORT_URLS.get(file_type, "").format(id=file_id)
-        if not url:
-            raise ValueError(f"Unsupported file type for export: {file_type!r}. "
-                             f"Supported: {list(_EXPORT_URLS)}")
-
-        with self._page.expect_download(timeout=25_000) as dl_info:
-            try:
-                self._page.goto(url, wait_until="commit", timeout=10_000)
-            except Exception:
-                pass  # "Download is starting" is expected
-
-        download = dl_info.value
-        return Path(download.path()).read_text(errors="replace")
-
-    def write_document_append(self, doc_id: str, text: str, *, settle_s: float = 3.0) -> None:
-        """
-        Append text to the end of a Google Doc (opens the editor, focuses canvas,
-        jumps to end, types). Docs auto-save; no separate save call.
-
-        Uses the same Playwright session as read(). You need edit access to the doc.
-
-        Note: This is best-effort UI automation — complex docs, comments-only mode,
-        or Google UI changes can make focus unreliable. Prefer short, plain-text
-        appends.
-        """
-        url = f"https://docs.google.com/document/d/{doc_id}/edit"
-        try:
-            self._page.goto(url, wait_until="networkidle", timeout=45_000)
-        except PlaywrightTimeout:
-            pass
-        time.sleep(settle_s)
-
-        if "accounts.google.com" in self._page.url:
-            raise RuntimeError(
-                "Google session expired while opening the doc. Re-run: "
-                "python3 playwright_sso.py --gdrive-only"
-            )
-
-        editor = self._page.locator(".kix-appview-editor").first
-        editor.wait_for(state="visible", timeout=30_000)
-        editor.click(position={"x": 320, "y": 320})
-        time.sleep(0.4)
-
-        if sys.platform == "darwin":
-            self._page.keyboard.press("Meta+ArrowDown")
-        else:
-            self._page.keyboard.press("Control+End")
-        time.sleep(0.35)
-        self._page.keyboard.press("Enter")
-        time.sleep(0.2)
-
-        for i, line in enumerate(text.split("\n")):
-            if i:
-                self._page.keyboard.press("Enter")
-                time.sleep(0.05)
-            self._page.keyboard.type(line, delay=20)
-        time.sleep(2.0)
-
-    def write_presentation_append(
-        self,
-        presentation_id: str,
-        text: str,
-        *,
-        settle_s: float = 4.0,
-        target: str = "notes",
-    ) -> None:
-        """
-        Append plain text to a Google Slides deck.
-
-        target:
-            'notes' — focus the speaker-notes editor (bottom of the editor UI) when
-                possible; matches what read(..., 'presentation') exports as text.
-            'slide' — click the main slide viewport and type (best on an empty area
-                or when a text box is already selected).
-
-        Best-effort UI automation; Slides layout and Google DOM changes can break it.
-        """
-        if target not in ("notes", "slide"):
-            raise ValueError("target must be 'notes' or 'slide'")
-
-        url = f"https://docs.google.com/presentation/d/{presentation_id}/edit"
-        try:
-            self._page.goto(url, wait_until="networkidle", timeout=60_000)
-        except PlaywrightTimeout:
-            pass
-        time.sleep(settle_s)
-
-        if "accounts.google.com" in self._page.url:
-            raise RuntimeError(
-                "Google session expired while opening the deck. Re-run: "
-                "python3 playwright_sso.py --gdrive-only"
-            )
-
-        used_notes = False
-        slide_canvas = False
-        if target == "notes":
-            # Prefer a contenteditable in the lower part of the window (speaker notes).
-            focused = self._page.evaluate(
-                """() => {
-                    const vh = window.innerHeight;
-                    const eds = Array.from(
-                        document.querySelectorAll('[contenteditable="true"]')
-                    );
-                    let best = null;
-                    let bestTop = -1;
-                    for (const e of eds) {
-                        const r = e.getBoundingClientRect();
-                        if (r.height < 24 || r.width < 80) continue;
-                        if (r.top < vh * 0.45) continue;
-                        if (r.top >= bestTop) {
-                            bestTop = r.top;
-                            best = e;
-                        }
-                    }
-                    if (best) {
-                        best.focus();
-                        best.scrollIntoView({ block: 'nearest' });
-                        return true;
-                    }
-                    return false;
-                }"""
-            )
-            if focused:
-                used_notes = True
-            else:
-                target = "slide"
-
-        if target == "slide":
-            _slides_click_main_slide(self._page)
-            slide_canvas = True
-            time.sleep(0.6)
-
-        if used_notes:
-            self._page.keyboard.press("End")
-            time.sleep(0.2)
-            self._page.keyboard.press("Enter")
-            time.sleep(0.15)
-        elif slide_canvas:
-            # Do not use Meta+ArrowDown here — it can change slide selection instead
-            # of inserting text. Click already focuses the canvas / a text box.
-            time.sleep(0.15)
-        else:
-            if sys.platform == "darwin":
-                self._page.keyboard.press("Meta+ArrowDown")
-            else:
-                self._page.keyboard.press("Control+End")
-            time.sleep(0.25)
-            self._page.keyboard.press("Enter")
-            time.sleep(0.15)
-
-        for i, line in enumerate(text.split("\n")):
-            if i:
-                self._page.keyboard.press("Enter")
-                time.sleep(0.05)
-            self._page.keyboard.type(line, delay=22)
-        time.sleep(2.0)
-
-    def write_sheet_cell(self, sheet_id: str, row: int, col: int, value: str,
-                         gid: int = 0) -> None:
-        """
-        Write a value to a single Google Sheets cell by 1-indexed row/col.
-
-        Uses keyboard navigation from A1 — reliable across all sheet layouts.
-        Auto-saves (Google Sheets saves on every keystroke).
-
-        Args:
-            sheet_id: Spreadsheet ID (from URL: /spreadsheets/d/<ID>/edit)
-            row:      1-indexed row number
-            col:      1-indexed column number (1=A, 2=B, ...)
-            value:    String value to write
-            gid:      Sheet tab ID (default 0 = first tab)
-
-        Example:
-            drive.write_sheet_cell("1R1U8QywU4...", row=10, col=2, "alice@example.com")
-            # Writes to B10
-        """
-        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid={gid}"
-        try:
-            self._page.goto(url, wait_until="networkidle", timeout=30_000)
-        except PlaywrightTimeout:
-            pass
-        time.sleep(2)
-
-        # Go to A1
-        self._page.keyboard.press("Control+Home")
-        time.sleep(0.3)
-
-        # Navigate to target row (down row-1 times)
-        for _ in range(row - 1):
-            self._page.keyboard.press("ArrowDown")
-            time.sleep(0.04)
-
-        # Navigate to target column (right col-1 times)
-        for _ in range(col - 1):
-            self._page.keyboard.press("ArrowRight")
-            time.sleep(0.04)
-
-        # Clear existing content, then type new value
-        self._page.keyboard.press("Delete")
-        time.sleep(0.2)
-        self._page.keyboard.type(value)
-        self._page.keyboard.press("Enter")
-        time.sleep(1)  # allow autosave
-
-    def find_row_and_write(self, sheet_id: str, search_col: int,
-                           search_value: str, write_col: int,
-                           write_value: str, gid: int = 0) -> int:
-        """
-        Read the sheet as CSV, find the row where search_col contains search_value
-        (exact, case-insensitive), then write write_value to write_col in that row.
-
-        Returns the 1-indexed row number that was written, or raises ValueError.
-
-        Example:
-            row = drive.find_row_and_write(
-                sheet_id, search_col=1, search_value="Claude-4.6-Sonnet-medium",
-                write_col=2, write_value="alice@example.com"
-            )
-        """
-        import csv, io
-        csv_text = self.read(sheet_id, "spreadsheet")
-        rows = list(csv.reader(io.StringIO(csv_text)))
-        target_row = None
-        for i, row_data in enumerate(rows):
-            if len(row_data) >= search_col:
-                cell = row_data[search_col - 1].strip().lower()
-                if cell == search_value.strip().lower():
-                    target_row = i + 1  # 1-indexed
-                    break
-        if target_row is None:
-            raise ValueError(f"Value {search_value!r} not found in column {search_col}")
-        self.write_sheet_cell(sheet_id, target_row, write_col, write_value, gid)
-        return target_row
+        import gdrive_server
+        return gdrive_server.read(file_id, file_type)
 
 
 # ── CLI helper ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    import sys, json
+    import sys
 
     cmd = sys.argv[1] if len(sys.argv) > 1 else "help"
 
-    if cmd == "search":
+    if cmd == "ls-local":
+        folder = " ".join(sys.argv[2:]) if len(sys.argv) > 2 else "My Drive"
+        local = GDriveLocal()
+        results = local.list_folder(folder)
+        for f in results:
+            stub = " [stub]" if f["is_stub"] else ""
+            print(f"[{f['type']:<14}] {f['name']}{stub}")
+
+    elif cmd == "search-local":
+        query = " ".join(sys.argv[2:])
+        local = GDriveLocal()
+        results = local.search(query)
+        print(f"Found {len(results)} files matching '{query}':")
+        for f in results:
+            stub = " [stub — use read to get content]" if f["is_stub"] else ""
+            print(f"  [{f['type']:<14}] {f['path']}{stub}")
+
+    elif cmd == "smart-search":
+        query = " ".join(sys.argv[2:])
+        local = GDriveLocal()
+        results = local.smart_search(query)
+        print(f"Found {len(results)} files matching '{query}':")
+        for f in results:
+            src = f.get("source", "local")
+            stub = " [stub]" if f.get("is_stub") else ""
+            print(f"  [{src}] [{f['type']:<14}] {f['path']}{stub}")
+
+    elif cmd == "get-id":
+        path = " ".join(sys.argv[2:])
+        local = GDriveLocal()
+        file_id, ftype = local.get_id_and_type(path)
+        print(f"id:   {file_id}")
+        print(f"type: {ftype}")
+
+    elif cmd == "search":
         query = " ".join(sys.argv[2:]) or "owner:me"
-        with GDrive() as drive:
-            results = drive.search(query)
+        drive = GDrive()
+        results = drive.search(query)
         print(f"Found {len(results)} results for '{query}':")
         for i, f in enumerate(results, 1):
             print(f"  {i:2}. [{f['type']:<14}] {f['name']}")
-
-    elif cmd == "ls":
-        folder_id = sys.argv[2] if len(sys.argv) > 2 else None
-        with GDrive() as drive:
-            results = drive.list_folder(folder_id) if folder_id else drive.list_my_drive()
-        for f in results:
-            print(f"[{f['type']:<14}] {f['name']:<60} {f['id']}")
 
     elif cmd == "read":
         if len(sys.argv) < 4:
@@ -624,37 +655,9 @@ if __name__ == "__main__":
             print("  type: document | spreadsheet | presentation")
             sys.exit(1)
         file_id, file_type = sys.argv[2], sys.argv[3]
-        with GDrive() as drive:
-            content = drive.read(file_id, file_type)
+        drive = GDrive()
+        content = drive.read(file_id, file_type)
         print(content)
-
-    elif cmd == "write-doc":
-        if len(sys.argv) < 4:
-            print("Usage: python google_drive.py write-doc <doc_id> <text...>")
-            sys.exit(1)
-        doc_id = sys.argv[2]
-        append_text = " ".join(sys.argv[3:])
-        with GDrive() as drive:
-            drive.write_document_append(doc_id, append_text)
-        print("Appended.")
-
-    elif cmd == "write-slide":
-        args = sys.argv[2:]
-        tgt = "notes"
-        if "--on-slide" in args:
-            args = [a for a in args if a != "--on-slide"]
-            tgt = "slide"
-        if len(args) < 2:
-            print("Usage: python google_drive.py write-slide [--on-slide] "
-                  "<presentation_id> <text...>")
-            print("  Default: append to speaker notes (matches export/txt).")
-            print("  --on-slide: click main slide canvas and type there.")
-            sys.exit(1)
-        pres_id = args[0]
-        append_text = " ".join(args[1:])
-        with GDrive() as drive:
-            drive.write_presentation_append(pres_id, append_text, target=tgt)
-        print("Appended to Slides.")
 
     else:
         print(__doc__)
