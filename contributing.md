@@ -112,6 +112,15 @@ ls staging/{tool-name}/
 
 ## Step 5: Open the PR
 
+The pre-push hook runs automatically on `git push` and checks:
+- **Safety (required — blocks push):** secrets, personal/company data, prompt injection, malicious code
+- **Quality + eligibility (advisory — non-blocking):** real output in snippets, 2+ endpoints, tool is commercial/public
+
+Install the hook if you haven't already:
+```bash
+cp hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+```
+
 ### New tool or new auth variant
 
 ```bash
@@ -126,7 +135,7 @@ git add staging/{tool-name}/
 # 3. Commit
 git commit -m "Add {Tool Name} connection ({auth-method})"
 
-# 4. Push and open PR
+# 4. Push — hook runs automatically (safety check required, quality advisory)
 git push -u origin HEAD
 gh pr create \
   --title "Add {Tool Name} connection ({auth-method})" \
@@ -172,7 +181,7 @@ git add staging/{tool-name}/
 # 3. Commit
 git commit -m "Fix {Tool Name} connection ({what broke})"
 
-# 4. Push and open PR
+# 4. Push — hook runs automatically (safety check required, quality advisory)
 git push -u origin HEAD
 gh pr create \
   --title "Fix {Tool Name} connection ({what broke})" \
