@@ -40,7 +40,7 @@ DD_BASE_URL=https://api.us5.datadoghq.com   # change to match your site
 ## Verify
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'DD_' | xargs)
 curl -s "$DD_BASE_URL/api/v1/validate" \
   -H "DD-API-KEY: $DD_API_KEY" \
   | jq .

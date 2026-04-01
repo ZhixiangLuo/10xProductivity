@@ -30,7 +30,7 @@ For Confluence Cloud, the token is the same as your Jira API token (same Atlassi
 ## Verify connection
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'CONFLUENCE_' | xargs)
 
 # Confluence Cloud (Basic auth with email:token)
 curl -s -u "$CONFLUENCE_EMAIL:$CONFLUENCE_TOKEN" \
@@ -51,7 +51,7 @@ curl -s -u "$CONFLUENCE_EMAIL:$CONFLUENCE_TOKEN" \
 ## Search pages
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'CONFLUENCE_' | xargs)
 
 # Search by title
 curl -s -u "$CONFLUENCE_EMAIL:$CONFLUENCE_TOKEN" \
@@ -79,7 +79,7 @@ curl -s -u "$CONFLUENCE_EMAIL:$CONFLUENCE_TOKEN" \
 ## Fetch page content
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'CONFLUENCE_' | xargs)
 
 # Fetch a page by ID (strip HTML tags for readable text)
 curl -s -u "$CONFLUENCE_EMAIL:$CONFLUENCE_TOKEN" \
@@ -102,7 +102,7 @@ curl -s -u "$CONFLUENCE_EMAIL:$CONFLUENCE_TOKEN" \
 ## Browse spaces
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'CONFLUENCE_' | xargs)
 
 # List all spaces
 curl -s -u "$CONFLUENCE_EMAIL:$CONFLUENCE_TOKEN" \

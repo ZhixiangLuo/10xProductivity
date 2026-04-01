@@ -37,7 +37,7 @@ API docs: https://jfrog.com/help/r/jfrog-rest-apis/artifactory-rest-apis
 Basic auth with base64-encoded `user:token`. Set `AUTH` once per session:
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'ARTIFACTORY_' | xargs)
 AUTH=$(echo -n "$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN" | base64)
 BASE="$ARTIFACTORY_BASE_URL"
 ```
@@ -47,7 +47,7 @@ BASE="$ARTIFACTORY_BASE_URL"
 ## Verify connection
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'ARTIFACTORY_' | xargs)
 AUTH=$(echo -n "$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN" | base64)
 
 curl -s -H "Authorization: Basic $AUTH" \
@@ -61,7 +61,7 @@ curl -s -H "Authorization: Basic $AUTH" \
 ## Verified snippets
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'ARTIFACTORY_' | xargs)
 AUTH=$(echo -n "$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN" | base64)
 BASE="$ARTIFACTORY_BASE_URL"
 

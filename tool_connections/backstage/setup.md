@@ -42,7 +42,7 @@ BACKSTAGE_BASE_URL=https://backstage.yourcompany.com
 ## Verify
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'BACKSTAGE_' | xargs)
 curl -s -k "$BACKSTAGE_BASE_URL/api/catalog/entity-facets?facet=kind" \
   -H "Authorization: Bearer $BACKSTAGE_TOKEN" \
   | jq '.facets.kind'

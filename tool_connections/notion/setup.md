@@ -32,7 +32,7 @@ NOTION_BASE_URL=https://api.notion.com/v1
 ## Verify
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'NOTION_' | xargs)
 curl -s "$NOTION_BASE_URL/users/me" \
   -H "Authorization: Bearer $NOTION_API_TOKEN" \
   -H "Notion-Version: 2026-03-11" | jq .

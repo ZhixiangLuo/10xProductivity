@@ -27,7 +27,7 @@ GITHUB_BASE_URL=https://api.github.com          # or https://your-ghe.example.co
 
 **Verify:**
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GITHUB_' | xargs)
 curl -s -H "Authorization: token $GITHUB_TOKEN" \
   "$GITHUB_BASE_URL/user" \
   | jq '{login, name, email}'

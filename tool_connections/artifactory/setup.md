@@ -36,7 +36,7 @@ ARTIFACTORY_BASE_URL=https://artifactory.yourcompany.com
 ## Verify
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'ARTIFACTORY_' | xargs)
 AUTH=$(echo -n "$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN" | base64)
 curl -s -H "Authorization: Basic $AUTH" \
   "$ARTIFACTORY_BASE_URL/artifactory/api/system/ping"

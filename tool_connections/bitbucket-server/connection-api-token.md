@@ -36,7 +36,7 @@ API docs: https://developer.atlassian.com/server/bitbucket/rest/
 Bearer token in the `Authorization` header:
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'BITBUCKET_' | xargs)
 BASE="$BITBUCKET_BASE_URL/rest/api/1.0"
 # Usage: -H "Authorization: Bearer $BITBUCKET_TOKEN"
 ```
@@ -46,7 +46,7 @@ BASE="$BITBUCKET_BASE_URL/rest/api/1.0"
 ## Verify connection
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'BITBUCKET_' | xargs)
 BASE="$BITBUCKET_BASE_URL/rest/api/1.0"
 
 curl -s -k -H "Authorization: Bearer $BITBUCKET_TOKEN" \
@@ -61,7 +61,7 @@ curl -s -k -H "Authorization: Bearer $BITBUCKET_TOKEN" \
 ## Verified snippets
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'BITBUCKET_' | xargs)
 BASE="$BITBUCKET_BASE_URL/rest/api/1.0"
 
 # Recently accessed repos (personal history — good starting point)

@@ -24,7 +24,7 @@ PAGERDUTY_TOKEN=your-personal-api-key-here
 ## Verify
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'PAGERDUTY_' | xargs)
 curl -s "https://api.pagerduty.com/users/me" \
   -H "Authorization: Token token=$PAGERDUTY_TOKEN" \
   -H "Accept: application/vnd.pagerduty+json;version=2" \

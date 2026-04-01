@@ -35,7 +35,7 @@ BITBUCKET_BASE_URL=https://bitbucket.yourcompany.com
 ## Verify
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'BITBUCKET_' | xargs)
 curl -s -k -H "Authorization: Bearer $BITBUCKET_TOKEN" \
   "$BITBUCKET_BASE_URL/rest/api/1.0/profile/recent/repos?limit=3" \
   | jq '.values[] | {slug, name, project: .project.key}'

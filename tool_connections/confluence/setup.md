@@ -36,7 +36,7 @@ CONFLUENCE_BASE_URL=https://yourcompany.atlassian.net/wiki   # inferred from URL
 
 **Verify:**
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'CONFLUENCE_' | xargs)
 curl -s -u "$CONFLUENCE_EMAIL:$CONFLUENCE_TOKEN" \
   "$CONFLUENCE_BASE_URL/rest/api/content/search?cql=type=page&limit=1" \
   | jq '{total: .size, first: .results[0].title}'
@@ -61,7 +61,7 @@ CONFLUENCE_BASE_URL=https://confluence.yourcompany.com   # inferred from URL the
 
 **Verify:**
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'CONFLUENCE_' | xargs)
 curl -s -H "Authorization: Bearer $CONFLUENCE_TOKEN" \
   "$CONFLUENCE_BASE_URL/rest/api/content/search?cql=type=page&limit=1" \
   | jq '{total: .size, first: .results[0].title}'

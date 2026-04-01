@@ -38,7 +38,7 @@ Auth: `DD-API-KEY` header for all requests; `DD-APPLICATION-KEY` header for read
 ## Verify connection
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'DD_' | xargs)
 curl -s "$DD_BASE_URL/api/v1/validate" \
   -H "DD-API-KEY: $DD_API_KEY" \
   | jq .
@@ -50,7 +50,7 @@ curl -s "$DD_BASE_URL/api/v1/validate" \
 ## Quick-reference snippets
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'DD_' | xargs)
 BASE="$DD_BASE_URL"
 
 # List monitors

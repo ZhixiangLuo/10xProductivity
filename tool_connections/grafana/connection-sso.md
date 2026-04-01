@@ -24,7 +24,7 @@ Auth: session cookie captured via SSO — refresh with the shared script (see be
 ## Verify connection
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GRAFANA_' | xargs)
 curl -s "$GRAFANA_BASE_URL/api/user" \
   -H "Cookie: grafana_session=$GRAFANA_SESSION" \
   | jq '{login, email, name}'
@@ -49,7 +49,7 @@ python3 tool_connections/shared_utils/playwright_sso.py
 ## Get PromQL from a dashboard
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GRAFANA_' | xargs)
 
 # Get full dashboard JSON — includes all panels and their PromQL targets
 curl -s "$GRAFANA_BASE_URL/api/dashboards/uid/{uid}" \
@@ -90,7 +90,7 @@ runnable = substitute_vars(expr, vars)
 ## Find dashboards
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GRAFANA_' | xargs)
 
 # Search by keyword
 curl -s "$GRAFANA_BASE_URL/api/search?query=<keyword>&limit=10&type=dash-db" \
@@ -108,7 +108,7 @@ curl -s "$GRAFANA_BASE_URL/api/search?tag=<tag-name>&limit=20" \
 ## Query live metric data
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GRAFANA_' | xargs)
 
 # Execute a PromQL query (instant vector)
 curl -s "$GRAFANA_BASE_URL/api/datasources/proxy/uid/{datasource_uid}/api/v1/query" \

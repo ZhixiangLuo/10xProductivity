@@ -34,7 +34,7 @@ On managed machines with enterprise SSO it completes automatically (~20–30s). 
 ## Verify
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GRAFANA_' | xargs)
 curl -s "$GRAFANA_BASE_URL/api/user" \
   -H "Cookie: grafana_session=$GRAFANA_SESSION" \
   | jq '{login, email, name}'

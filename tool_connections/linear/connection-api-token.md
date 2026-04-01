@@ -34,7 +34,7 @@ API docs: https://developers.linear.app/docs/graphql/working-with-the-graphql-ap
 Pass the token directly in the `Authorization` header (no `Bearer` prefix needed — Linear accepts both bare token and Bearer).
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'LINEAR_' | xargs)
 curl -s -X POST "$LINEAR_BASE_URL" \
   -H "Authorization: $LINEAR_API_TOKEN" \
   -H "Content-Type: application/json" \
@@ -47,7 +47,7 @@ curl -s -X POST "$LINEAR_BASE_URL" \
 ## Verified snippets
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'LINEAR_' | xargs)
 BASE="$LINEAR_BASE_URL"
 TOKEN="$LINEAR_API_TOKEN"
 

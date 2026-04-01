@@ -34,7 +34,7 @@ JENKINS_BASE_URL=https://jenkins.yourcompany.com
 ## Verify
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'JENKINS_' | xargs)
 curl -s -u "$JENKINS_USER:$JENKINS_TOKEN" \
   "$JENKINS_BASE_URL/api/json?tree=jobs[name,color]" \
   | jq '.jobs[:3] | .[] | {name, color}'

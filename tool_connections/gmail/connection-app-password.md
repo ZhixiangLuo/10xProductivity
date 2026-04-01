@@ -38,7 +38,7 @@ API docs: https://developers.google.com/workspace/gmail/imap/imap-smtp
 IMAP SSL on port 993. Login with Gmail address and 16-character App Password (not your Google account password).
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GMAIL_' | xargs)
 python3 - <<'EOF'
 import imaplib
 mail = imaplib.IMAP4_SSL(GMAIL_IMAP_HOST, int(GMAIL_IMAP_PORT))

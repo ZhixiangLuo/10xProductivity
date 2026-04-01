@@ -34,7 +34,7 @@ Auth header: `Authorization: Token token=$PAGERDUTY_TOKEN`
 ## Verify connection
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'PAGERDUTY_' | xargs)
 curl -s "https://api.pagerduty.com/users/me" \
   -H "Authorization: Token token=$PAGERDUTY_TOKEN" \
   -H "Accept: application/vnd.pagerduty+json;version=2" \
@@ -48,7 +48,7 @@ curl -s "https://api.pagerduty.com/users/me" \
 ## Quick-reference snippets
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'PAGERDUTY_' | xargs)
 
 BASE="https://api.pagerduty.com"
 AUTH="Authorization: Token token=$PAGERDUTY_TOKEN"

@@ -28,7 +28,7 @@ LINEAR_BASE_URL=https://api.linear.app/graphql
 ## Verify
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'LINEAR_' | xargs)
 curl -s -X POST "$LINEAR_BASE_URL" \
   -H "Authorization: $LINEAR_API_TOKEN" \
   -H "Content-Type: application/json" \

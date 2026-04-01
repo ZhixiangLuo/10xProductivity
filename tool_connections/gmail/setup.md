@@ -33,7 +33,7 @@ GMAIL_IMAP_PORT=993
 ## Verify snippet
 
 ```bash
-source .env && python3 - <<'EOF'
+export $(grep -v '^#' .env | grep 'GMAIL_' | xargs) && python3 - <<'EOF'
 import imaplib, os
 mail = imaplib.IMAP4_SSL(os.environ['GMAIL_IMAP_HOST'], int(os.environ['GMAIL_IMAP_PORT']))
 result = mail.login(os.environ['GMAIL_EMAIL'], os.environ['GMAIL_APP_PASSWORD'])

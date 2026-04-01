@@ -34,7 +34,7 @@ NOTION_BASE_URL=https://api.notion.com/v1
 Pass the token as a Bearer in `Authorization`, plus the required `Notion-Version` header on every request.
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'NOTION_' | xargs)
 curl -s "$NOTION_BASE_URL/users/me" \
   -H "Authorization: Bearer $NOTION_API_TOKEN" \
   -H "Notion-Version: 2026-03-11" | jq .
@@ -56,7 +56,7 @@ curl -s "$NOTION_BASE_URL/users/me" \
 ## Verified snippets
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'NOTION_' | xargs)
 BASE="$NOTION_BASE_URL"
 
 # Health check — get bot user info (works with any capability level)
@@ -123,7 +123,7 @@ curl -s -X POST "$BASE/pages" \
 `POST /v1/search` — title-based search across all pages and databases shared with the integration.
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'NOTION_' | xargs)
 # Search by title query
 curl -s -X POST "$NOTION_BASE_URL/search" \
   -H "Authorization: Bearer $NOTION_API_TOKEN" \

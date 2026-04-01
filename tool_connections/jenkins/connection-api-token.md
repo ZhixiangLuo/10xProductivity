@@ -41,7 +41,7 @@ API docs: https://www.jenkins.io/doc/book/using/remote-access-api/
 Basic auth with `JENKINS_USER:JENKINS_TOKEN`:
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'JENKINS_' | xargs)
 BASE="$JENKINS_BASE_URL"
 # Usage: -u "$JENKINS_USER:$JENKINS_TOKEN"
 ```
@@ -51,7 +51,7 @@ BASE="$JENKINS_BASE_URL"
 ## Verify connection
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'JENKINS_' | xargs)
 
 curl -s -u "$JENKINS_USER:$JENKINS_TOKEN" \
   "$JENKINS_BASE_URL/api/json?tree=jobs[name,color]" \
@@ -66,7 +66,7 @@ curl -s -u "$JENKINS_USER:$JENKINS_TOKEN" \
 ## Verified snippets
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'JENKINS_' | xargs)
 BASE="$JENKINS_BASE_URL"
 
 # List all jobs in BASE (with status color)

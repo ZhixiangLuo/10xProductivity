@@ -39,7 +39,7 @@ API docs: https://backstage.io/docs/features/software-catalog/software-catalog-a
 Bearer token in the `Authorization` header:
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'BACKSTAGE_' | xargs)
 BASE="$BACKSTAGE_BASE_URL"
 # Usage: -H "Authorization: Bearer $BACKSTAGE_TOKEN"
 ```
@@ -57,7 +57,7 @@ BASE="$BACKSTAGE_BASE_URL"
 ## Verify connection
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'BACKSTAGE_' | xargs)
 
 curl -s -k "$BACKSTAGE_BASE_URL/api/catalog/entity-facets?facet=kind" \
   -H "Authorization: Bearer $BACKSTAGE_TOKEN" \
@@ -71,7 +71,7 @@ curl -s -k "$BACKSTAGE_BASE_URL/api/catalog/entity-facets?facet=kind" \
 ## Verified snippets
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'BACKSTAGE_' | xargs)
 BASE="$BACKSTAGE_BASE_URL"
 
 # Entity kinds and counts — good sanity check

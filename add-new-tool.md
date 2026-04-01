@@ -238,7 +238,7 @@ API docs: {URL}
 {Auth flow in 1-2 sentences.}
 
 \`\`\`bash
-source .env
+export $(grep -v '^#' .env | grep 'TOOL_' | xargs)
 curl -s "$TOOL_BASE_URL/endpoint" \
   -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
 # → {actual output}

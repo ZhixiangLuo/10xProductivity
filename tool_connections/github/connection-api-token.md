@@ -26,7 +26,7 @@ Scopes needed: `repo`, `read:org` (add `workflow` if you need to trigger Actions
 ## Verify connection
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GITHUB_' | xargs)
 curl -s -H "Authorization: token $GITHUB_TOKEN" \
   "$GITHUB_BASE_URL/user" \
   | jq '{login, name, email}'
@@ -39,7 +39,7 @@ curl -s -H "Authorization: token $GITHUB_TOKEN" \
 ## Repos
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GITHUB_' | xargs)
 
 # List your repos (sorted by recently updated)
 curl -s -H "Authorization: token $GITHUB_TOKEN" \
@@ -72,7 +72,7 @@ curl -s -H "Authorization: token $GITHUB_TOKEN" \
 ## Code search
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GITHUB_' | xargs)
 
 # Search code by keyword
 curl -s -H "Authorization: token $GITHUB_TOKEN" \
@@ -90,7 +90,7 @@ curl -s -H "Authorization: token $GITHUB_TOKEN" \
 ## Pull Requests
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GITHUB_' | xargs)
 
 # List open PRs in a repo
 curl -s -H "Authorization: token $GITHUB_TOKEN" \
@@ -119,7 +119,7 @@ curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
 ## Issues
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GITHUB_' | xargs)
 
 # List open issues
 curl -s -H "Authorization: token $GITHUB_TOKEN" \
@@ -144,7 +144,7 @@ curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
 ## Commits and branches
 
 ```bash
-source .env
+export $(grep -v '^#' .env | grep 'GITHUB_' | xargs)
 
 # List branches
 curl -s -H "Authorization: token $GITHUB_TOKEN" \
