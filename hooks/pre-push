@@ -214,7 +214,7 @@ FOOTER
 } > "$PROMPT_FILE"
 
 if $USING_CURSOR_AGENT; then
-    agent -p --mode=ask --trust --output-format=text - < "$PROMPT_FILE" > "$VERDICT_FILE" 2>/dev/null
+    agent -p --mode=ask --trust --output-format=text < "$PROMPT_FILE" > "$VERDICT_FILE" 2>/dev/null
 else
     $AGENT_BIN < "$PROMPT_FILE" > "$VERDICT_FILE" 2>/dev/null
 fi || {
