@@ -62,8 +62,8 @@ Before asking the user for anything:
 **Stop and explain** if the only viable path requires the user to create an app or register OAuth credentials. Don't propose it as an option — it violates this repo's zero-friction goal.
 
 **SSO-only tools:** If the tool uses enterprise SSO and has no API token path, the only option is browser session capture (Priority 2). This is fine — but do three things:
-1. Write a plugin-compliant `sso.py` in `tool_connections/{tool-name}/` with `TOOL_NAME`, `check(env) -> bool`, and `capture(env) -> dict`. The orchestrator (`shared_utils/playwright_sso.py`) discovers it automatically — no edits to shared files needed. The `--{tool}-only` CLI flag is generated from `TOOL_NAME`.
-2. Document the refresh command in the connection file: `python3 tool_connections/shared_utils/playwright_sso.py --{tool}-only` — the agent cannot self-refresh without the user present.
+1. Write a plugin-compliant `sso.py` in **`personal/{tool-name}/`** (not `tool_connections/`) with `TOOL_NAME`, `check(env) -> bool`, and `capture(env) -> dict`. Run it directly: `python3 personal/{tool-name}/sso.py`. If you later contribute the recipe upstream (owner-add or contribute workflow), `sso.py` is copied to `tool_connections/` as part of that process — not before.
+2. Document the refresh command in the connection file: `python3 personal/{tool-name}/sso.py` — the agent cannot self-refresh without the user present.
 3. Document the token TTL (usually ~8h) — so the user knows when to expect re-authentication prompts.
 
 **When to stop trying:** If browser session auth succeeds (you can log in and see data in the browser) but REST API calls return 401 anyway, the instance has API-level access restrictions that session cookies can't bypass. This is an admin policy, not a fixable bug. Document it as "API access restricted — this tool cannot be automated at this instance" and move on. Do not keep probing different endpoints.
