@@ -32,12 +32,43 @@ VERDICT_FILE="/tmp/pre_push_verdict_$$.txt"
 cleanup() { rm -f "$DIFF_FILE" "$VERDICT_FILE"; }
 trap cleanup EXIT
 
-# ── Detect push context ───────────────────────────────────────────────────────
+# ── Detect push range from stdin ──────────────────────────────────────────────
+# Git passes push info as: <local-ref> <local-sha> <remote-ref> <remote-sha>
+# remote-sha is 0000...0000 for a new branch (nothing on remote yet).
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-CHANGED_FILES=$(git diff --name-only main...HEAD 2>/dev/null || git diff --name-only HEAD~1..HEAD 2>/dev/null || true)
+LOCAL_SHA=""
+REMOTE_SHA=""
+
+while read local_ref local_sha remote_ref remote_sha; do
+    LOCAL_SHA="$local_sha"
+    REMOTE_SHA="$remote_sha"
+done
+
+# Nothing being pushed
+if [[ -z "$LOCAL_SHA" ]]; then
+    exit 0
+fi
+
+ZERO_SHA="0000000000000000000000000000000000000000"
+
+if [[ "$REMOTE_SHA" == "$ZERO_SHA" ]]; then
+    # New branch — diff against merge-base with main, or all commits if no common ancestor
+    BASE=$(git merge-base main "$LOCAL_SHA" 2>/dev/null || echo "")
+    if [[ -n "$BASE" ]]; then
+        CHANGED_FILES=$(git diff --name-only "$BASE" "$LOCAL_SHA" 2>/dev/null || true)
+        git diff "$BASE" "$LOCAL_SHA" > "$DIFF_FILE" 2>/dev/null || true
+    else
+        CHANGED_FILES=$(git diff --name-only "$LOCAL_SHA" 2>/dev/null || true)
+        git show "$LOCAL_SHA" > "$DIFF_FILE" 2>/dev/null || true
+    fi
+else
+    # Existing branch — diff between what's on remote and what we're pushing
+    CHANGED_FILES=$(git diff --name-only "$REMOTE_SHA" "$LOCAL_SHA" 2>/dev/null || true)
+    git diff "$REMOTE_SHA" "$LOCAL_SHA" > "$DIFF_FILE" 2>/dev/null || true
+fi
 
 if [[ -z "$CHANGED_FILES" ]]; then
-    echo "pre-push: no changes vs main — skipping review."
+    echo "pre-push: no new changes to review — skipping."
     exit 0
 fi
 
@@ -47,10 +78,8 @@ IS_OWNER_PUSH=false
 if [[ "$CURRENT_BRANCH" == "main" ]] && echo "$CHANGED_FILES" | grep -qE "^tool_connections/"; then
     IS_OWNER_PUSH=true
 fi
-
-git diff main...HEAD > "$DIFF_FILE" 2>/dev/null || git diff HEAD~1..HEAD > "$DIFF_FILE"
-DIFF_LINES=$(wc -l < "$DIFF_FILE")
-FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l | tr -d ' ')
+DIFF_LINES=$(wc -l < "$DIFF_FILE" 2>/dev/null || echo 0)
+FILE_COUNT=$(echo "$CHANGED_FILES" | grep -c . || echo 0)
 
 if $IS_OWNER_PUSH; then
     echo "pre-push [owner]: reviewing $DIFF_LINES-line diff across $FILE_COUNT files (full checks)..."
@@ -239,3 +268,4 @@ else
     echo "⚠️  Agent returned unexpected format — treating as inconclusive. Push proceeding."
     exit 0
 fi
+# test
