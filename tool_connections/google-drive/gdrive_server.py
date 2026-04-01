@@ -262,9 +262,17 @@ def run_daemon():
     server.start_browser()
     # Write PID
     PID_FILE.write_text(str(os.getpid()))
-    # Handle shutdown
+    # Handle shutdown — close browser before exiting so Chromium doesn't linger
     def shutdown(sig, frame):
         server.log("Shutting down.")
+        try:
+            if server._browser: server._browser.close()
+        except Exception:
+            pass
+        try:
+            if server._pw: server._pw.stop()
+        except Exception:
+            pass
         if PID_FILE.exists(): PID_FILE.unlink()
         if SOCKET_PATH.exists(): SOCKET_PATH.unlink()
         sys.exit(0)
