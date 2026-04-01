@@ -138,7 +138,9 @@ curl -sI --max-time 10 "$TOOL_BASE_URL/health"    # or /version, /ping, /api/v1/
 #### 4b. Auth
 
 ```bash
-source .env
+# ⚠ Avoid bare `source .env` if .env has non-env-var lines (e.g. long SSO cookie values) — it errors silently.
+# Use tool-scoped export instead:
+export $(grep -v '^#' .env | grep 'TOOL_' | xargs)
 # Try the auth pattern from docs
 curl -s "$TOOL_BASE_URL/some-read-endpoint" \
   -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
@@ -155,6 +157,7 @@ done
 Run at least 2 read endpoints and capture real output:
 
 ```bash
+export $(grep -v '^#' .env | grep 'TOOL_' | xargs)
 curl -s "$TOOL_BASE_URL/users/me" -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
 # → {"id": "u_123", "name": "Alice", "email": "alice@example.com"}
 
@@ -246,7 +249,7 @@ curl -s "$TOOL_BASE_URL/endpoint" \
 ## Verified snippets
 
 \`\`\`bash
-source .env
+export $(grep -v '^#' .env | grep 'TOOL_' | xargs)
 BASE="$TOOL_BASE_URL"
 
 # {What this does}
