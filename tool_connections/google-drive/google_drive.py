@@ -10,12 +10,25 @@ Usage:
         listing = drive.list_my_drive()
         content = drive.read(file_id, file_type)   # doc/sheet/slides → text/csv
         drive.write_document_append(file_id, "new text")  # Docs only (append at end)
+        drive.write_presentation_append(file_id, "note text")  # Slides (notes or canvas)
 
 Auth:
     Run once to capture session:
         python3 playwright_sso.py --gdrive-only
     Session saved to ~/.browser_automation/gdrive_auth.json (days/weeks lifetime).
     Re-run --gdrive-only if Drive redirects to sign-in.
+
+Reuse the same browser session (optional):
+    GDRIVE_CDP_URL=http://127.0.0.1:9222
+        Connect to Chrome you already opened with a debugging port, e.g.:
+        /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\
+          --remote-debugging-port=9222 --user-data-dir=\"$HOME/.chrome-gdrive-debug\"
+        Then every script run uses that same logged-in browser (no new Chromium).
+    GDRIVE_USE_PERSISTENT_PROFILE=1
+        Use a single on-disk profile under ~/.browser_automation/gdrive_chromium_profile/
+        so repeated runs share cookies without starting a fresh incognito-like context.
+        Cookies from gdrive_auth.json are applied via add_cookies (Playwright
+        persistent contexts do not all support storage_state on launch).
 
 Notes:
     - headless=False required — SSO needs it, and headed mode is 5× faster than
@@ -28,7 +41,7 @@ Notes:
 Verified: 2026-03-14, jeffrey.luo@workday.com
 """
 
-import re, sys, time
+import os, re, sys, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
@@ -85,6 +98,67 @@ def _extract_id(link: str) -> str | None:
     return None
 
 
+def _slides_click_main_slide(page) -> None:
+    """
+    Focus the main slide editing surface. Google's class names change; we try
+    several selectors, then the largest wide canvas (skipping narrow left filmstrip),
+    then a viewport click in the usual slide area.
+    """
+    page.wait_for_url(re.compile(r".*/presentation/d/[^/]+/edit.*"), timeout=90_000)
+    time.sleep(2.0)
+
+    for sel in (
+        ".punch-viewport",
+        "[class*='punch-viewport']",
+        "#workspace",
+        "[data-log-pane='body']",
+        "div[role='application'] canvas",
+    ):
+        loc = page.locator(sel).first
+        try:
+            loc.wait_for(state="visible", timeout=10_000)
+            box = loc.bounding_box()
+            if box and box["width"] >= 80 and box["height"] >= 80:
+                loc.click(
+                    position={
+                        "x": min(400, max(40, box["width"] / 2)),
+                        "y": min(300, max(40, box["height"] / 2)),
+                    },
+                    timeout=15_000,
+                )
+                return
+        except Exception:
+            continue
+
+    pt = page.evaluate(
+        """() => {
+            const canvases = Array.from(document.querySelectorAll('canvas'));
+            let best = null;
+            let area = 0;
+            for (const c of canvases) {
+                const r = c.getBoundingClientRect();
+                if (r.width < 180 || r.height < 120) continue;
+                if (r.left < 100) continue;
+                const a = r.width * r.height;
+                if (a > area) {
+                    area = a;
+                    best = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+                }
+            }
+            return best;
+        }"""
+    )
+    if pt and isinstance(pt, dict) and pt.get("x") is not None and pt.get("y") is not None:
+        page.mouse.click(float(pt["x"]), float(pt["y"]))
+        return
+
+    vs = page.viewport_size
+    if vs:
+        page.mouse.click(vs["width"] * 0.56, vs["height"] * 0.40)
+    else:
+        page.mouse.click(720, 380)
+
+
 def _parse_raw(raw: list[dict]) -> list[dict]:
     result = []
     seen: set[str] = set()
@@ -126,20 +200,68 @@ class GDrive:
         self._browser = None
         self._ctx = None
         self._page = None
+        self._mode = "default"
 
     def __enter__(self) -> "GDrive":
         self._pw = sync_playwright().start()
-        self._browser = self._pw.chromium.launch(
-            headless=False,
-            args=["--window-size=1400,900"],
+        cdp_url = os.environ.get("GDRIVE_CDP_URL", "").strip()
+        use_persistent = os.environ.get("GDRIVE_USE_PERSISTENT_PROFILE", "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
         )
-        self._ctx = self._browser.new_context(
-            storage_state=str(self._auth_file),
-            ignore_https_errors=True,
-            accept_downloads=True,
-        )
-        self._page = self._ctx.new_page()
-        # Navigate to Drive once to establish session
+
+        if cdp_url:
+            self._mode = "cdp"
+            self._browser = self._pw.chromium.connect_over_cdp(cdp_url)
+            if not self._browser.contexts:
+                self._pw.stop()
+                self._pw = None
+                raise RuntimeError(
+                    "GDRIVE_CDP_URL is set but the browser reports no contexts. "
+                    "Start Chrome with --remote-debugging-port=9222 and keep a window open."
+                )
+            self._ctx = self._browser.contexts[0]
+            # New tab — do not hijack whatever the user already had open.
+            self._page = self._ctx.new_page()
+        elif use_persistent:
+            import json
+
+            self._mode = "persistent"
+            profile_dir = BROWSER_AUTOMATION_DIR / "gdrive_chromium_profile"
+            profile_dir.mkdir(parents=True, exist_ok=True)
+            self._ctx = self._pw.chromium.launch_persistent_context(
+                user_data_dir=str(profile_dir),
+                headless=False,
+                args=["--window-size=1400,900"],
+                ignore_https_errors=True,
+                accept_downloads=True,
+                viewport={"width": 1400, "height": 900},
+            )
+            self._browser = None
+            if self._auth_file.exists():
+                try:
+                    data = json.loads(self._auth_file.read_text())
+                    cookies = data.get("cookies")
+                    if isinstance(cookies, list) and cookies:
+                        self._ctx.add_cookies(cookies)
+                except Exception:
+                    pass
+            self._page = self._ctx.pages[0] if self._ctx.pages else self._ctx.new_page()
+        else:
+            self._mode = "default"
+            self._browser = self._pw.chromium.launch(
+                headless=False,
+                args=["--window-size=1400,900"],
+            )
+            self._ctx = self._browser.new_context(
+                storage_state=str(self._auth_file),
+                ignore_https_errors=True,
+                accept_downloads=True,
+            )
+            self._page = self._ctx.new_page()
+
         try:
             self._page.goto(
                 "https://drive.google.com/drive/my-drive",
@@ -150,17 +272,30 @@ class GDrive:
             pass
         time.sleep(1)
         if "accounts.google.com" in self._page.url:
+            hint = ""
+            if self._mode != "cdp":
+                hint = (
+                    " Or start Chrome with --remote-debugging-port=9222, sign in once, "
+                    "and set GDRIVE_CDP_URL=http://127.0.0.1:9222 to reuse that window."
+                )
             raise RuntimeError(
                 "Google Drive session expired. Re-run: "
-                "python3 playwright_sso.py --gdrive-only"
+                "python3 playwright_sso.py --gdrive-only" + hint
             )
         return self
 
     def __exit__(self, *_):
-        if self._browser:
+        if self._mode == "persistent":
+            if self._ctx:
+                self._ctx.close()
+        elif self._browser:
             self._browser.close()
+        self._browser = None
+        self._ctx = None
+        self._page = None
         if self._pw:
             self._pw.stop()
+            self._pw = None
 
     # ── Core operations ─────────────────────────────────────────────────────
 
@@ -284,6 +419,105 @@ class GDrive:
             self._page.keyboard.type(line, delay=20)
         time.sleep(2.0)
 
+    def write_presentation_append(
+        self,
+        presentation_id: str,
+        text: str,
+        *,
+        settle_s: float = 4.0,
+        target: str = "notes",
+    ) -> None:
+        """
+        Append plain text to a Google Slides deck.
+
+        target:
+            'notes' — focus the speaker-notes editor (bottom of the editor UI) when
+                possible; matches what read(..., 'presentation') exports as text.
+            'slide' — click the main slide viewport and type (best on an empty area
+                or when a text box is already selected).
+
+        Best-effort UI automation; Slides layout and Google DOM changes can break it.
+        """
+        if target not in ("notes", "slide"):
+            raise ValueError("target must be 'notes' or 'slide'")
+
+        url = f"https://docs.google.com/presentation/d/{presentation_id}/edit"
+        try:
+            self._page.goto(url, wait_until="networkidle", timeout=60_000)
+        except PlaywrightTimeout:
+            pass
+        time.sleep(settle_s)
+
+        if "accounts.google.com" in self._page.url:
+            raise RuntimeError(
+                "Google session expired while opening the deck. Re-run: "
+                "python3 playwright_sso.py --gdrive-only"
+            )
+
+        used_notes = False
+        slide_canvas = False
+        if target == "notes":
+            # Prefer a contenteditable in the lower part of the window (speaker notes).
+            focused = self._page.evaluate(
+                """() => {
+                    const vh = window.innerHeight;
+                    const eds = Array.from(
+                        document.querySelectorAll('[contenteditable="true"]')
+                    );
+                    let best = null;
+                    let bestTop = -1;
+                    for (const e of eds) {
+                        const r = e.getBoundingClientRect();
+                        if (r.height < 24 || r.width < 80) continue;
+                        if (r.top < vh * 0.45) continue;
+                        if (r.top >= bestTop) {
+                            bestTop = r.top;
+                            best = e;
+                        }
+                    }
+                    if (best) {
+                        best.focus();
+                        best.scrollIntoView({ block: 'nearest' });
+                        return true;
+                    }
+                    return false;
+                }"""
+            )
+            if focused:
+                used_notes = True
+            else:
+                target = "slide"
+
+        if target == "slide":
+            _slides_click_main_slide(self._page)
+            slide_canvas = True
+            time.sleep(0.6)
+
+        if used_notes:
+            self._page.keyboard.press("End")
+            time.sleep(0.2)
+            self._page.keyboard.press("Enter")
+            time.sleep(0.15)
+        elif slide_canvas:
+            # Do not use Meta+ArrowDown here — it can change slide selection instead
+            # of inserting text. Click already focuses the canvas / a text box.
+            time.sleep(0.15)
+        else:
+            if sys.platform == "darwin":
+                self._page.keyboard.press("Meta+ArrowDown")
+            else:
+                self._page.keyboard.press("Control+End")
+            time.sleep(0.25)
+            self._page.keyboard.press("Enter")
+            time.sleep(0.15)
+
+        for i, line in enumerate(text.split("\n")):
+            if i:
+                self._page.keyboard.press("Enter")
+                time.sleep(0.05)
+            self._page.keyboard.type(line, delay=22)
+        time.sleep(2.0)
+
     def write_sheet_cell(self, sheet_id: str, row: int, col: int, value: str,
                          gid: int = 0) -> None:
         """
@@ -403,6 +637,24 @@ if __name__ == "__main__":
         with GDrive() as drive:
             drive.write_document_append(doc_id, append_text)
         print("Appended.")
+
+    elif cmd == "write-slide":
+        args = sys.argv[2:]
+        tgt = "notes"
+        if "--on-slide" in args:
+            args = [a for a in args if a != "--on-slide"]
+            tgt = "slide"
+        if len(args) < 2:
+            print("Usage: python google_drive.py write-slide [--on-slide] "
+                  "<presentation_id> <text...>")
+            print("  Default: append to speaker notes (matches export/txt).")
+            print("  --on-slide: click main slide canvas and type there.")
+            sys.exit(1)
+        pres_id = args[0]
+        append_text = " ".join(args[1:])
+        with GDrive() as drive:
+            drive.write_presentation_append(pres_id, append_text, target=tgt)
+        print("Appended to Slides.")
 
     else:
         print(__doc__)
