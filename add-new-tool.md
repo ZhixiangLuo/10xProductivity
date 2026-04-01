@@ -22,6 +22,7 @@ Turn "I want my agent to access Tool X" into a working, verified connection file
 
 ## Non-negotiable rules
 
+0. **`personal/` first, always.** All work — new tools, improvements to existing connections, new auth variants, fixes — starts in `personal/`. Never edit `tool_connections/` directly. `personal/` is gitignored and safe for your email, org URLs, tokens, and company-specific details. Nothing leaves `personal/` until it is verified, scrubbed, and promoted via `staging/` → PR. This applies to improvements just as much as new tools.
 1. **Research viability first.** Before asking the user for anything, determine what auth methods exist for this tool. If no viable method exists (no public API, no session-based workaround, no OAuth path), stop — there is nothing to build.
 2. **Ask only what the auth method actually needs.** The credential ask must be proportional to the auth method: SSO/browser-session → ask for nothing (just a URL to confirm the instance); API token → ask for the token and where to generate it; username+password → ask for both. Never ask vague questions the user can't answer.
 3. **A URL is your best minimal input.** If you need to confirm an instance, ask for any URL from that tool (profile page, dashboard, ticket). It reveals the base URL, regional variant, and proves the user has access — without requiring them to know anything about auth.

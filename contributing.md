@@ -11,6 +11,8 @@ description: Contribute a verified personal tool connection back to the communit
 >
 > **Wrong file?** If you haven't built or patched the connection yet, start with `add-new-tool.md` (new tool) or `setup.md` (broken recipe — patch in `personal/` first).
 
+> **The golden rule: `personal/` first, always.** All work — new tools, improvements, fixes, new auth variants — starts and stays in `personal/` until it is verified, scrubbed, and promoted here. Never edit `tool_connections/` directly. `personal/` is gitignored and safe for your email, org URLs, tokens, and company-specific details. Anything committed to `tool_connections/` is public.
+
 ---
 
 ## Step 1: Find what you have that the community doesn't
