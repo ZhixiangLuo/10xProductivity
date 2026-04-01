@@ -9,6 +9,7 @@ Usage:
         mine    = drive.search("owner:me")
         listing = drive.list_my_drive()
         content = drive.read(file_id, file_type)   # doc/sheet/slides → text/csv
+        drive.write_document_append(file_id, "new text")  # Docs only (append at end)
 
 Auth:
     Run once to capture session:
@@ -239,6 +240,50 @@ class GDrive:
         download = dl_info.value
         return Path(download.path()).read_text(errors="replace")
 
+    def write_document_append(self, doc_id: str, text: str, *, settle_s: float = 3.0) -> None:
+        """
+        Append text to the end of a Google Doc (opens the editor, focuses canvas,
+        jumps to end, types). Docs auto-save; no separate save call.
+
+        Uses the same Playwright session as read(). You need edit access to the doc.
+
+        Note: This is best-effort UI automation — complex docs, comments-only mode,
+        or Google UI changes can make focus unreliable. Prefer short, plain-text
+        appends.
+        """
+        url = f"https://docs.google.com/document/d/{doc_id}/edit"
+        try:
+            self._page.goto(url, wait_until="networkidle", timeout=45_000)
+        except PlaywrightTimeout:
+            pass
+        time.sleep(settle_s)
+
+        if "accounts.google.com" in self._page.url:
+            raise RuntimeError(
+                "Google session expired while opening the doc. Re-run: "
+                "python3 playwright_sso.py --gdrive-only"
+            )
+
+        editor = self._page.locator(".kix-appview-editor").first
+        editor.wait_for(state="visible", timeout=30_000)
+        editor.click(position={"x": 320, "y": 320})
+        time.sleep(0.4)
+
+        if sys.platform == "darwin":
+            self._page.keyboard.press("Meta+ArrowDown")
+        else:
+            self._page.keyboard.press("Control+End")
+        time.sleep(0.35)
+        self._page.keyboard.press("Enter")
+        time.sleep(0.2)
+
+        for i, line in enumerate(text.split("\n")):
+            if i:
+                self._page.keyboard.press("Enter")
+                time.sleep(0.05)
+            self._page.keyboard.type(line, delay=20)
+        time.sleep(2.0)
+
     def write_sheet_cell(self, sheet_id: str, row: int, col: int, value: str,
                          gid: int = 0) -> None:
         """
@@ -348,6 +393,16 @@ if __name__ == "__main__":
         with GDrive() as drive:
             content = drive.read(file_id, file_type)
         print(content)
+
+    elif cmd == "write-doc":
+        if len(sys.argv) < 4:
+            print("Usage: python google_drive.py write-doc <doc_id> <text...>")
+            sys.exit(1)
+        doc_id = sys.argv[2]
+        append_text = " ".join(sys.argv[3:])
+        with GDrive() as drive:
+            drive.write_document_append(doc_id, append_text)
+        print("Appended.")
 
     else:
         print(__doc__)
