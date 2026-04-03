@@ -109,6 +109,8 @@ Do not guess. Find the official API docs.
 
 Add to `.env` (repo root) only — do not edit root `env.sample` (it is a stub) or other shared index files. Document new variables in `personal/{tool}/setup.md` under **`.env` entries**.
 
+> **`sso.py` must read credentials from `.env`, never hardcode them.** Even in `personal/`, scripts must call `load_env()` and read `SF_USERNAME`, `SF_PASSWORD`, etc. from the parsed env dict — not from module-level string literals. Hardcoded credentials in scripts are a scrubbing risk and make the recipe non-generalizable. If a value is missing from `.env`, prompt the user at runtime (`input()` / `getpass`) rather than baking it in.
+
 > **Watch for tools with explicit resource-sharing requirements.** Some tools (e.g. Notion) require you to explicitly grant the integration access to specific resources (pages, databases) even after auth succeeds. Workspace-level installation ≠ data access. If auth passes but read endpoints return 404 or empty results, look for a resource-level sharing step — usually found in the tool's Settings → Integrations/Apps → edit the integration → content/resource access panel. Document this in the Notes section of the connection file.
 
 ```bash
@@ -285,6 +287,8 @@ curl -s "$BASE/endpoint" -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
 ### Step 6: Update verified_connections.md
 
 Once both files are written and at least 2 snippets are verified with real output, add the tool to your active capability index.
+
+> **Eligibility vs scrubbing — these are different gates at different stages.** Credentials, org-specific URLs, and personal data should always go in `.env` — not hardcoded in scripts. But if they do exist in `personal/` files, `personal/` is gitignored and they will never be committed. Either way, they are **scrubbing concerns** handled later in the owner-add or contribute workflow, not eligibility disqualifiers at this stage. Eligibility (Step 2 of `contributing.md`) asks only whether the tool is commercial/public and whether the auth pattern is general *in principle* — not whether your current files are already clean. A recipe that still needs scrubbing is still eligible; it just needs to be cleaned before promotion.
 
 Read the tool's `connection-*.md` frontmatter and append to `verified_connections.md`:
 
