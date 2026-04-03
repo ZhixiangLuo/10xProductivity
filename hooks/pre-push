@@ -134,9 +134,20 @@ else
     exit 0
 fi
 
+# GNU coreutils `timeout` is often missing on macOS; without it the probe must not fail spuriously.
+agent_auth_probe() {
+    if command -v timeout > /dev/null 2>&1; then
+        timeout 10 agent -p --trust --mode=ask "say: ok"
+    elif command -v gtimeout > /dev/null 2>&1; then
+        gtimeout 10 agent -p --trust --mode=ask "say: ok"
+    else
+        agent -p --trust --mode=ask "say: ok"
+    fi
+}
+
 # For Cursor agent: verify authentication (keychain-based, run `agent login` once).
 if $USING_CURSOR_AGENT; then
-    if ! timeout 10 agent -p --trust --mode=ask "say: ok" > /dev/null 2>&1; then
+    if ! agent_auth_probe > /dev/null 2>&1; then
         echo "ℹ️  AI review skipped — Cursor agent not authenticated. Fast scan passed, AI review did not run."
         echo "   Run: agent login"
         exit 0
