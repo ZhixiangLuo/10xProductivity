@@ -159,9 +159,14 @@ echo "pre-push: running agent review (~30s)..."
 PROMPT_FILE="/tmp/pre_push_prompt_$$.txt"
 cleanup() { rm -f "$DIFF_FILE" "$VERDICT_FILE" "$PROMPT_FILE"; }
 
-# Owner pushing to main gets full safety + quality checks.
-# Anyone else gets safety checks only — quality/usefulness is the owner's call on review.
-if [[ "$CURRENT_BRANCH" == "main" ]]; then
+# Quality checks only apply when tool_connections/ files are being pushed.
+# Safety checks always apply to all files on all branches.
+HAS_TOOL_CONNECTIONS=false
+if echo "$CHANGED_FILES" | grep -q "^tool_connections/"; then
+    HAS_TOOL_CONNECTIONS=true
+fi
+
+if [[ "$CURRENT_BRANCH" == "main" ]] && $HAS_TOOL_CONNECTIONS; then
     QUALITY_BLOCK=$(cat <<'QUALITY'
 
 QUALITY CHECKS (any failure = VERDICT: FAIL, blocks push):

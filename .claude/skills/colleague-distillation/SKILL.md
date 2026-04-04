@@ -1,6 +1,6 @@
 ---
 name: colleague-distillation
-description: Distill a colleague into a reusable AI skill (work + persona) using tool connections — Slack, Slack AI, Jira, GHE, Bitbucket, Confluence, Aura, Sana, and more — without manual paste. Use when the user wants a colleague skill, digital twin of a coworker, or capture of someone's technical voice from workplace systems. Requires tool_connections + 10xProductivity verified_connections (or equivalent .env).
+description: Distill a colleague into a reusable AI skill (work + persona) using tool connections — Slack, Slack AI, Jira, GHE, Bitbucket, Confluence, SharePoint, Teams, Outlook, Notion, Linear, Google Docs, and more — without manual paste. Use when the user wants a colleague skill, digital twin of a coworker, or capture of someone's technical voice from workplace systems. Requires tool_connections + 10xProductivity verified_connections (or equivalent .env).
 ---
 
 > **Canonical copy:** `~/git_repos/the-genesis/.genesis/skills/colleague-distillation/SKILL.md`. This file is a **mirror** for Claude Code; prefer editing Genesis first, then re-copy if needed.
@@ -81,8 +81,8 @@ Gather **raw excerpts** (save under `colleagues/{slug}/knowledge/raw/` as `.md` 
 | Source | What to fetch | Why |
 |--------|----------------|-----|
 | **Confluence** | Pages **created by** or **substantially edited by** them (CQL / search); team runbooks they own | Long-form standards, architecture voice |
-| **Aura** | 1–2 broad prompts: communication style + domain ownership | Institutional memory across Slack/Confluence |
-| **Sana** | Broad org questions when Aura is thin | Same class as Aura |
+| **Notion** | Pages they authored or commented on | Long-form async thinking, project context |
+| **SharePoint** | Docs and wikis they own or edited | Standards docs, team handbooks |
 
 ### Tier C — Optional / role-specific
 

@@ -41,7 +41,7 @@ Add the named tools below based on what you see or what was asked:
 | Jira / Linear | Query mentions a ticket, feature, bug, sprint, or "is X done?" |
 | GitHub | Query mentions code, a function, file, PR, error, or implementation detail |
 | Notion | Connected and Confluence didn't return enough |
-| Docs.build | Query is specifically about a **named Workday internal developer service, SDK, or tool** (e.g. "how does the FooService API work?", "Extend scripting docs"). Skip for general questions about tools, policies, people, processes, or "how do I install X" — those belong in Slack/Confluence/Aura/Sana. |
+| Docs.build | Query is specifically about a **named Workday internal developer service, SDK, or tool** (e.g. "how does the FooService API work?", "Extend scripting docs"). Skip for general questions about tools, policies, people, processes, or "how do I install X" — those belong in Slack/Confluence/Notion/SharePoint. |
 
 Run all selected searches simultaneously. Do not wait for one to finish before starting the next.
 
@@ -287,10 +287,10 @@ To scope to a specific repo: append `+repo:{owner}/{repo}` to the query.
 
 After all searches complete, give the user **one direct answer** — not a tool-by-tool breakdown.
 
-- **Lead with the answer**, not with which tool found it. The user doesn't care that "Slack AI said X" or "Sana found Y" — they asked a question, give them the answer.
+- **Lead with the answer**, not with which tool found it. The user doesn't care that "Slack AI said X" or "Notion found Y" — they asked a question, give them the answer.
 - **Merge all results** into a single coherent response. If multiple sources agree, state the conclusion once. If they conflict, surface the conflict briefly.
 - **Include links** only when they point to something directly actionable or worth reading (e.g. a doc page, a ticket). Skip links to raw Slack messages or intermediate search results.
-- **If a source found nothing useful, do not mention it.** Omit empty-handed tools entirely — "Sana didn't find anything" adds no value.
+- **If a source found nothing useful, do not mention it.** Omit empty-handed tools entirely — "Notion didn't find anything" adds no value.
 - **If a result looks like a full doc worth reading**, offer to fetch it: *"There's a Confluence page 'Cursor Install Guide' — want me to read the full content?"*
 
 ---
