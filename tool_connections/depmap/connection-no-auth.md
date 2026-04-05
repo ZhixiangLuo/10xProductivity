@@ -10,6 +10,7 @@ env_vars: []
 The Cancer Dependency Map (DepMap) portal at the Broad Institute. Public API for querying cancer cell line dependencies, gene expression, drug sensitivity, mutations, and more across 2000+ cancer models. No API key or login required.
 
 API docs: https://depmap.org/portal/api/ | Swagger: https://depmap.org/portal/api/swagger.json
+Source: https://github.com/broadinstitute/depmap-portal | Data pipeline: https://github.com/broadinstitute/depmap_omics | Python API wrapper: https://github.com/broadinstitute/depmap-api
 
 **Verified:** Production (https://depmap.org/portal/api) — health_check, download/datasets, download/custom, context_explorer/context_search_options, download/gene_dep_summary — 2026-04. No VPN required.
 
