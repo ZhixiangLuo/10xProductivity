@@ -82,23 +82,33 @@ def capture() -> dict:
         page.goto("https://www.linkedin.com/login", wait_until="commit", timeout=30_000)
         print("  Log in to LinkedIn in the browser window.")
         print("  (If already logged in from a previous run, it will skip straight to feed.)")
-        print("  Waiting for feed to load (up to 3 min)...", flush=True)
+        print("  Waiting for feed to load (up to 3 min — Ctrl+C to abort)...", flush=True)
 
         li_at = None
         jsession = None
         deadline = time.time() + 180
-        while time.time() < deadline:
-            time.sleep(2)
-            cookies = {c["name"]: c["value"] for c in ctx.cookies(["https://www.linkedin.com"])}
-            li_at = cookies.get("li_at")
-            jsession = cookies.get("JSESSIONID", "").strip('"')
-            current_url = page.url
-            if li_at and jsession and (
-                "linkedin.com/feed" in current_url
-                or "linkedin.com/in/" in current_url
-                or "linkedin.com/mynetwork" in current_url
-            ):
-                break
+        next_heartbeat = time.time() + 15
+        try:
+            while time.time() < deadline:
+                time.sleep(2)
+                cookies = {c["name"]: c["value"] for c in ctx.cookies(["https://www.linkedin.com"])}
+                li_at = cookies.get("li_at")
+                jsession = cookies.get("JSESSIONID", "").strip('"')
+                current_url = page.url
+                if li_at and jsession and (
+                    "linkedin.com/feed" in current_url
+                    or "linkedin.com/in/" in current_url
+                    or "linkedin.com/mynetwork" in current_url
+                ):
+                    print("    Login detected!", flush=True)
+                    break
+                if time.time() >= next_heartbeat:
+                    remaining = max(0, int(deadline - time.time()))
+                    print(f"    Still waiting... ({remaining}s remaining — Ctrl+C to abort)", flush=True)
+                    next_heartbeat = time.time() + 15
+        except KeyboardInterrupt:
+            ctx.close()
+            raise RuntimeError("Aborted by user — LinkedIn login did not complete.")
 
         ctx.close()
 

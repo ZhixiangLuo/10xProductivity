@@ -94,14 +94,23 @@ def capture(env: dict) -> dict:
         page = ctx.new_page()
         page.on("request", _on_request)
         page.goto(M365_SEARCH_URL, wait_until="commit", timeout=30_000)
-        print("    Waiting for login + token (up to 3 min)...", flush=True)
+        print("    Waiting for login + token (up to 3 min — Ctrl+C to abort)...", flush=True)
 
         deadline = time.time() + 180
-        while time.time() < deadline:
-            if "search_token" in captured:
-                time.sleep(3)
-                break
-            time.sleep(1)
+        next_heartbeat = time.time() + 15
+        try:
+            while time.time() < deadline:
+                if "search_token" in captured:
+                    time.sleep(3)
+                    break
+                time.sleep(1)
+                if time.time() >= next_heartbeat:
+                    remaining = max(0, int(deadline - time.time()))
+                    print(f"    Still waiting... ({remaining}s remaining — Ctrl+C to abort)", flush=True)
+                    next_heartbeat = time.time() + 15
+        except KeyboardInterrupt:
+            browser.close()
+            raise RuntimeError("Aborted by user — M365 login did not complete.")
 
         browser.close()
 

@@ -66,33 +66,43 @@ def capture(env: dict) -> dict:
         page = ctx.new_page()
 
         page.goto(workspace_url, wait_until="commit", timeout=30_000)
-        print("    Waiting for Slack login to complete (up to 3 min)...", flush=True)
+        print("    Waiting for Slack login to complete (up to 3 min — Ctrl+C to abort)...", flush=True)
 
         xoxc = None
         deadline = time.time() + 180
-        while time.time() < deadline:
-            time.sleep(2)
-            try:
-                xoxc = page.evaluate("""() => {
-                    try {
-                        const cfg = JSON.parse(localStorage.getItem('localConfig_v2') || 'null');
-                        if (cfg && cfg.teams) {
-                            const tid = Object.keys(cfg.teams)[0];
-                            const t = cfg.teams[tid]?.token;
-                            if (t && t.startsWith('xoxc')) return t;
+        next_heartbeat = time.time() + 15
+        try:
+            while time.time() < deadline:
+                time.sleep(2)
+                if time.time() >= next_heartbeat:
+                    remaining = max(0, int(deadline - time.time()))
+                    print(f"    Still waiting... ({remaining}s remaining — Ctrl+C to abort)", flush=True)
+                    next_heartbeat = time.time() + 15
+                try:
+                    xoxc = page.evaluate("""() => {
+                        try {
+                            const cfg = JSON.parse(localStorage.getItem('localConfig_v2') || 'null');
+                            if (cfg && cfg.teams) {
+                                const tid = Object.keys(cfg.teams)[0];
+                                const t = cfg.teams[tid]?.token;
+                                if (t && t.startsWith('xoxc')) return t;
+                            }
+                        } catch(e) {}
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const raw = localStorage.getItem(localStorage.key(i)) || '';
+                            const m = raw.match(/xoxc-[a-zA-Z0-9%-]+/);
+                            if (m) return m[0];
                         }
-                    } catch(e) {}
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const raw = localStorage.getItem(localStorage.key(i)) || '';
-                        const m = raw.match(/xoxc-[a-zA-Z0-9%-]+/);
-                        if (m) return m[0];
-                    }
-                    return null;
-                }""")
-            except Exception:
-                continue
-            if xoxc:
-                break
+                        return null;
+                    }""")
+                except Exception:
+                    continue
+                if xoxc:
+                    print("    Login detected!", flush=True)
+                    break
+        except KeyboardInterrupt:
+            browser.close()
+            raise RuntimeError("Aborted by user — Slack login did not complete.")
 
         if not xoxc:
             raise RuntimeError("No xoxc token found — login may not have completed within 3 minutes.")

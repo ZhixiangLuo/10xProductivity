@@ -71,13 +71,24 @@ def capture(env: dict) -> dict:
         session = grafana_cookies.get("grafana_session")
 
         if not session:
-            print("  Waiting for manual login (3 min timeout)...", flush=True)
-            for _ in range(90):
-                time.sleep(2)
-                grafana_cookies = {c["name"]: c["value"] for c in ctx.cookies([base])}
-                session = grafana_cookies.get("grafana_session")
-                if session:
-                    break
+            print("  Waiting for manual login (3 min timeout — Ctrl+C to abort)...", flush=True)
+            deadline = time.time() + 180
+            next_heartbeat = time.time() + 15
+            try:
+                while time.time() < deadline:
+                    time.sleep(2)
+                    grafana_cookies = {c["name"]: c["value"] for c in ctx.cookies([base])}
+                    session = grafana_cookies.get("grafana_session")
+                    if session:
+                        print("    Login detected!", flush=True)
+                        break
+                    if time.time() >= next_heartbeat:
+                        remaining = max(0, int(deadline - time.time()))
+                        print(f"    Still waiting... ({remaining}s remaining — Ctrl+C to abort)", flush=True)
+                        next_heartbeat = time.time() + 15
+            except KeyboardInterrupt:
+                browser.close()
+                raise RuntimeError("Aborted by user — Grafana login did not complete.")
 
         browser.close()
 

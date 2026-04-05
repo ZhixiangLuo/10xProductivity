@@ -70,37 +70,48 @@ def capture(env: dict) -> dict:
 
         page.on("request", _on_request)
         page.goto(TEAMS_URL, wait_until="commit", timeout=30_000)
-        print("    Waiting for Teams login to complete (up to 3 min)...", flush=True)
+        print("    Waiting for Teams login to complete (up to 3 min — Ctrl+C to abort)...", flush=True)
 
         deadline = time.time() + 180
-        while time.time() < deadline:
-            time.sleep(2)
-            for hdrs in captured_headers:
-                t = hdrs.get("x-skypetoken", "")
-                s = hdrs.get("x-ms-session-id", "")
-                if t and not t.startswith("your-"):
-                    skypetoken = t
-                    session_id = s or session_id
+        next_heartbeat = time.time() + 15
+        try:
+            while time.time() < deadline:
+                time.sleep(2)
+                if time.time() >= next_heartbeat:
+                    remaining = max(0, int(deadline - time.time()))
+                    print(f"    Still waiting... ({remaining}s remaining — Ctrl+C to abort)", flush=True)
+                    next_heartbeat = time.time() + 15
+                for hdrs in captured_headers:
+                    t = hdrs.get("x-skypetoken", "")
+                    s = hdrs.get("x-ms-session-id", "")
+                    if t and not t.startswith("your-"):
+                        skypetoken = t
+                        session_id = s or session_id
+                        break
+                if skypetoken:
+                    print("    Login detected!", flush=True)
                     break
-            if skypetoken:
-                break
-            try:
-                skypetoken = page.evaluate("""() => {
-                    try {
-                        for (let i = 0; i < localStorage.length; i++) {
-                            const raw = localStorage.getItem(localStorage.key(i)) || '';
-                            const m = raw.match(/"skypeToken":"([^"]+)"/);
-                            if (m) return m[1];
-                            const m2 = raw.match(/"SkypeToken":"([^"]+)"/);
-                            if (m2) return m2[1];
-                        }
-                    } catch(e) {}
-                    return null;
-                }""")
-            except Exception:
-                continue
-            if skypetoken:
-                break
+                try:
+                    skypetoken = page.evaluate("""() => {
+                        try {
+                            for (let i = 0; i < localStorage.length; i++) {
+                                const raw = localStorage.getItem(localStorage.key(i)) || '';
+                                const m = raw.match(/"skypeToken":"([^"]+)"/);
+                                if (m) return m[1];
+                                const m2 = raw.match(/"SkypeToken":"([^"]+)"/);
+                                if (m2) return m2[1];
+                            }
+                        } catch(e) {}
+                        return null;
+                    }""")
+                except Exception:
+                    continue
+                if skypetoken:
+                    print("    Login detected!", flush=True)
+                    break
+        except KeyboardInterrupt:
+            browser.close()
+            raise RuntimeError("Aborted by user — Teams login did not complete.")
 
         browser.close()
 

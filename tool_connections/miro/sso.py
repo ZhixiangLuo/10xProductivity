@@ -66,32 +66,42 @@ def capture(_env: dict) -> dict:
         except Exception:
             pass
 
-    print(f"  Opening Miro ({MIRO_URL}) — sign in if prompted (up to 3 min)...")
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=False,
-            args=["--window-size=1200,800", "--window-position=100,100"],
-        )
-        ctx = browser.new_context(ignore_https_errors=True)
-        page = ctx.new_page()
-        page.on("response", _on_response)
+        print(f"  Opening Miro ({MIRO_URL}) — sign in if prompted (up to 3 min — Ctrl+C to abort)...")
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=False,
+                args=["--window-size=1200,800", "--window-position=100,100"],
+            )
+            ctx = browser.new_context(ignore_https_errors=True)
+            page = ctx.new_page()
+            page.on("response", _on_response)
 
-        page.goto(MIRO_URL, wait_until="commit", timeout=60_000)
-        try:
-            page.wait_for_url("**/miro.com/**", timeout=15_000)
-        except PlaywrightTimeout:
-            pass
+            page.goto(MIRO_URL, wait_until="commit", timeout=60_000)
+            try:
+                page.wait_for_url("**/miro.com/**", timeout=15_000)
+            except PlaywrightTimeout:
+                pass
 
-        deadline = time.time() + 180
-        token = None
-        while time.time() < deadline:
-            cookies = ctx.cookies(COOKIE_URLS)
-            token = {c["name"]: c["value"] for c in cookies}.get("token")
-            if token:
-                break
-            time.sleep(2)
+            deadline = time.time() + 180
+            next_heartbeat = time.time() + 15
+            token = None
+            try:
+                while time.time() < deadline:
+                    cookies = ctx.cookies(COOKIE_URLS)
+                    token = {c["name"]: c["value"] for c in cookies}.get("token")
+                    if token:
+                        print("    Login detected!", flush=True)
+                        break
+                    time.sleep(2)
+                    if time.time() >= next_heartbeat:
+                        remaining = max(0, int(deadline - time.time()))
+                        print(f"    Still waiting... ({remaining}s remaining — Ctrl+C to abort)", flush=True)
+                        next_heartbeat = time.time() + 15
+            except KeyboardInterrupt:
+                browser.close()
+                raise RuntimeError("Aborted by user — Miro login did not complete.")
 
-        browser.close()
+            browser.close()
 
     if not token:
         raise RuntimeError(
