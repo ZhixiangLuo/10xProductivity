@@ -159,14 +159,15 @@ echo "pre-push: running agent review (~30s)..."
 PROMPT_FILE="/tmp/pre_push_prompt_$$.txt"
 cleanup() { rm -f "$DIFF_FILE" "$VERDICT_FILE" "$PROMPT_FILE"; }
 
-# Quality checks only apply when tool_connections/ files are being pushed.
+# Quality checks only apply when tool_connections/ *documentation* files are being pushed
+# (connection-*.md, setup.md). Script-only changes (sso.py, *.py) are safety-checked only.
 # Safety checks always apply to all files on all branches.
-HAS_TOOL_CONNECTIONS=false
-if echo "$CHANGED_FILES" | grep -q "^tool_connections/"; then
-    HAS_TOOL_CONNECTIONS=true
+HAS_TOOL_CONNECTIONS_DOCS=false
+if echo "$CHANGED_FILES" | grep -qE "^tool_connections/.*(connection-.*\.md|setup\.md)"; then
+    HAS_TOOL_CONNECTIONS_DOCS=true
 fi
 
-if [[ "$CURRENT_BRANCH" == "main" ]] && $HAS_TOOL_CONNECTIONS; then
+if [[ "$CURRENT_BRANCH" == "main" ]] && $HAS_TOOL_CONNECTIONS_DOCS; then
     QUALITY_BLOCK=$(cat <<'QUALITY'
 
 QUALITY CHECKS (any failure = VERDICT: FAIL, blocks push):
