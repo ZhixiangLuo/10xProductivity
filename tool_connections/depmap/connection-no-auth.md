@@ -26,8 +26,8 @@ No authentication required. All endpoints are publicly accessible.
 ### Health check
 
 ```bash
-curl -s "https://depmap.org/portal/api/health_check/celery_redis_check" | python3 -m json.tool
-# → {"state": "SUCCESS", "id": "...", "nextPollDelay": 1000, ...}
+curl -s "https://depmap.org/portal/api/health_check/celery_redis_check"
+# → {"state": "SUCCESS", "id": "ee5eec86-3a7a-458e-ba97-d8280b25e033", "nextPollDelay": 1000, "message": null, "result": "SUCCESS", "percentComplete": null}
 ```
 
 ### List available datasets
@@ -40,7 +40,9 @@ for d in json.load(sys.stdin):
 "
 # → breadbox/a2a0a725-b585-40c8-8c45-a924f8178656 | CRISPR (DepMap Public 26Q1+Score, Chronos) | CRISPR
 # → breadbox/20528fee-bd1d-4f3f-b7a2-f991fc875858 | Expression (Short-read) Public 26Q1 | Expression
-# → ...
+# → breadbox/33012dd6-9fec-4cb9-95e0-cd7ad27e4c60 | Damaging Mutations (Public 26Q1) | Mutations
+# → GDSC1_AUC | Drug sensitivity AUC (Sanger GDSC1) | Drug screen
+# → [60+ more datasets — full list at /download/datasets]
 ```
 
 ### Custom download — subset by genes and/or cell lines
@@ -64,9 +66,10 @@ RESULT=$(curl -s "https://depmap.org/portal/api/task/$TASK_ID")
 DOWNLOAD_URL=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['downloadUrl'])")
 
 curl -s "$DOWNLOAD_URL"
-# → depmap_id,cell_line_display_name,lineage_1,...,EGFR,KRAS
-# → ACH-000029,HCC827GR5,Lung,Non-Small Cell Lung Cancer,...,-0.311,-0.308
-# → ACH-000030,PC14,Lung,Non-Small Cell Lung Cancer,...,-1.667,-0.206
+# → depmap_id,cell_line_display_name,lineage_1,lineage_2,lineage_3,lineage_6,lineage_4,EGFR,KRAS
+# → ACH-000029,HCC827GR5,Lung,Non-Small Cell Lung Cancer,Lung Adenocarcinoma,,,-0.3109611752,-0.3082617488
+# → ACH-000030,PC14,Lung,Non-Small Cell Lung Cancer,Lung Adenocarcinoma,,,-1.6675284774,-0.2064547584
+# → ACH-000074,KU812,Myeloid,Myeloproliferative Neoplasms,"Chronic Myeloid Leukemia, BCR-ABL1+",BCR::ABL1,,0.0221426493,-0.5725459817
 ```
 
 ### Gene dependency summary (all genes, CSV)
@@ -88,7 +91,10 @@ for item in data['lineage'][:5]:
     print(item['name'], '|', item['subtype_code'], '| n =', item['numModels'])
 "
 # → Adrenal Gland | ADRENAL_GLAND | n = 2
-# → Breast | BREAST | n = ...
+# → Ampulla of Vater | AMPULLA_OF_VATER | n = 5
+# → Biliary Tract | BILIARY_TRACT | n = 45
+# → Bladder/Urinary Tract | BLADDER | n = 39
+# → Bone | BONE | n = 101
 ```
 
 ---
