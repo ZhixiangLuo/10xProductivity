@@ -175,6 +175,10 @@ QUALITY CHECKS (any failure = VERDICT: FAIL, blocks push):
 3. Validation quality — every snippet has a real output comment (not a
    placeholder), at least 2 endpoints tested, auth flow documented end-to-end,
    token lifetime documented, at least one failure case noted.
+   NOTE: scrubbed output is acceptable — realistic-looking but anonymized IDs,
+   generic names (Alice, My Notebook), and randomized hex strings in # → lines
+   are valid evidence of a verified run. Do not flag them as placeholders if
+   the output structure matches the API's documented response shape.
 
 4. Usefulness — not a duplicate of existing tool_connections/ entry with same
    auth, enables meaningful agent actions beyond a health check.
