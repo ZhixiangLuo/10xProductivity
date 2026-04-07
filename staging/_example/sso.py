@@ -5,7 +5,7 @@
 Delete this file if the tool uses API tokens instead of SSO.
 
 Follow the patterns in tool_connections/shared_utils/sso_patterns.py.
-Usage: python3 staging/{tool-name}/sso.py
+Usage: python3 personal/{tool-name}/sso.py
 """
 import sys
 from pathlib import Path
