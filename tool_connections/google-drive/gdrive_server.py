@@ -23,7 +23,7 @@ Protocol (newline-delimited JSON over Unix socket):
 
 import json, os, queue, re, signal, socket, sys, time, traceback
 from pathlib import Path
-from threading import Thread
+from threading import Thread, Event
 
 AUTH_FILE    = Path.home() / ".browser_automation" / "gdrive_auth.json"
 PROFILE_DIR  = Path.home() / ".browser_automation" / "gdrive_chromium_profile"
@@ -198,7 +198,7 @@ class GDriveServer:
             self.log(f"Error handling {action}: {e}\n{traceback.format_exc()}")
             return {"ok": False, "error": str(e)}
 
-    def serve(self):
+    def serve(self, stop_event: Event):
         SOCKET_PATH.parent.mkdir(parents=True, exist_ok=True)
         if SOCKET_PATH.exists():
             SOCKET_PATH.unlink()
@@ -235,13 +235,13 @@ class GDriveServer:
                 conn.close()
 
         try:
-            while True:
+            while not stop_event.is_set():
                 # Accept new connections (non-blocking)
                 try:
                     conn, _ = server.accept()
                     Thread(target=handle_client, args=(conn,), daemon=True).start()
                 except OSError:
-                    pass  # timeout — no new connection
+                    pass  # timeout or interrupt — no new connection
 
                 # Drain work queue on main thread (Playwright must run here)
                 try:
@@ -255,30 +255,39 @@ class GDriveServer:
             server.close()
             if SOCKET_PATH.exists():
                 SOCKET_PATH.unlink()
+            # Always close browser on the way out so Chromium never lingers
+            self.log("Closing browser.")
+            try:
+                if self._browser:
+                    self._browser.close()
+            except Exception:
+                pass
+            try:
+                if self._pw:
+                    self._pw.stop()
+            except Exception:
+                pass
 
 
 def run_daemon():
     server = GDriveServer()
     server.start_browser()
-    # Write PID
     PID_FILE.write_text(str(os.getpid()))
-    # Handle shutdown — close browser before exiting so Chromium doesn't linger
+
+    stop_event = Event()
+
     def shutdown(sig, frame):
-        server.log("Shutting down.")
-        try:
-            if server._browser: server._browser.close()
-        except Exception:
-            pass
-        try:
-            if server._pw: server._pw.stop()
-        except Exception:
-            pass
-        if PID_FILE.exists(): PID_FILE.unlink()
-        if SOCKET_PATH.exists(): SOCKET_PATH.unlink()
-        sys.exit(0)
+        server.log(f"Received signal {sig} — shutting down.")
+        stop_event.set()  # signal the serve() loop to exit cleanly
+
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
-    server.serve()
+
+    try:
+        server.serve(stop_event)
+    finally:
+        if PID_FILE.exists():
+            PID_FILE.unlink()
 
 
 # ── Client ────────────────────────────────────────────────────────────────────

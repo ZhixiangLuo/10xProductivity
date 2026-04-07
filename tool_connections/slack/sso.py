@@ -101,6 +101,7 @@ def capture(env: dict) -> dict:
                     print("    Login detected!", flush=True)
                     break
         except KeyboardInterrupt:
+            ctx.close()
             browser.close()
             raise RuntimeError("Aborted by user — Slack login did not complete.")
 
@@ -112,6 +113,7 @@ def capture(env: dict) -> dict:
         if not d_cookie:
             raise RuntimeError("No 'd' cookie found after Slack SSO.")
 
+        ctx.close()
         browser.close()
 
     print(f"    Slack xoxc captured ({len(xoxc)} chars)")

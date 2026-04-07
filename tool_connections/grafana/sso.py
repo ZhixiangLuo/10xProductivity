@@ -87,9 +87,11 @@ def capture(env: dict) -> dict:
                         print(f"    Still waiting... ({remaining}s remaining — Ctrl+C to abort)", flush=True)
                         next_heartbeat = time.time() + 15
             except KeyboardInterrupt:
+                ctx.close()
                 browser.close()
                 raise RuntimeError("Aborted by user — Grafana login did not complete.")
 
+        ctx.close()
         browser.close()
 
     if not session:

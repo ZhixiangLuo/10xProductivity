@@ -110,9 +110,11 @@ def capture(env: dict) -> dict:
                     print("    Login detected!", flush=True)
                     break
         except KeyboardInterrupt:
+            ctx.close()
             browser.close()
             raise RuntimeError("Aborted by user — Teams login did not complete.")
 
+        ctx.close()
         browser.close()
 
     if not skypetoken:
