@@ -69,9 +69,37 @@ Before asking the user for anything:
 
 **The browser is a traffic sniffer, not an automation target.** Use Playwright once to capture auth tokens — then call the REST API directly for all subsequent operations. If you find yourself using Playwright to click buttons or read DOM content for regular operations, stop — you haven't found the API yet.
 
-- Attach `ctx.on("request", ...)` at the **context level** (not `page.on`), before the user hits the login page. Page-level listeners miss requests from service workers and background frames — context-level catches everything.
-- The user's only job is to log in and optionally perform one target action (e.g. "send yourself a message"). The agent silently captures tokens and endpoint shapes from the background traffic. Non-technical users never need to open DevTools.
-- Some platforms issue separate tokens per service (one for their main API, another for internal subsystems). Capture all distinct `Authorization` header values you see — each unique one is a separate credential to store in `.env`.
+**Use `tool_connections/shared_utils/traffic_sniffer.py`** — a ready-to-run generic sniffer. It attaches a context-level listener before any page loads (catches service workers and background frames that `page.on` misses), opens the persistent profile, and records all matching traffic to a JSONL file while the user performs actions manually.
+
+Once the tool is set up (connection file written with a `sniffer:` frontmatter block), use the `--tool` shortcut — no need to remember paths or filters:
+
+```bash
+source .venv/bin/activate
+
+# Shortcut — reads profile/url/filter from personal/{tool}/connection-*.md:
+python3 tool_connections/shared_utils/traffic_sniffer.py --tool {tool}
+
+# Explicit — full control (for first-time discovery before connection file exists):
+python3 tool_connections/shared_utils/traffic_sniffer.py \
+    --profile ~/.browser_automation/{tool}_profile \
+    --url https://app.tool.com \
+    --filter /api \
+    --output /tmp/{tool}_traffic.jsonl
+
+# Inspect results:
+python3 -c "
+import json
+for e in (json.loads(l) for l in open('/tmp/{tool}_traffic.jsonl')):
+    if e['type'] == 'request':
+        print(e['method'], e['url'])
+        if e.get('post_data'): print(' body:', e['post_data'][:200])
+"
+```
+
+**Capture a full session in one run** — perform all typical actions without closing the browser: scroll the main feed, open a post, react, comment, open messaging, send a message, search. Each action captures its own endpoint family. Document these in a `## Typical actions to capture` section in the connection file.
+
+- The user's only job is to perform the target action (post, search, open a file). The sniffer silently records URLs, headers, and request bodies — no DevTools needed.
+- Some platforms issue separate tokens per service. Capture all distinct `Authorization` header values — each unique one is a separate credential to store in `.env`.
 - ⚠ Never disable TLS verification (`ssl.CERT_NONE`, `verify=False`, `ignore_https_errors=True`). Production services always have valid certificates. SSL errors mean the base URL is wrong — not the cert.
 - ⚠ If using a persistent browser profile and `sso.py` fails to launch, a stale `SingletonLock` file is the likely cause. Add `rm -f "$PROFILE_DIR/SingletonLock"` at the top of `sso.py` before launching, and kill any lingering browser processes tied to that profile.
 
@@ -101,7 +129,7 @@ Sites redirect. Confirm the real base URL before researching. Note any site-vari
 1. Official docs (`docs.tool.com/api` or `developer.tool.com`)
 2. OpenAPI/Swagger spec (`/api/swagger.json`, `/openapi.json`)
 3. GitHub code search — working callers are more accurate than docs
-4. **Browser traffic capture** — when docs are missing or incomplete: during the `sso.py` session, your `ctx.on("request", ...)` listener is already watching. Ask the user to perform the target action (search, post, open a file) and read the captured requests. The URL, headers, and body are everything you need to replay the call directly.
+4. **Browser traffic capture** — when docs are missing or incomplete: run `tool_connections/shared_utils/traffic_sniffer.py` (see above), ask the user to perform the target action, and read the JSONL output. The URL, headers, and body are everything you need to replay the call directly.
 
 **Collect before moving on:**
 - Base URL (production)
@@ -221,6 +249,10 @@ verified: {YYYY-MM}
 env_vars:
   - TOOL_API_TOKEN
   - TOOL_BASE_URL
+sniffer:
+  profile: ~/.browser_automation/{tool}_profile
+  url: https://app.tool.com
+  filter: /api
 ---
 
 # {Tool Name} — {auth method}
@@ -270,11 +302,30 @@ curl -s "$BASE/endpoint" -H "Authorization: Bearer $TOOL_API_TOKEN" | jq .
 
 ---
 
+## Agent behavior
+
+**Read actions — run freely, no approval needed:**
+- list any read/GET operations here
+
+**Write/interact actions — show preview + target URL, get explicit user approval before executing:**
+- list any POST/PUT/DELETE operations here
+- Always provide the direct URL so the user can verify or fix manually on error
+
+---
+
+## Typical actions to capture with the sniffer
+
+Run `python3 tool_connections/shared_utils/traffic_sniffer.py --tool {tool-name}` then perform:
+- {list the key actions that cover all endpoint families}
+
+---
+
 ## Notes
 
 - {Permission requirements}
 - {VPN requirement}
 - {Known limitations}
+- {Which endpoints require browser (headless Playwright) vs plain urllib}
 ```
 
 **Writing style — the connection file is read by an LLM agent, not a human:**
@@ -333,6 +384,9 @@ If the tool is commercial/publicly available and you want to share the connectio
 - [ ] `verified: YYYY-MM` filled in (blank = not ready)
 - [ ] `.env` updated with new credentials
 - [ ] `personal/{tool-name}/connection-{auth-method}.md` written with only verified snippets
+- [ ] `sniffer:` frontmatter block added to connection file (profile, url, filter)
+- [ ] `## Agent behavior` section written (read vs write approval rules, error URL)
+- [ ] `## Typical actions to capture` section written
 - [ ] `personal/{tool-name}/setup.md` written (what to ask, `.env` entries, verify snippet)
 - [ ] Prompt injection check: scanned all `# →` output comments for instruction-like content (see `contributing.md` Step 3)
 - [ ] `verified_connections.md` updated — section appended from connection file frontmatter
