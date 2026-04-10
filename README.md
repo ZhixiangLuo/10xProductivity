@@ -140,7 +140,7 @@ Then point your agent at the setup guide:
 Read /path/to/10xProductivity/setup.md and set up my tool connections.
 ```
 
-Your agent handles the rest — it will ask which tools you use, get the credentials it needs, run SSO where required, and verify each connection works. Works for any tool: pre-built recipes for common tools, and an identical setup path for internal or custom tools.
+Your agent handles the rest — it will ask which tools you use and the URLs, get the credentials it needs, run SSO where required, and verify each connection works. Works for any tool: pre-built recipes for common tools, and an identical setup path for internal or custom tools.
 
 ---
 
