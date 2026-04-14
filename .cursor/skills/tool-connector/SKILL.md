@@ -59,7 +59,7 @@ First, check if you already have the repo:
 ls setup.md 2>/dev/null && echo "repo present" || echo "need to clone"
 ```
 
-**Repo present** → read `setup.md` now — it is the full entry point.
+**Repo present** → if `python3` (or Windows `py -3`) is missing or `.venv` is not set up for Playwright, read **`setup-python.md`** first; then read **`setup.md`** — it is the full entry point for tool connections.
 
 **Need to clone** →
 

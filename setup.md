@@ -25,15 +25,26 @@ This file is for your agent. Point your agent here first:
 
 ## Prerequisites
 
+**This guide assumes the repo folder is already on disk** (opened in Cursor, copied, etc.). If `python3` is missing, not on PATH, or below 3.11, load **`setup-python.md`** first — it detects the OS, tries **winget / Homebrew / apt** when available, falls back to **python.org** if needed, standardizes on **Python 3.12** (no version prompts), then creates `.venv`, Playwright + Chromium, and `.env`. It does not cover obtaining the repo (see **README** Quick start if needed).
+
+**From the repo root** (the directory that contains this `setup.md`):
+
 ```bash
-# Clone and create Python env
-git clone https://github.com/yourusername/10xProductivity.git
-cd 10xProductivity
+# macOS / Linux — create env and browser automation deps (skip if setup-python.md already did this)
 python3 -m venv .venv && source .venv/bin/activate
 pip install playwright && playwright install chromium
 
 # Create .env (empty — fill from each tool's setup.md as you connect)
 touch .env
+```
+
+**Windows** — same steps from repo root, with venv activation:
+
+```bat
+py -3 -m venv .venv
+.venv\Scripts\activate.bat
+pip install playwright && playwright install chromium
+type nul > .env
 ```
 
 ---

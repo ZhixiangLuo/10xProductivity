@@ -119,6 +119,8 @@ workflows/           ← pre-built workflows that compose multiple tool connecti
     enterprise-search.md  ← search across all your connected tools simultaneously in one query
 
 add-new-tool.md      ← connect anything not in tool_connections/ — internal portals, custom systems, any tool with an API or browser interface
+
+setup-python.md      ← detect OS, try winget/brew/apt then python.org if needed; Python 3.12 + venv + Playwright (no git — you already have this folder)
 ```
 
 `tool_connections/` has pre-built recipes for tools most teams share. `personal/` is where your internal company tools live — same setup path, stays on your machine. Once connected, workflows like the built-in search let your agent query Slack, Confluence, Jira, and more in a single request.
@@ -129,10 +131,16 @@ add-new-tool.md      ← connect anything not in tool_connections/ — internal 
 
 ## Quick start
 
+1. **Install Cursor** (the editor your agent runs in): open **[cursor.com/download](https://cursor.com/download)**, download the installer for **Windows** or **macOS**, run it, and sign in or create an account when prompted.
+
 ```bash
 git clone https://github.com/ZhixiangLuo/10xProductivity.git
 cd 10xProductivity
 ```
+
+Open the **`10xProductivity`** folder in Cursor (**File → Open Folder…**).
+
+If you do not have **Python 3** yet (common on a fresh laptop), point your agent at **`setup-python.md`** first — it detects your system, tries **winget / Homebrew / apt** when present, otherwise guides a **python.org** install, then prepares `.venv` + Playwright. **No `git` in that playbook** — you already have this folder.
 
 Then point your agent at the setup guide:
 
