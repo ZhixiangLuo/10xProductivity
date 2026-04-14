@@ -24,7 +24,7 @@ source .venv/bin/activate
 python3 tool_connections/shared_utils/playwright_sso.py --outlook-only
 ```
 
-On a managed machine (Workday/Intune/MDM), Azure AD SSO auto-completes in ~30s. On unmanaged machines, complete the Microsoft 365 login once through the browser.
+On a corporate-managed machine (Intune/MDM or similar), Azure AD SSO auto-completes in ~30s. On unmanaged machines, complete the Microsoft 365 login once through the browser.
 
 Two tokens are written to `.env`:
 - `GRAPH_ACCESS_TOKEN` — for Microsoft Graph (`/me`, `/me/people`)

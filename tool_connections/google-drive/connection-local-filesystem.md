@@ -56,7 +56,7 @@ content = local.read_file("My Drive/notes.txt")
 
 # Read Google Docs/Sheets/Slides content
 content = local.drive.read(file_id, "document")
-# → "The Enterprise AI Transformation\nWorkday's product vision and strategy..."
+# → "The Enterprise AI Transformation\nOur product vision and strategy..."
 csv     = local.drive.read(file_id, "spreadsheet")
 # → "Name,Status,Owner\nAIOps,In Progress,alice@example.com\n..."
 notes   = local.drive.read(file_id, "presentation")
@@ -152,4 +152,4 @@ nohup .venv/bin/python3 tool_connections/google-drive/gdrive_server.py start > /
 
 ---
 
-**Verified:** 2026-04-01, macOS 15, Google Workspace account, Google Drive for Desktop 1.91. Tested: `list_folder("My Drive")` (20+ files), `search("AI strategy")` (instant via Spotlight), `smart_search("workday AI strategy")` (20 results via daemon), `read(file_id, "document")` (full doc text returned), `read(file_id, "spreadsheet")` (CSV returned). Daemon start-to-ready ~10s. Auth lifetime ~7 days observed. Session expired error confirmed when `gdrive_auth.json` stale — resolved by re-running `sso.py --force`.
+**Verified:** 2026-04-01, macOS 15, Google Workspace account, Google Drive for Desktop 1.91. Tested: `list_folder("My Drive")` (20+ files), `search("AI strategy")` (instant via Spotlight), `smart_search("enterprise AI strategy")` (20 results via daemon), `read(file_id, "document")` (full doc text returned), `read(file_id, "spreadsheet")` (CSV returned). Daemon start-to-ready ~10s. Auth lifetime ~7 days observed. Session expired error confirmed when `gdrive_auth.json` stale — resolved by re-running `sso.py --force`.

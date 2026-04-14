@@ -209,6 +209,12 @@ SAFETY CHECKS (any failure = VERDICT: FAIL, blocks push):
 
 2d. Malicious code — eval(), exec(), os.system() with user-controlled input,
     outbound calls to unexpected hosts, shell injection via f-strings.
+
+2e. Vendor-neutral examples — no former-employer names; no unrelated commercial
+    brand or proprietary internal-only product name used **only** as generic filler
+    in docs (sample queries, "e.g." walkthroughs, fake output). Use placeholders
+    (company.example, Acme, FooService). PASS when a product is named because this
+    repo or file documents that integration (Slack, Jira, GitHub, Confluence, …).
 HEADER
     echo "$QUALITY_BLOCK"
     cat <<'FOOTER'

@@ -27,7 +27,7 @@ API docs: [Outlook REST API v2.0](https://learn.microsoft.com/en-us/previous-ver
 
 ## Auth setup
 
-Tokens are captured by opening `outlook.office.com` in a headed Playwright browser. On a Workday-managed Mac (or any machine with the Microsoft Enterprise SSO extension), Azure AD login auto-completes in ~30s. On unmanaged machines, complete the login once manually through the browser.
+Tokens are captured by opening `outlook.office.com` in a headed Playwright browser. On a corporate-managed Mac (or any machine with the Microsoft Enterprise SSO extension), Azure AD login auto-completes in ~30s. On unmanaged machines, complete the login once manually through the browser.
 
 ```bash
 source .venv/bin/activate

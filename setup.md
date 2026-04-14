@@ -103,7 +103,7 @@ Note: {any critical gotcha that would cause silent failure}  ← omit if none
 ```
 
 **Rules for each field:**
-- **Instance** — the real URL the verify snippet hit (e.g. `https://jira2.workday.com`, not `https://jira.yourcompany.com`). Include prod vs dev if both exist.
+- **Instance** — the real URL the verify snippet hit (e.g. `https://jira.company.example`, not `https://jira.yourcompany.com`). Include prod vs dev if both exist.
 - **Auth** — the method that actually passed verification. For tools with Cloud vs Server/DC variants (Jira, Confluence), name the variant explicitly. Never list both — only the one in use.
 - **Active env** — only vars that are populated with real values. If a var is present in `.env` but is a placeholder (e.g. `you@yourcompany.com`), omit it and add a Note explaining it should be ignored.
 - **Refresh** — include for any token with a lifetime under ~24h (SSO sessions, Coveo JWTs, xoxc). Omit for long-lived API tokens and PATs.

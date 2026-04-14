@@ -74,7 +74,7 @@ Gather **raw excerpts** (save under `colleagues/{slug}/knowledge/raw/` as `.md` 
 | **Slack AI** (Slackbot DM) | Targeted questions: e.g. “Summarize how [Name] argues for design decisions in threads about [topic]” | Fast synthesis over large Slack corpus |
 | **Jira** | JQL: `assignee`, `reporter`, `comment ~`, component/team filters; descriptions, comments, status transitions | Work scope, prioritization, written precision |
 | **GHE** | PRs **authored**, **reviewed** (`/pulls`, review comments API); issues filed | Code review voice, technical standards |
-| **Bitbucket Server** | Same pattern as GHE for Workday-primary repos | Same |
+| **Bitbucket Server** | Same pattern as GHE when Bitbucket Server is the primary Git host | Same |
 
 ### Tier B — Depth and standards
 
@@ -185,6 +185,6 @@ Optional: also write `work_skill.md` / `persona_skill.md` with names `colleague_
 
 ## Related skills
 
-- **`workday_learner`** — team/domain bootstrap (similar tool sweep, different output shape).
+- **`team_learner`** — team/domain bootstrap (similar tool sweep, different output shape).
 - **`skill_creation`** — promote reusable methodology after validation.
 - **`jira`**, **`tool_connections`** — all authenticated access.

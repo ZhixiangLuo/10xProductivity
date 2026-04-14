@@ -41,7 +41,6 @@ Add the named tools below based on what you see or what was asked:
 | Jira / Linear | Query mentions a ticket, feature, bug, sprint, or "is X done?" |
 | GitHub | Query mentions code, a function, file, PR, error, or implementation detail |
 | Notion | Connected and Confluence didn't return enough |
-| Docs.build | Query is specifically about a **named Workday internal developer service, SDK, or tool** (e.g. "how does the FooService API work?", "Extend scripting docs"). Skip for general questions about tools, policies, people, processes, or "how do I install X" — those belong in Slack/Confluence/Notion/SharePoint. |
 
 Run all selected searches simultaneously. Do not wait for one to finish before starting the next.
 
@@ -301,6 +300,5 @@ After all searches complete, give the user **one direct answer** — not a tool-
 - **Slack AI vs. search.messages:** Slack AI gives synthesized answers but requires Business+ plan. `search.messages` always works but returns raw messages. Try AI first; fall back automatically if it fails.
 - **Notion searches titles only.** Body text is not indexed by the API. A "no results" from Notion doesn't mean the knowledge isn't there — it may just not be in the page title.
 - **GitHub is expensive for non-code queries.** Skip it unless the query is clearly code-related; it adds noise and burns API rate limits.
-- **Docs.build is narrow — internal service/SDK docs only.** It indexes only content published to `docs.workday.build` (services with a `docs.json` in GHE). Do **not** use it for general questions (install steps, policies, people, team decisions). It uses AI/RAG internally but is **not** an enterprise-wide AI search tool — do not treat it as one.
 - **Confluence vs. Jira overlap:** Confluence has the narrative ("how it works"), Jira has the status ("is it done"). Both are worth searching for most topics.
 - **Credentials:** always load from `.env` in Python, not `bash source .env` — long tokens (especially `SLACK_XOXC`) are silently truncated by bash.
