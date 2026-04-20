@@ -1,10 +1,36 @@
-# 10x Engage (LinkedIn comments)
+# LinkedIn Engagement Automation
 
-**Audience: coding agent.** Follow these steps exactly. You drive the loop. The human approves one comment in Cursor chat before you post.
+**Audience: coding agent.** This is an automated workflow. The agent drives the full loop — finding posts, assessing relevance, drafting comments. The human's only job is to approve one comment before it posts.
 
-**Goal:** post one high-quality comment that genuinely contributes to a relevant conversation. The repo link is incidental — include it only when it directly helps the reader.
+**Goal:** find a relevant post on your chosen topic, draft a comment that contributes a genuine insight or perspective, get human approval, and post it.
 
-**Repo:** https://github.com/ZhixiangLuo/10xProductivity
+---
+
+> ⚠️ **Platform risk:** This workflow automates actions on LinkedIn using your personal account. LinkedIn's Terms of Service (Section 8.2) prohibit automation. Your account may be restricted or permanently banned. Read [LEGAL_NOTICE.md](../../LEGAL_NOTICE.md) before use. Proceed only if you accept this risk.
+
+---
+
+## Privacy & Safety
+
+**Everything runs locally. Your credentials never leave your machine.**
+
+- Session tokens (`li_at`, `JSESSIONID`) live only in your `.env` file on your own disk — they are never sent to any third-party service
+- No cloud automation platform, no shared infrastructure, no external server holds your session
+- The persistent browser profile lives at `~/.browser_automation/linkedin_profile/` — on your machine, under your control
+- The agent acts as you, from your laptop, using your browser — the same trust model as doing it manually
+- **You approve every comment before it posts.** Nothing is published without your explicit sign-off in Step 4
+
+This is meaningfully safer than cloud-based LinkedIn automation tools where your cookies live on someone else's server.
+
+---
+
+## Customize before first use
+
+Two things to personalize before running this workflow:
+
+**1. Your topic keywords** (Step 1) — replace the example AI/agent keywords with terms relevant to your field. The agent uses these to find posts worth engaging with.
+
+**2. Your perspective** (Step 3) — replace the style calibration examples with 3–5 comments you've written that you're proud of. The agent uses these to match your voice, not someone else's.
 
 ---
 
@@ -12,11 +38,14 @@
 
 ```python
 import random
+
+# Replace with keywords for your topic.
+# Example below uses AI/agents — swap in your own field.
 KEYWORDS = random.sample([
     "Agentic AI", "Multi-Agent Systems", "AI Agent Orchestration",
     "Autonomous Agents", "Agentic Workflows", "RAG",
-    "AI Agent Architect", "Human-in-the-Loop", "Task Chaining",
-    "AI Solutions Architect", "Vibe Coding", "AI Productivity Stack",
+    "Human-in-the-Loop", "Task Chaining",
+    "Vibe Coding", "AI Productivity Stack",
     "Cursor", "Claude Code", "coding agent", "Codex", "Windsurf",
     "AI Agent friction", "Enterprise AI adoption",
 ], k=4)
@@ -45,7 +74,7 @@ python workflows/linkedin_automation/engage.py --stop
 
 ---
 
-## Step 2 — Fetch one relevant post [AGENT DECIDES]
+## Step 2 — Fetch one relevant post [AGENT ACTS]
 
 ```bash
 source .venv/bin/activate
@@ -67,46 +96,47 @@ Or on failure:
 ```
 
 **Agent loop:**
-- Add the returned URN to `seen_urns` so it is passed via `--skip-urns` on the next call.
-- On `keyword_exhausted` or `no_relevant_post` → switch to the next keyword.
-- Do NOT call `engage.py` in a loop before showing anything to the human — fetch one, assess, show.
+- Add the returned URN to `seen_urns` so it is passed via `--skip-urns` on the next call
+- On `keyword_exhausted` or `no_relevant_post` → switch to the next keyword
+- Do NOT call `engage.py` in a loop before showing anything to the human — fetch one, assess, show
 
 ---
 
 ## Step 3 — Assess relevance and draft the comment [AGENT DECIDES]
 
 **Relevance checklist — all must be true to surface to the human:**
-- [ ] Topic touches AI agents, coding tools, personal assistants, tool integrations, or productivity friction
+- [ ] Post is genuinely about your topic (not just tangentially mentioning a keyword)
 - [ ] Not a personal/grief/political post
-- [ ] You can add one concrete, non-generic insight
-- [ ] Thread is not already saturated with promo links
+- [ ] You can add one concrete, non-generic insight based on your own perspective
+- [ ] Thread is not already saturated with similar comments
 
 If not relevant, call `engage.py` again with the same keyword and updated `--skip-urns`.
 
-**Angle table:**
+**Finding your angle:**
 
-| They're talking about… | Bridge with… |
-|------------------------|--------------|
-| Cursor / Claude Code / Windsurf / Codex | Great for coding — and the same agent can automate daily workflows if you wire it to real tools. Most people only use 10% of what it can do. |
-| Agentic AI / autonomous agents / orchestration | Coding agent for build/iterate glue; same stack powers a personal assistant for recurring "check these systems" work |
-| RAG / knowledge retrieval | Static docs aren't enough — live tool sessions (Slack, Jira, browser) give the agent real-time grounding |
-| AI agent friction / setup complexity | Zero infrastructure angle: persistent browser profile + tool_connections, no cloud plumbing |
-| Enterprise AI adoption / IT hassle | Local sessions, credentials stay on-device, no new cloud permissions needed |
-| Vibe coding | Non-devs can build "skills" via playbooks — no code required for the workflow layer |
-| AI productivity stack | 10xProductivity is the connective tissue that wires their existing stack to the agent |
+The goal is a comment that contributes something the post doesn't already say. Ask: *what do I know from my own experience that adds to this conversation?* Some patterns that work:
+
+| What the post says | A genuine bridge looks like… |
+|--------------------|------------------------------|
+| States a problem | A concrete cause or constraint most people overlook |
+| Celebrates a trend | The friction point or failure mode that trend creates |
+| Shares a tool or approach | A real trade-off or edge case from using something similar |
+| Makes a prediction | A counterexample or condition that changes the outcome |
+| Asks a question | A direct answer from direct experience, not hedged opinion |
+
+Fill in the angle based on what you actually know — not what sounds smart.
 
 **Comment shape:**
 - 1–3 sentences max. One sharp sentence beats three safe ones.
 - Direct and opinionated — no hedging, no "great post!", no emojis, no hashtags
 - One concrete reframe or observation. No lists, no numbered points.
-- Lead with the insight, not the product name
+- Lead with the insight
 
 **What NOT to write:**
 - Don't summarise their post back at them
 - Don't use "resonates", "kudos", "spot on", "insightful", "love this"
 - Don't end with a question just to seem engaging
-
-**Repo link — aim for 1 in 5, only when it directly fills a gap the author named.**
+- Don't promote a product, repo, or project unless it directly and specifically answers a gap the author named — and even then, at most once every 5 comments
 
 **Style calibration — replace with your own examples.**
 
@@ -124,7 +154,7 @@ Collect 3–5 comments you've written that you're proud of. Paste them here so t
 
 ## Step 4 — Show the human and ask for approval [HUMAN APPROVES]
 
-Present in Cursor chat:
+Present in chat:
 - Post URL
 - Author
 - Full post text

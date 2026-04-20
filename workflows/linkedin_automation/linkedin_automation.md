@@ -40,9 +40,9 @@ fetch_next_post(keyword, cursor, session) → post   # agent calls per post; adv
   → (switch keyword by passing cursor=None)
 ```
 
-### `10x_engage` — Engage on relevant AI/agent topics, mention repo only when it genuinely helps
+### `linkedin_engagement` — Find a relevant post on your topic and comment with genuine insight
 
-**Playbook:** `10x_engage.md` — topic signals, relevance gate, comment shape, when to mention the repo, and the agent-driven loop (`fetch_next_post` → agent decides → `post_comment`).
+**Playbook:** `linkedin_engagement.md` — keyword customization, relevance gate, comment shape, privacy & safety notes, and the agent-driven loop (`fetch_next_post` → agent decides → `post_comment`). Uses AI/agents as a worked example; replace keywords and style calibration with your own topic and voice.
 
 ### `engage-feed` — Engage with posts from your feed
 
