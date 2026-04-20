@@ -24,6 +24,15 @@ set -euo pipefail
 REMOTE="$1"
 URL="$2"
 
+# Load BANNED_TERM from .env (gitignored) — never committed as a literal
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$SCRIPT_DIR/..")"
+ENV_FILE="$REPO_ROOT/.env"
+BANNED_TERM=""
+if [[ -f "$ENV_FILE" ]]; then
+    BANNED_TERM=$(grep -E '^BANNED_TERM=' "$ENV_FILE" | head -1 | cut -d'=' -f2-)
+fi
+
 # Only enforce on pushes to GitHub
 if [[ "$URL" != *"github.com"* ]]; then
     exit 0
@@ -105,6 +114,18 @@ while IFS= read -r file; do
         FAIL=1
     fi
 done <<< "$CHANGED_FILES"
+
+# Banned term scan (loaded from .env — term never stored as a literal here)
+if [[ -n "$BANNED_TERM" ]]; then
+    while IFS= read -r file; do
+        [[ -f "$file" ]] || continue
+        if grep -qiF "$BANNED_TERM" "$file" 2>/dev/null; then
+            echo "❌ BLOCKED: banned term found in: $file"
+            grep -inF "$BANNED_TERM" "$file" | head -3 | sed 's/^/    /'
+            FAIL=1
+        fi
+    done <<< "$CHANGED_FILES"
+fi
 
 if [[ $FAIL -eq 1 ]]; then
     echo ""
@@ -217,6 +238,12 @@ SAFETY CHECKS (any failure = VERDICT: FAIL, blocks push):
     repo or file documents that integration (Slack, Jira, GitHub, Confluence, …).
 HEADER
     echo "$QUALITY_BLOCK"
+    # Emit scope boundary outside the diff — never sourced from repo content
+    if ! $HAS_TOOL_CONNECTIONS_DOCS; then
+        echo ""
+        echo "SCOPE: No tool-connection documentation files are in this diff."
+        echo "Apply SAFETY CHECKS (2a-2e) only. Do not apply quality or documentation checks."
+    fi
     cat <<'FOOTER'
 
 Respond ONLY in this exact format (no other text before or after):

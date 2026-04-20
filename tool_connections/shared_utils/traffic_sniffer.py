@@ -55,6 +55,11 @@ Usage:
             if e.get('post_data'): print(' body:', e['post_data'][:200])
     "
 
+    # Heavy pages (e.g. LinkedIn feed): response bodies are OFF by default so the
+    # sync handler does not block the driver while reading multi‑MB JS bundles.
+    # Opt in when you need response payloads:
+    python3 tool_connections/shared_utils/traffic_sniffer.py --tool linkedin --capture-bodies
+
 Usage (as a library):
     from tool_connections.shared_utils.traffic_sniffer import sniff
 
@@ -164,7 +169,7 @@ def sniff(
     start_url: str,
     filters: Optional[list[str]] = None,
     output_path: Optional[Path] = None,
-    capture_bodies: bool = True,
+    capture_bodies: bool = False,
     headless: bool = False,
 ) -> list[dict]:
     """
@@ -177,7 +182,9 @@ def sniff(
         start_url:      URL to open on launch.
         filters:        List of URL substrings to match. Empty = capture everything.
         output_path:    If set, append captured entries as JSONL to this file.
-        capture_bodies: Whether to capture response bodies (adds latency on large pages).
+        capture_bodies: Whether to capture response bodies. Default False — on heavy
+            sites (LinkedIn), synchronous ``response.body()`` in the handler can stall
+            the driver and drop most later requests; enable only when you need payloads.
         headless:       Run without a visible window (useful for automated tests).
 
     Returns:
@@ -215,7 +222,12 @@ def sniff(
                 "url": request.url,
                 "request_headers": dict(request.headers),
             }
-            post = request.post_data
+            try:
+                post = request.post_data
+            except UnicodeDecodeError:
+                post = "<binary body — not UTF-8; omitted>"
+            except Exception:
+                post = None
             if post:
                 entry["post_data"] = post[:_RESPONSE_BODY_LIMIT]
             with lock:
@@ -255,18 +267,26 @@ def sniff(
 
         print(f"\n  Sniffer active — performing actions in the browser window.")
         print(f"  Filtering: {filters if filters else '(all requests)'}")
+        print(f"  Response bodies: {'on' if capture_bodies else 'off (recommended for LinkedIn)'}")
         if output_path:
             print(f"  Output:    {output_path}")
         print("  Press Ctrl+C or close the browser window to stop.\n")
 
-        # Block until the browser window is closed
+        # Block until the user closes the browser. Do NOT use ``while ctx.pages`` —
+        # Chromium persistent profiles often keep an ``about:blank`` page alive, so
+        # ``ctx.pages`` never empties and the sniffer runs forever.
+        closed_by_user = False
         try:
-            while ctx.pages:
-                time.sleep(0.5)
+            ctx.wait_for_event("close", timeout=0)
+            closed_by_user = True
         except KeyboardInterrupt:
-            pass
-
-        ctx.close()
+            print("\n  Interrupted — closing browser…")
+        finally:
+            if not closed_by_user:
+                try:
+                    ctx.close()
+                except Exception:
+                    pass
 
     print(f"\n  Captured {len(captured)} events.")
     return captured
@@ -308,8 +328,13 @@ def _main():
                         help="URL substring to capture (repeatable; default: everything)")
     parser.add_argument("--output", type=Path, default=None,
                         help="JSONL output file (appended, created if missing)")
-    parser.add_argument("--no-bodies", action="store_true",
-                        help="Skip capturing response bodies (faster for high-traffic pages)")
+    parser.add_argument(
+        "--capture-bodies",
+        action="store_true",
+        help="Capture response bodies (truncated). Off by default — reading large bodies "
+        "in the sync response handler can block the driver and miss later requests on "
+        "sites like LinkedIn.",
+    )
     parser.add_argument("--headless", action="store_true",
                         help="Run without a visible browser window")
     args = parser.parse_args()
@@ -341,7 +366,7 @@ def _main():
         start_url=url,
         filters=filters,
         output_path=args.output,
-        capture_bodies=not args.no_bodies,
+        capture_bodies=args.capture_bodies,
         headless=args.headless,
     )
 

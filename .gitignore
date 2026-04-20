@@ -8,3 +8,6 @@ __pycache__/
 # ~/.browser_automation/ lives outside the repo (home dir) — git never tracks it
 /scripts
 /personal/
+# Raw session/HAR trace files (may contain session cookies)
+**/*trace*.json
+**/*.har

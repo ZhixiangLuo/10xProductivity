@@ -212,6 +212,10 @@ If this repo helped you 10x your workflow, a ⭐ goes a long way — it helps ot
 
 ---
 
+## Legal
+
+Some workflows in this repo automate actions on external platforms. Platform automation may violate Terms of Service. Read [LEGAL_NOTICE.md](LEGAL_NOTICE.md) before running any automation scripts.
+
 ## License
 
 MIT

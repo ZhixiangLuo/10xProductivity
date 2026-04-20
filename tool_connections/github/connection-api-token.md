@@ -141,6 +141,33 @@ curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
 
 ---
 
+## Git push (HTTPS with token)
+
+Standard `git push` over HTTPS requires the token embedded in the remote URL. Using `Authorization: Bearer` or `Authorization: token` headers via `http.extraHeader` is **not** supported by git's credential layer and will return `invalid credentials`, especially on GitHub Enterprise.
+
+**One-off push (Python — safe, token never stored in config):**
+```python
+import os, subprocess
+from dotenv import load_dotenv
+load_dotenv(os.path.expanduser("~/path/to/.env"))
+token = os.environ["GITHUB_TOKEN"]  # or GHE_TOKEN for GHE
+
+push_url = f"https://{username}:{token}@{host}/{org}/{repo}.git"
+subprocess.run(["git", "-C", "/path/to/repo", "push", push_url, "main"], check=True)
+# push_url is never stored — it's only passed as a one-time argument
+```
+
+**Set remote temporarily (shell):**
+```bash
+git remote set-url origin "https://${GIT_USERNAME}:${GITHUB_TOKEN}@${host}/${org}/${repo}.git"
+git push origin main
+git remote set-url origin "https://${host}/${org}/${repo}.git"  # reset to clean URL after push
+```
+
+> Never store a token-embedded URL permanently in `.git/config`. Always reset to the clean URL after pushing.
+
+---
+
 ## Commits and branches
 
 ```bash

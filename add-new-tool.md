@@ -69,7 +69,7 @@ Before asking the user for anything:
 
 **The browser is a traffic sniffer, not an automation target.** Use Playwright once to capture auth tokens — then call the REST API directly for all subsequent operations. If you find yourself using Playwright to click buttons or read DOM content for regular operations, stop — you haven't found the API yet.
 
-**Use `tool_connections/shared_utils/traffic_sniffer.py`** — a ready-to-run generic sniffer. It attaches a context-level listener before any page loads (catches service workers and background frames that `page.on` misses), opens the persistent profile, and records all matching traffic to a JSONL file while the user performs actions manually.
+**Use `tool_connections/shared_utils/traffic_sniffer.py`** — a ready-to-run generic sniffer. It attaches a context-level listener before any page loads (catches service workers and background frames that `page.on` misses), opens the persistent profile, and records all matching traffic to a JSONL file while the user performs actions manually. Response bodies are **off by default** (LinkedIn and other heavy SPAs: reading large bodies in the sync handler can stall the driver and drop most later traffic); pass `--capture-bodies` only when you need response payloads.
 
 Once the tool is set up (connection file written with a `sniffer:` frontmatter block), use the `--tool` shortcut — no need to remember paths or filters:
 
