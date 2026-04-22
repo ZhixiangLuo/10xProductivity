@@ -41,13 +41,13 @@ import random
 
 # Replace with keywords for your topic.
 # Example below uses AI/agents — swap in your own field.
-KEYWORDS = random.sample([
-    "Agentic AI", "Multi-Agent Systems", "AI Agent Orchestration",
-    "Autonomous Agents", "Agentic Workflows", "RAG",
+KEYWORDS = random.sample(["digital twin",
+    "Agentic AI", "Multi-Agent Systems",
+    "Autonomous Agents", "ai transformation",
     "Human-in-the-Loop", "Task Chaining",
-    "Vibe Coding", "AI Productivity Stack",
+    "AI Productivity Stack", "AI assistant", "enterprise AI",
     "Cursor", "Claude Code", "coding agent", "Codex", "Windsurf",
-    "AI Agent friction", "Enterprise AI adoption",
+ 
 ], k=4)
 ```
 
@@ -80,6 +80,16 @@ python workflows/linkedin_automation/engage.py --stop
 source .venv/bin/activate
 python workflows/linkedin_automation/engage.py \
   --keyword "KEYWORD" \
+  --skip-urns "urn1,urn2,..."
+```
+
+Add `--sort relevance --date-filter past-24h` for high-engagement posts from the last 24 hours (recommended over the default `--sort recent` when you want quality over freshness):
+
+```bash
+python workflows/linkedin_automation/engage.py \
+  --keyword "KEYWORD" \
+  --sort relevance \
+  --date-filter past-24h \
   --skip-urns "urn1,urn2,..."
 ```
 

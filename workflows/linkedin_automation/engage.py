@@ -113,11 +113,18 @@ def _handle_client(conn: socket.socket, session: dict, cursor_state: dict) -> No
             keyword = req.get("keyword", "")
             skip = set(req.get("skip_urns", []))
             sort = req.get("sort", "recent")
+            date_filter = req.get("date_filter", "")
 
-            # Reset cursor when keyword changes.
-            if cursor_state.get("keyword") != keyword:
+            # Reset cursor when keyword/sort/date_filter changes.
+            if (
+                cursor_state.get("keyword") != keyword
+                or cursor_state.get("sort") != sort
+                or cursor_state.get("date_filter", "") != date_filter
+            ):
                 cursor_state.clear()
                 cursor_state["keyword"] = keyword
+                cursor_state["sort"] = sort
+                cursor_state["date_filter"] = date_filter
                 cursor_state["cursor"] = None
 
             tries = 0
@@ -128,6 +135,7 @@ def _handle_client(conn: socket.socket, session: dict, cursor_state: dict) -> No
                     cursor=cursor_state.get("cursor"),
                     session=session,
                     sort=sort,
+                    date_filter=date_filter,
                 )
                 cursor_state["cursor"] = new_cursor
 
@@ -269,6 +277,13 @@ def main() -> int:
     ap.add_argument("--keyword", default="", help="LinkedIn content search keyword")
     ap.add_argument("--skip-urns", default="", help="Comma-separated URNs to skip")
     ap.add_argument("--sort", choices=("recent", "relevance"), default="recent")
+    ap.add_argument(
+        "--date-filter",
+        choices=("past-24h", "past-week", "past-month"),
+        default="",
+        dest="date_filter",
+        help="Restrict to posts within a time window, e.g. past-24h (optional)",
+    )
 
     # Post args
     ap.add_argument("--post-url", default="", help="Post URL to comment on")
@@ -313,6 +328,7 @@ def main() -> int:
                 "keyword": args.keyword,
                 "skip_urns": skip,
                 "sort": args.sort,
+                "date_filter": args.date_filter,
             })
             print(json.dumps(result, ensure_ascii=False), flush=True)
             return 0 if "urn" in result else 1
@@ -323,7 +339,7 @@ def main() -> int:
             cursor = None
             tries = 0
             while tries < MAX_TRIES:
-                post, cursor = fetch_next_post(args.keyword, cursor=cursor, session=session, sort=args.sort)
+                post, cursor = fetch_next_post(args.keyword, cursor=cursor, session=session, sort=args.sort, date_filter=args.date_filter)
                 if post is None:
                     print(json.dumps({"error": "keyword_exhausted", "keyword": args.keyword}), flush=True)
                     return 1

@@ -1152,6 +1152,7 @@ def _enrich_posts_from_permalinks(page, posts: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 
 SortMode = Literal["recent", "relevance"]
+DateFilter = Literal["past-24h", "past-week", "past-month", ""]
 
 
 def search_posts_on_page(
@@ -1160,6 +1161,7 @@ def search_posts_on_page(
     max_results: int = 10,
     *,
     sort: SortMode = "recent",
+    date_filter: DateFilter = "",
     detail_fetch: bool = True,
     session_warmup: bool = True,
 ) -> list[dict]:
@@ -1171,15 +1173,20 @@ def search_posts_on_page(
     When ``session_warmup`` is true, loads the home feed once before search —
     mirrors standalone ``search_posts`` (which uses ``_linkedin_context``).
     Set false if the caller already navigated (e.g. feed was just loaded).
+
+    ``date_filter``: optional LinkedIn datePosted filter — one of
+    "past-24h", "past-week", "past-month", or "" (no filter, default).
+    Pairs well with sort="relevance" to get high-engagement recent posts.
     """
     sort_by = '["date_posted"]' if sort == "recent" else '["relevance"]'
-    params = urlencode(
-        {
-            "keywords": keyword,
-            "origin": "GLOBAL_SEARCH_HEADER",
-            "sortBy": sort_by,
-        }
-    )
+    qs: dict = {
+        "keywords": keyword,
+        "origin": "FACETED_SEARCH",
+        "sortBy": sort_by,
+    }
+    if date_filter:
+        qs["datePosted"] = f'["{date_filter}"]'
+    params = urlencode(qs)
     search_url = f"https://www.linkedin.com/search/results/content/?{params}"
 
     posts_by_urn: OrderedDict[str, dict] = OrderedDict()
@@ -1305,6 +1312,7 @@ def search_posts(
     max_results: int = 10,
     *,
     sort: SortMode = "recent",
+    date_filter: DateFilter = "",
     detail_fetch: bool = True,
 ) -> list[dict]:
     """
@@ -1323,6 +1331,7 @@ def search_posts(
                 keyword,
                 max_results,
                 sort=sort,
+                date_filter=date_filter,
                 detail_fetch=detail_fetch,
                 session_warmup=False,
             )
@@ -1339,6 +1348,13 @@ if __name__ == "__main__":
         choices=("recent", "relevance"),
         default="recent",
         help="Sort order: recent = date_posted (default), relevance = top match",
+    )
+    parser.add_argument(
+        "--date-filter",
+        choices=("past-24h", "past-week", "past-month"),
+        default="",
+        dest="date_filter",
+        help="Restrict to posts within a time window (optional)",
     )
     parser.add_argument("--json", action="store_true", help="Output JSON")
     parser.add_argument(
@@ -1365,6 +1381,7 @@ if __name__ == "__main__":
         keyword=args.keyword,
         max_results=args.max,
         sort=args.sort,
+        date_filter=args.date_filter,
         detail_fetch=not args.no_detail_fetch,
     )
 

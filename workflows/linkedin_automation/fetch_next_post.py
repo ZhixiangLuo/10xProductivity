@@ -96,18 +96,23 @@ def close_session(session: dict) -> None:
 # Cursor helpers
 # ---------------------------------------------------------------------------
 
-def _empty_cursor(keyword: str, sort: str = "recent") -> dict:
+def _empty_cursor(keyword: str, sort: str = "recent", date_filter: str = "") -> dict:
     return {
         "keyword": keyword,
         "sort": sort,
+        "date_filter": date_filter,
         "seen_urns": [],
         "batch": [],
         "batch_offset": 0,
     }
 
 
-def _cursor_is_compatible(cursor: dict, keyword: str, sort: str) -> bool:
-    return cursor.get("keyword") == keyword and cursor.get("sort") == sort
+def _cursor_is_compatible(cursor: dict, keyword: str, sort: str, date_filter: str) -> bool:
+    return (
+        cursor.get("keyword") == keyword
+        and cursor.get("sort") == sort
+        and cursor.get("date_filter", "") == date_filter
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -120,19 +125,22 @@ def fetch_next_post(
     cursor: dict | None = None,
     session: dict,
     sort: str = "recent",
+    date_filter: str = "",
     max_fetched: int = 20,
 ) -> tuple[dict | None, dict]:
     """Return the next unseen post for ``keyword`` and an updated cursor.
 
     Args:
-        keyword:     LinkedIn content search keyword or hashtag.
-        cursor:      Cursor returned by the previous call (or None for a fresh start).
-                     Pass None (or omit) to start from the beginning.
-                     Pass a cursor from a different keyword to start that keyword fresh.
-        session:     Session handle from ``open_session()``.
-        sort:        "recent" (default) or "relevance".
-        max_fetched: Hard cap on total posts fetched for this keyword across all batches.
-                     Prevents runaway scrolling. Default 20.
+        keyword:      LinkedIn content search keyword or hashtag.
+        cursor:       Cursor returned by the previous call (or None for a fresh start).
+                      Pass None (or omit) to start from the beginning.
+                      Pass a cursor from a different keyword to start that keyword fresh.
+        session:      Session handle from ``open_session()``.
+        sort:         "recent" (default) or "relevance".
+        date_filter:  Optional LinkedIn datePosted filter — one of "past-24h",
+                      "past-week", "past-month", or "" (no filter, default).
+        max_fetched:  Hard cap on total posts fetched for this keyword across all batches.
+                      Prevents runaway scrolling. Default 20.
 
     Returns:
         (post, cursor) where post is a dict with urn/author/author_url/text/url,
@@ -140,9 +148,9 @@ def fetch_next_post(
     """
     page = session["_page"]
 
-    # Fresh start or keyword/sort changed → reset cursor.
-    if cursor is None or not _cursor_is_compatible(cursor, keyword, sort):
-        cursor = _empty_cursor(keyword, sort)
+    # Fresh start or keyword/sort/date_filter changed → reset cursor.
+    if cursor is None or not _cursor_is_compatible(cursor, keyword, sort, date_filter):
+        cursor = _empty_cursor(keyword, sort, date_filter)
 
     seen: list[str] = cursor["seen_urns"]
     batch: list[dict] = cursor["batch"]
@@ -180,6 +188,7 @@ def fetch_next_post(
         keyword,
         max_results=target,
         sort=sort,  # type: ignore[arg-type]
+        date_filter=date_filter,  # type: ignore[arg-type]
         detail_fetch=False,  # skip per-permalink fetches — search page text is enough to decide relevance
         session_warmup=warmup,
     )
@@ -224,6 +233,13 @@ def _cli_main() -> int:
         help="Sort order (default: recent)",
     )
     ap.add_argument(
+        "--date-filter",
+        choices=("past-24h", "past-week", "past-month"),
+        default="",
+        dest="date_filter",
+        help="Restrict to posts within a time window (optional)",
+    )
+    ap.add_argument(
         "--max-fetched",
         type=int,
         default=5,
@@ -242,6 +258,7 @@ def _cli_main() -> int:
                 cursor=cursor,
                 session=session,
                 sort=args.sort,
+                date_filter=args.date_filter,
                 max_fetched=args.max_fetched,
             )
             if post is None:
