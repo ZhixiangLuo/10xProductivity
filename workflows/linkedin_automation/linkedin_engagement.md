@@ -44,8 +44,8 @@ import random
 KEYWORDS = random.sample(["digital twin",
     "Agentic AI", "Multi-Agent Systems",
     "Autonomous Agents", "ai transformation",
-    "Human-in-the-Loop", "Task Chaining",
-    "AI Productivity Stack", "AI assistant", "enterprise AI",
+    "Human-in-the-Loop", "AI agents", "AI Automation",
+    "AI Productivity", "AI assistant", "enterprise AI",
     "Cursor", "Claude Code", "coding agent", "Codex", "Windsurf",
  
 ], k=4)
