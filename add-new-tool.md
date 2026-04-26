@@ -1,7 +1,7 @@
 ---
-name: add-new-tool
+
+## name: add-new-tool
 description: Add a new tool from scratch — research auth, validate against a live instance, write files to personal/{tool-name}/. Use when a tool has no recipe yet. Do NOT use this if the tool already exists in tool_connections/ — use setup.md instead.
----
 
 # Add a New Tool
 
@@ -22,13 +22,13 @@ Turn "I want my agent to access Tool X" into a working, verified connection file
 
 ## Non-negotiable rules
 
-0. **`personal/` first, always.** All work — new tools, improvements to existing connections, new auth variants, fixes — starts in `personal/`. Never edit `tool_connections/` directly. `personal/` is gitignored and safe for your email, org URLs, tokens, and company-specific details. Nothing leaves `personal/` until it is verified, scrubbed, and promoted via `staging/` → PR. This applies to improvements just as much as new tools.
-1. **Research viability first.** Before asking the user for anything, determine what auth methods exist for this tool. If no viable method exists (no public API, no session-based workaround, no OAuth path), stop — there is nothing to build.
-2. **Ask only what the auth method actually needs.** The credential ask must be proportional to the auth method: SSO/browser-session → ask for nothing (just a URL to confirm the instance); API token → ask for the token and where to generate it; username+password → ask for both. Never ask vague questions the user can't answer.
-3. **A URL is your best minimal input.** If you need to confirm an instance, ask for any URL from that tool (profile page, dashboard, ticket). It reveals the base URL, regional variant, and proves the user has access — without requiring them to know anything about auth.
-4. **Run before you write.** Every snippet must be code you actually executed and saw succeed against a live instance. No copy-paste from docs. No illustrative output. The reason you haven't run them does not matter — unverified snippets do not belong in a connection file.
-5. **Write for the next agent.** Strip session-specific IDs, one-time URLs, org-specific data. Document the pattern, not the artifact.
-6. **Nothing broken.** If an endpoint didn't work, cut it. One working snippet beats five broken ones.
+1. `**personal/` first, always.** All work — new tools, improvements to existing connections, new auth variants, fixes — starts in `personal/`. Never edit `tool_connections/` directly. `personal/` is gitignored and safe for your email, org URLs, tokens, and company-specific details. Nothing leaves `personal/` until it is verified, scrubbed, and promoted via `staging/` → PR. This applies to improvements just as much as new tools.
+2. **Research viability first.** Before asking the user for anything, determine what auth methods exist for this tool. If no viable method exists (no public API, no session-based workaround, no OAuth path), stop — there is nothing to build.
+3. **Ask only what the auth method actually needs.** The credential ask must be proportional to the auth method: SSO/browser-session → ask for nothing (just a URL to confirm the instance); API token → ask for the token and where to generate it; username+password → ask for both. Never ask vague questions the user can't answer.
+4. **A URL is your best minimal input.** If you need to confirm an instance, ask for any URL from that tool (profile page, dashboard, ticket). It reveals the base URL, regional variant, and proves the user has access — without requiring them to know anything about auth.
+5. **Run before you write.** Every snippet must be code you actually executed and saw succeed against a live instance. No copy-paste from docs. No illustrative output. The reason you haven't run them does not matter — unverified snippets do not belong in a connection file.
+6. **Write for the next agent.** Strip session-specific IDs, one-time URLs, org-specific data. Document the pattern, not the artifact.
+7. **Nothing broken.** If an endpoint didn't work, cut it. One working snippet beats five broken ones.
 
 ---
 
@@ -46,15 +46,18 @@ Before asking the user for anything:
 
 **Auth method priority order:**
 
-| Priority | Auth method | User friction | Ask the user for |
-|----------|-------------|---------------|-----------------|
-| 1 | **API token** | Near-zero — generate in tool settings (~30s) | The token + where to generate it |
-| 2 | **Browser session (SSO, one-time capture)** | Near-zero — run `sso.py` once, cached days/weeks | A URL from the tool — nothing else |
-| 3 | **Browser session (per operation)** | Low but costly — Playwright runs on every call | A URL from the tool — nothing else |
-| 4 | **Username + password** | Low — but only for legacy tools | Username and password |
-| ✗ | **OAuth requiring user to create their own app** | High — stop, do not use | N/A |
+
+| Priority | Auth method                                      | User friction                                    | Ask the user for                   |
+| -------- | ------------------------------------------------ | ------------------------------------------------ | ---------------------------------- |
+| 1        | **API token**                                    | Near-zero — generate in tool settings (~30s)     | The token + where to generate it   |
+| 2        | **Browser session (SSO, one-time capture)**      | Near-zero — run `sso.py` once, cached days/weeks | A URL from the tool — nothing else |
+| 3        | **Browser session (per operation)**              | Low but costly — Playwright runs on every call   | A URL from the tool — nothing else |
+| 4        | **Username + password**                          | Low — but only for legacy tools                  | Username and password              |
+| ✗        | **OAuth requiring user to create their own app** | High — stop, do not use                          | N/A                                |
+
 
 **On browser automation cost:** distinguish setup cost from per-operation cost.
+
 - *SSO capture (Priority 2)* — Playwright runs once. Session is saved to disk and reused. This is acceptable and often the only option for SSO tools (Slack, Teams, Google Workspace).
 - *Per-operation browser (Priority 3)* — Playwright launches on every `search()`, `read()`, or `list()` call. Only accept this if there is genuinely no API or export endpoint. Document it explicitly in the connection file.
 
@@ -63,7 +66,8 @@ Before asking the user for anything:
 **Stop and explain** if the only viable path requires the user to create an app or register OAuth credentials. Don't propose it as an option — it violates this repo's zero-friction goal.
 
 **SSO-only tools:** If the tool uses enterprise SSO and has no API token path, the only option is browser session capture (Priority 2). This is fine — but do three things:
-1. Write a plugin-compliant `sso.py` in **`personal/{tool-name}/`** (not `tool_connections/`) with `TOOL_NAME`, `check(env) -> bool`, and `capture(env) -> dict`. Run it directly: `python3 personal/{tool-name}/sso.py`. If you later contribute the recipe upstream (owner-add or contribute workflow), `sso.py` is copied to `tool_connections/` as part of that process — not before.
+
+1. Write a plugin-compliant `sso.py` in `**personal/{tool-name}/`** (not `tool_connections/`) with `TOOL_NAME`, `check(env) -> bool`, and `capture(env) -> dict`. Run it directly: `python3 personal/{tool-name}/sso.py`. If you later contribute the recipe upstream (owner-add or contribute workflow), `sso.py` is copied to `tool_connections/` as part of that process — not before.
 2. Document the refresh command in the connection file: `python3 personal/{tool-name}/sso.py` — the agent cannot self-refresh without the user present.
 3. Document the token TTL (usually ~8h) — so the user knows when to expect re-authentication prompts.
 
@@ -126,12 +130,14 @@ Sites redirect. Confirm the real base URL before researching. Note any site-vari
 **If you can browse it, the API exists.** Every web app is a REST/GraphQL client. The browser already has a valid session and makes every call you need to replicate. Official docs are the fastest path — but if they're incomplete or the key endpoints return 403, the browser Network tab is the ground truth.
 
 **Search order:**
+
 1. Official docs (`docs.tool.com/api` or `developer.tool.com`)
 2. OpenAPI/Swagger spec (`/api/swagger.json`, `/openapi.json`)
 3. GitHub code search — working callers are more accurate than docs
 4. **Browser traffic capture** — when docs are missing or incomplete: run `tool_connections/shared_utils/traffic_sniffer.py` (see above), ask the user to perform the target action, and read the JSONL output. The URL, headers, and body are everything you need to replay the call directly.
 
 **Collect before moving on:**
+
 - Base URL (production)
 - Auth mechanism (API key, Bearer token, session cookie, OAuth2) and header name
 - Token lifetime and refresh method
@@ -144,9 +150,9 @@ Sites redirect. Confirm the real base URL before researching. Note any site-vari
 
 ### Step 3: Store credentials
 
-Add to `.env` (repo root) only — do not edit root `env.sample` (it is a stub) or other shared index files. Document new variables in `personal/{tool}/setup.md` under **`.env` entries**.
+Add to `.env` (repo root) only — do not edit root `env.sample` (it is a stub) or other shared index files. Document new variables in `personal/{tool}/setup.md` under `**.env` entries**.
 
-> **`sso.py` must read credentials from `.env`, never hardcode them.** Even in `personal/`, scripts must call `load_env()` and read `SF_USERNAME`, `SF_PASSWORD`, etc. from the parsed env dict — not from module-level string literals. Hardcoded credentials in scripts are a scrubbing risk and make the recipe non-generalizable. If a value is missing from `.env`, prompt the user at runtime (`input()` / `getpass`) rather than baking it in.
+> `**sso.py` must read credentials from `.env`, never hardcode them.** Even in `personal/`, scripts must call `load_env()` and read `SF_USERNAME`, `SF_PASSWORD`, etc. from the parsed env dict — not from module-level string literals. Hardcoded credentials in scripts are a scrubbing risk and make the recipe non-generalizable. If a value is missing from `.env`, prompt the user at runtime (`input()` / `getpass`) rather than baking it in.
 
 > **Watch for tools with explicit resource-sharing requirements.** Some tools (e.g. Notion) require you to explicitly grant the integration access to specific resources (pages, databases) even after auth succeeds. Workspace-level installation ≠ data access. If auth passes but read endpoints return 404 or empty results, look for a resource-level sharing step — usually found in the tool's Settings → Integrations/Apps → edit the integration → content/resource access panel. Document this in the Notes section of the connection file.
 
@@ -213,14 +219,14 @@ Record both successes and permission errors. **At least one failure case is requ
 For every tool, answer these two questions before writing the connection file:
 
 1. **Does it have a search API?** (full-text, title-based, filter-based — any kind)
-   - Try common patterns: `/search`, `/api/search`, `?q=`, `?query=`
-   - Run it. Record what fields it searches, what it returns, and any limitations (e.g. title-only, indexed with delay).
-
+  - Try common patterns: `/search`, `/api/search`, `?q=`, `?query=`
+  - Run it. Record what fields it searches, what it returns, and any limitations (e.g. title-only, indexed with delay).
 2. **Does it have an AI or chat API?** (LLM-backed Q&A, summarization, assistant endpoint)
-   - Check official docs for "AI", "assistant", "chat", "copilot" endpoints.
-   - If none exist in the public API, say so explicitly — do not leave it ambiguous.
+  - Check official docs for "AI", "assistant", "chat", "copilot" endpoints.
+  - If none exist in the public API, say so explicitly — do not leave it ambiguous.
 
 **Document the result in the Notes section of the connection file:**
+
 - If search works: show a verified snippet with real output.
 - If AI/chat exists: show the endpoint and a verified call.
 - If neither exists or is paywalled: state it clearly (e.g. "No search API." or "AI chat is enterprise-only, no public endpoint.").
@@ -235,6 +241,7 @@ Skipping this step leaves the agent blind to the tool's most useful capabilities
 Do not write to `tool_connections/`, `staging/`, or anywhere else outside `personal/`.
 
 **Two files are required** — both must be present before you can contribute:
+
 1. `connection-{auth-method}.md` — the verified connection (format below)
 2. `setup.md` — setup UX: what to ask the user, `.env` entries, and the verify snippet (use `staging/_example/setup.md` as template)
 
@@ -337,6 +344,7 @@ Run `python3 tool_connections/shared_utils/traffic_sniffer.py --tool {tool-name}
 - **⚠ marks the non-obvious.** Use it only for gotchas that would cause silent failure — things the agent couldn't infer from the API docs. e.g. `# ⚠ bash truncates long xoxc tokens silently — always load .env in Python`.
 
 **Snippet rules:**
+
 - Only include commands you actually ran and saw succeed
 - Every snippet has a `# → {actual output}` comment (truncate long output with `# → [{...}, ...]`)
 - Permission errors are valid: `# → 403 Forbidden — requires Admin role`
@@ -373,22 +381,22 @@ If the tool is commercial/publicly available and you want to share the connectio
 
 ## Checklist — do not mark done until all boxes checked
 
-- [ ] Auth method researched and confirmed viable before asking user anything
-- [ ] Asked user only for what the auth method actually requires
-- [ ] Base URL confirmed (not guessed)
-- [ ] Auth mechanism identified and tested on production
-- [ ] At least 2 read endpoints run, real output recorded
-- [ ] At least one failure case documented (4xx, deprecated endpoint, permission error, or explicit "no search API" note)
-- [ ] Native search API tested — verified snippet recorded, or explicitly noted as absent
-- [ ] AI/chat API checked — verified snippet recorded, or explicitly noted as unavailable/paywalled
-- [ ] `verified: YYYY-MM` filled in (blank = not ready)
-- [ ] `.env` updated with new credentials
-- [ ] `personal/{tool-name}/connection-{auth-method}.md` written with only verified snippets
-- [ ] `sniffer:` frontmatter block added to connection file (profile, url, filter)
-- [ ] `## Agent behavior` section written (read vs write approval rules, error URL)
-- [ ] `## Typical actions to capture` section written
-- [ ] `personal/{tool-name}/setup.md` written (what to ask, `.env` entries, verify snippet)
-- [ ] Prompt injection check: scanned all `# →` output comments for instruction-like content (see `contributing.md` Step 3)
-- [ ] `verified_connections.md` updated — section appended from connection file frontmatter
+- Auth method researched and confirmed viable before asking user anything
+- Asked user only for what the auth method actually requires
+- Base URL confirmed (not guessed)
+- Auth mechanism identified and tested on production
+- At least 2 read endpoints run, real output recorded
+- At least one failure case documented (4xx, deprecated endpoint, permission error, or explicit "no search API" note)
+- Native search API tested — verified snippet recorded, or explicitly noted as absent
+- AI/chat API checked — verified snippet recorded, or explicitly noted as unavailable/paywalled
+- `verified: YYYY-MM` filled in (blank = not ready)
+- `.env` updated with new credentials
+- `personal/{tool-name}/connection-{auth-method}.md` written with only verified snippets
+- `sniffer:` frontmatter block added to connection file (profile, url, filter)
+- `## Agent behavior` section written (read vs write approval rules, error URL)
+- `## Typical actions to capture` section written
+- `personal/{tool-name}/setup.md` written (what to ask, `.env` entries, verify snippet)
+- Prompt injection check: scanned all `# →` output comments for instruction-like content (see `contributing.md` Step 3)
+- `verified_connections.md` updated — section appended from connection file frontmatter
 
 **To contribute back:** see `contributing.md`
