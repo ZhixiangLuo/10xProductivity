@@ -245,7 +245,7 @@ def _daemon_running() -> bool:
 def _rpc(req: dict) -> dict:
     """Send one request to the daemon and return the parsed response."""
     c = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    c.settimeout(120)
+    c.settimeout(300)
     c.connect(str(_SOCK_FILE))
     try:
         c.sendall((json.dumps(req) + "\n").encode())

@@ -218,16 +218,49 @@ def _nudge_main_composer_visible(page) -> None:
 
 
 def _top_comment_composer(page):
-    """Main post composer (not inline reply boxes deeper in the thread)."""
-    form = page.locator("form.comments-comment-box__form").first
-    try:
-        form.wait_for(state="attached", timeout=15_000)
-        return form
-    except Exception:
-        pass
-    cr = page.locator(".comments-comment-box--cr").first
-    cr.wait_for(state="attached", timeout=12_000)
-    return cr
+    """Main post composer (not inline reply boxes deeper in the thread).
+
+    LinkedIn renames / restructures comment chrome periodically; try several shells
+    and fall back to climbing from a visible Quill / aria editor.
+    """
+    candidates: list = [
+        page.locator("form.comments-comment-box__form").first,
+        page.locator(".comments-comment-box--cr").first,
+        page.locator("div.comments-comment-box.comments-comment-box--cr").first,
+        page.locator("div.comments-comment-box").first,
+    ]
+    for loc in candidates:
+        try:
+            loc.wait_for(state="visible", timeout=10_000)
+            return loc
+        except Exception:
+            continue
+
+    # Slow paint / new layout: poll for editor, then ancestor form or comment-box div.
+    editor = None
+    for _ in range(24):
+        editor = _find_comment_editor(page)
+        if editor is not None:
+            break
+        page.wait_for_timeout(500)
+    if editor is not None:
+        for xpath in (
+            "xpath=./ancestor::form[1]",
+            "xpath=./ancestor::div[contains(@class,'comments-comment-box')][1]",
+            "xpath=./ancestor::div[contains(@class,'comments-comment')][1]",
+        ):
+            try:
+                box = editor.locator(xpath)
+                if box.count() > 0:
+                    el = box.first
+                    el.wait_for(state="visible", timeout=5000)
+                    return el
+            except Exception:
+                continue
+
+    raise TimeoutError(
+        "Could not find main comment composer (no form, comment-box shell, or editor ancestor)"
+    )
 
 
 def _prepare_top_comment_editor(page):
@@ -304,6 +337,8 @@ def submit_comment_on_page(
     _goto_post_ready(page, url)
 
     reveal_comments_thread(page)
+    _nudge_main_composer_visible(page)
+    pause_uniform(0.6, 1.1)
 
     pre = _body_text_lower(page)
     locked, lock_reason = detect_comments_locked(pre)

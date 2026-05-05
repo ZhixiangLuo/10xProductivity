@@ -27,6 +27,8 @@ import urllib.request
 
 sys.path.insert(0, str(Path(__file__).parents[2] / "tool_connections"))
 from shared_utils.browser import BROWSER_AUTOMATION_DIR
+sys.path.insert(0, str(Path(__file__).parent))
+from gdrive_server import CDP_PORT, DRIVE_URL, _cdp_is_listening, _launch_cdp_chrome
 
 TOOL_NAME = "gdrive"
 ENV_KEYS = ["GDRIVE_COOKIES", "GDRIVE_SAPISID"]
@@ -66,14 +68,15 @@ def capture(env: dict) -> dict:
     storage_state correctly replays the full browser session and is the
     only approach that works.
     """
-    print(f"  Opening Google Drive — Google Workspace SSO (~30s)...")
+    print(f"  Opening Google Drive in system Chrome — Google SSO (~30s)...")
     with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=False,
-            args=["--window-size=1200,800", "--window-position=100,100"],
-        )
-        ctx = browser.new_context(ignore_https_errors=True)
-        page = ctx.new_page()
+        # Google rejects Playwright-launched Chromium as insecure. Launch a
+        # separate normal Chrome instance and attach through CDP instead.
+        if not _cdp_is_listening():
+            _launch_cdp_chrome()
+        browser = p.chromium.connect_over_cdp(f"http://127.0.0.1:{CDP_PORT}")
+        ctx = browser.contexts[0]
+        page = ctx.pages[0] if ctx.pages else ctx.new_page()
 
         page.goto(GDRIVE_URL, wait_until="commit", timeout=30_000)
         try:
@@ -84,7 +87,6 @@ def capture(env: dict) -> dict:
                 try:
                     page.wait_for_url("https://drive.google.com/**", timeout=180_000)
                 except KeyboardInterrupt:
-                    ctx.close()
                     browser.close()
                     raise RuntimeError("Aborted by user — Google Drive login did not complete.")
             else:
@@ -119,7 +121,6 @@ def capture(env: dict) -> dict:
             f"{k}={cookie_dict[k]}" for k in cookie_keys
             if k in cookie_dict and cookie_dict[k]
         )
-        ctx.close()
         browser.close()
 
     print(f"    SAPISID captured ({len(sapisid)} chars)")

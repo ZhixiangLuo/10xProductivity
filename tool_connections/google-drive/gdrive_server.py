@@ -21,15 +21,19 @@ Protocol (newline-delimited JSON over Unix socket):
     Response: {"ok": true, "result": ...} | {"ok": false, "error": "..."}
 """
 
-import json, os, queue, re, signal, socket, sys, time, traceback
+import json, os, queue, re, signal, socket, subprocess, sys, time, traceback
+import urllib.request
 from pathlib import Path
 from threading import Thread, Event
 
 AUTH_FILE    = Path.home() / ".browser_automation" / "gdrive_auth.json"
-PROFILE_DIR  = Path.home() / ".browser_automation" / "gdrive_chromium_profile"
+PROFILE_DIR  = Path.home() / ".browser_automation" / "gdrive_cdp_profile"
 SOCKET_PATH  = Path.home() / ".browser_automation" / "gdrive_server.sock"
 PID_FILE     = Path.home() / ".browser_automation" / "gdrive_server.pid"
 LOG_FILE     = Path.home() / ".browser_automation" / "gdrive_server.log"
+CDP_PORT     = int(os.environ.get("GDRIVE_CDP_PORT", "9223"))
+CHROME_APP   = "/Applications/Google Chrome.app"
+DRIVE_URL    = "https://drive.google.com/drive/my-drive"
 
 _ID_PATTERNS = [
     r"/document/d/([a-zA-Z0-9_-]{20,})",
@@ -101,6 +105,50 @@ def _parse_raw(raw):
     return result
 
 
+def _cdp_is_listening() -> bool:
+    try:
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{CDP_PORT}/json/version",
+            timeout=2,
+        ) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
+def _launch_cdp_chrome() -> None:
+    PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    # Remove stale locks for the dedicated automation profile only. Never touch
+    # the user's normal Chrome profile because that risks corruption.
+    for name in ("SingletonLock", "SingletonSocket", "SingletonCookie"):
+        try:
+            (PROFILE_DIR / name).unlink()
+        except FileNotFoundError:
+            pass
+
+    subprocess.Popen(
+        [
+            "open", "-na", CHROME_APP, "--args",
+            f"--remote-debugging-port={CDP_PORT}",
+            f"--user-data-dir={PROFILE_DIR}",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--new-window",
+            "--window-size=1400,900",
+            DRIVE_URL,
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+    for _ in range(40):
+        time.sleep(0.25)
+        if _cdp_is_listening():
+            return
+    raise RuntimeError(f"Chrome CDP did not start on port {CDP_PORT}")
+
+
 # ── Daemon ────────────────────────────────────────────────────────────────────
 
 class GDriveServer:
@@ -120,36 +168,37 @@ class GDriveServer:
 
     def start_browser(self):
         from playwright.sync_api import sync_playwright
-        self.log("Starting browser...")
+        self.log("Starting browser via system Chrome CDP...")
         self._pw = sync_playwright().start()
 
-        # Always use storage_state (gdrive_auth.json) — refreshed by sso.py.
-        # Persistent Chromium profiles were tested but Google Workspace SSO expiry
-        # is enforced at the IdP level, so storage_state refresh is the only reliable path.
-        self._browser = self._pw.chromium.launch(
-            headless=False,
-            args=["--window-size=1400,900"],
+        # Google rejects Playwright-launched Chromium with "This browser or app
+        # may not be secure." Launch a separate normal Chrome instance instead
+        # and attach through the Chrome DevTools Protocol.
+        if not _cdp_is_listening():
+            _launch_cdp_chrome()
+
+        self._browser = self._pw.chromium.connect_over_cdp(
+            f"http://127.0.0.1:{CDP_PORT}"
         )
-        self._ctx = self._browser.new_context(
-            storage_state=str(AUTH_FILE) if AUTH_FILE.exists() else None,
-            ignore_https_errors=True,
-            accept_downloads=True,
-        )
-        self._page = self._ctx.new_page()
+        self._ctx = self._browser.contexts[0]
+        self._ctx.set_default_timeout(30_000)
+        self._ctx.set_default_navigation_timeout(45_000)
+        self._page = self._ctx.pages[0] if self._ctx.pages else self._ctx.new_page()
 
         try:
-            self._page.goto("https://drive.google.com/drive/my-drive",
-                            wait_until="networkidle", timeout=45_000)
+            self._page.goto(DRIVE_URL, wait_until="domcontentloaded", timeout=45_000)
         except Exception:
             pass
-        time.sleep(1)
+        time.sleep(2)
         if "accounts.google.com" in self._page.url:
-            raise RuntimeError(
-                "Session expired. Re-authenticate by running:\n"
-                "  python3 tool_connections/google-drive/sso.py --force\n"
-                "Then restart the daemon:\n"
-                "  python3 tool_connections/google-drive/gdrive_server.py start &"
-            )
+            self.log("Google login required in the visible Chrome window.")
+            try:
+                self._page.wait_for_url("https://drive.google.com/**", timeout=180_000)
+            except Exception as e:
+                raise RuntimeError(
+                    "Google Drive login is required. Complete sign-in in the visible "
+                    "Chrome window opened for Drive, then retry the command."
+                ) from e
         self.log("Browser ready.")
 
     def handle(self, req: dict) -> dict:
