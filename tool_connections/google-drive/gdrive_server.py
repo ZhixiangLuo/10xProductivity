@@ -180,6 +180,9 @@ class GDriveServer:
         self._browser = self._pw.chromium.connect_over_cdp(
             f"http://127.0.0.1:{CDP_PORT}"
         )
+        # When the user closes the Chrome window (right-click → Exit, ⌘Q, etc.),
+        # send SIGTERM to ourselves so the shutdown handler runs cleanly.
+        self._browser.on("disconnected", lambda: os.kill(os.getpid(), signal.SIGTERM))
         self._ctx = self._browser.contexts[0]
         self._ctx.set_default_timeout(30_000)
         self._ctx.set_default_navigation_timeout(45_000)
