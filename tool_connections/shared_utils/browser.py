@@ -8,8 +8,10 @@ Requirements:
     pip install playwright && playwright install chromium
 """
 
+import functools
 import os
 import re
+import ssl
 import sys
 import urllib.error
 import urllib.request
@@ -28,6 +30,7 @@ __all__ = [
     "sync_playwright", "PlaywrightTimeout",
     "load_env_var", "load_env_file", "update_env_file",
     "http_get", "http_get_no_redirect",
+    "make_ssl_ctx",
     "DEFAULT_ENV_FILE", "BROWSER_AUTOMATION_DIR",
 ]
 
@@ -110,15 +113,44 @@ def _section_hint(env_key: str) -> str:
     return f"# --- {prefix.title()}"
 
 
-def http_get(url: str, headers: dict) -> int:
-    """Make a GET request and return the HTTP status code."""
-    import ssl
+@functools.lru_cache(maxsize=1)
+def make_ssl_ctx() -> ssl.SSLContext:
+    """SSL context that works with and without Zscaler (result cached per process).
+
+    Zscaler intercepts all HTTPS traffic on managed laptops and presents its own
+    CA cert, which Python's bundled trust store doesn't include. This function
+    probes once at first call: if the default context succeeds it's returned as-is;
+    if it raises SSLError (Zscaler intercepting), a CERT_NONE context is returned.
+    The probe result is cached — subsequent calls are free.
+
+    Usage in any connection file or sso.py:
+        from tool_connections.shared_utils.browser import make_ssl_ctx
+        ssl_ctx = make_ssl_ctx()
+        with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as r: ...
+    """
+    default_ctx = ssl.create_default_context()
     try:
-        req = urllib.request.Request(url, headers=headers)
+        probe = urllib.request.Request(
+            "https://slack.com", headers={"User-Agent": "python-ssl-probe"}
+        )
+        urllib.request.urlopen(probe, context=default_ctx, timeout=4)
+        return default_ctx  # normal SSL works — no Zscaler interception
+    except ssl.SSLError:
+        # Zscaler is intercepting — disable cert verification
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-        with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
+        return ctx
+    except Exception:
+        # Network error unrelated to SSL (timeout, no route, etc.) — keep default
+        return default_ctx
+
+
+def http_get(url: str, headers: dict) -> int:
+    """Make a GET request and return the HTTP status code."""
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, context=make_ssl_ctx(), timeout=8) as resp:
             return resp.status
     except urllib.error.HTTPError as e:
         return e.code
@@ -128,8 +160,6 @@ def http_get(url: str, headers: dict) -> int:
 
 def http_get_no_redirect(url: str, headers: dict) -> int:
     """GET without following redirects — returns 302 for expired sessions."""
-    import ssl
-
     class _NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, hdrs, newurl):
             return None
@@ -137,9 +167,6 @@ def http_get_no_redirect(url: str, headers: dict) -> int:
     try:
         opener = urllib.request.build_opener(_NoRedirect())
         req = urllib.request.Request(url, headers=headers)
-        ssl_ctx = ssl.create_default_context()
-        ssl_ctx.check_hostname = False
-        ssl_ctx.verify_mode = ssl.CERT_NONE
         with opener.open(req, timeout=8) as resp:
             return resp.status
     except urllib.error.HTTPError as e:
