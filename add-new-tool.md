@@ -29,7 +29,7 @@ Turn "I want my agent to access Tool X" into a working, verified connection file
 5. **Run before you write.** Every snippet must be code you actually executed and saw succeed against a live instance. No copy-paste from docs. No illustrative output. The reason you haven't run them does not matter — unverified snippets do not belong in a connection file.
 6. **Write for the next agent.** Strip session-specific IDs, one-time URLs, org-specific data. Document the pattern, not the artifact.
 7. **Nothing broken.** If an endpoint didn't work, cut it. One working snippet beats five broken ones.
-8. **Python SSL: use `make_ssl_ctx()`, never roll `ssl.CERT_NONE`.** Managed laptops often run Zscaler, which intercepts all HTTPS traffic. `from tool_connections.shared_utils.browser import make_ssl_ctx` returns the right context for the current environment (verified + cached). Do not copy-paste `ssl.CERT_NONE` blocks — they break on machines without Zscaler.
+8. **Python SSL: use `urlopen()`, never roll `ssl.CERT_NONE`.** Managed laptops may run Zscaler, which can intercept HTTPS traffic. `from tool_connections.shared_utils.browser import urlopen` tries normal TLS verification first, then retries only SSL failures with the Zscaler-compatible context. Do not copy-paste `ssl.CERT_NONE` blocks — they break on machines without Zscaler and hide real certificate problems.
 
 ---
 
@@ -402,7 +402,7 @@ If the tool is commercial/publicly available and you want to share the connectio
 - `verified: YYYY-MM` filled in (blank = not ready)
 - `.env` updated with new credentials
 - `personal/{tool-name}/connection-{auth-method}.md` written with only verified snippets
-- Python snippets use `make_ssl_ctx()` from `tool_connections.shared_utils.browser` — not `ssl.CERT_NONE`
+- Python snippets use `urlopen()` from `tool_connections.shared_utils.browser` — not hand-rolled `ssl.CERT_NONE`
 - `sniffer:` frontmatter block added to connection file (profile, url, filter)
 - `## Agent behavior` section written (read vs write approval rules, error URL)
 - `## Typical actions to capture` section written

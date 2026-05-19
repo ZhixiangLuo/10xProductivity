@@ -30,7 +30,7 @@ __all__ = [
     "sync_playwright", "PlaywrightTimeout",
     "load_env_var", "load_env_file", "update_env_file",
     "http_get", "http_get_no_redirect",
-    "make_ssl_ctx",
+    "make_ssl_ctx", "urlopen",
     "DEFAULT_ENV_FILE", "BROWSER_AUTOMATION_DIR",
 ]
 
@@ -113,44 +113,66 @@ def _section_hint(env_key: str) -> str:
     return f"# --- {prefix.title()}"
 
 
-@functools.lru_cache(maxsize=1)
-def make_ssl_ctx() -> ssl.SSLContext:
-    """SSL context that works with and without Zscaler (result cached per process).
+def make_ssl_ctx(verify: bool = True) -> ssl.SSLContext:
+    """Create an SSL context.
 
-    Zscaler intercepts all HTTPS traffic on managed laptops and presents its own
-    CA cert, which Python's bundled trust store doesn't include. This function
-    probes once at first call: if the default context succeeds it's returned as-is;
-    if it raises SSLError (Zscaler intercepting), a CERT_NONE context is returned.
-    The probe result is cached — subsequent calls are free.
+    Default is normal certificate verification. Pass ``verify=False`` only after
+    a verified request fails with ``ssl.SSLError`` (for example on laptops where
+    Zscaler intercepts HTTPS and Python does not trust the local root CA).
 
     Usage in any connection file or sso.py:
-        from tool_connections.shared_utils.browser import make_ssl_ctx
+        from tool_connections.shared_utils.browser import urlopen
+        with urlopen(req, timeout=15) as r: ...
+
+    If you need a raw context:
         ssl_ctx = make_ssl_ctx()
         with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as r: ...
     """
-    default_ctx = ssl.create_default_context()
-    try:
-        probe = urllib.request.Request(
-            "https://slack.com", headers={"User-Agent": "python-ssl-probe"}
-        )
-        urllib.request.urlopen(probe, context=default_ctx, timeout=4)
-        return default_ctx  # normal SSL works — no Zscaler interception
-    except ssl.SSLError:
-        # Zscaler is intercepting — disable cert verification
-        ctx = ssl.create_default_context()
+    ctx = ssl.create_default_context()
+    if not verify:
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-        return ctx
-    except Exception:
-        # Network error unrelated to SSL (timeout, no route, etc.) — keep default
-        return default_ctx
+    return ctx
+
+
+@functools.lru_cache(maxsize=1)
+def _verified_ssl_ctx() -> ssl.SSLContext:
+    return make_ssl_ctx(verify=True)
+
+
+@functools.lru_cache(maxsize=1)
+def _unverified_ssl_ctx() -> ssl.SSLContext:
+    return make_ssl_ctx(verify=False)
+
+
+def _is_ssl_error(exc: BaseException) -> bool:
+    """Return True for direct or urllib-wrapped SSL failures."""
+    if isinstance(exc, ssl.SSLError):
+        return True
+    reason = getattr(exc, "reason", None)
+    return isinstance(reason, ssl.SSLError)
+
+
+def urlopen(req, timeout: int = 15):
+    """Open a URL with certificate verification, retrying once for Zscaler SSL.
+
+    This is general-purpose: it first tries normal TLS verification for any
+    website or application. Only if that exact request fails with ``SSLError``
+    does it retry with verification disabled. Non-SSL errors are not masked.
+    """
+    try:
+        return urllib.request.urlopen(req, context=_verified_ssl_ctx(), timeout=timeout)
+    except Exception as exc:
+        if not _is_ssl_error(exc):
+            raise
+        return urllib.request.urlopen(req, context=_unverified_ssl_ctx(), timeout=timeout)
 
 
 def http_get(url: str, headers: dict) -> int:
     """Make a GET request and return the HTTP status code."""
     try:
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, context=make_ssl_ctx(), timeout=8) as resp:
+        with urlopen(req, timeout=8) as resp:
             return resp.status
     except urllib.error.HTTPError as e:
         return e.code
@@ -164,12 +186,22 @@ def http_get_no_redirect(url: str, headers: dict) -> int:
         def redirect_request(self, req, fp, code, msg, hdrs, newurl):
             return None
 
-    try:
-        opener = urllib.request.build_opener(_NoRedirect())
+    def _open_with(ctx: ssl.SSLContext) -> int:
+        opener = urllib.request.build_opener(_NoRedirect(), urllib.request.HTTPSHandler(context=ctx))
         req = urllib.request.Request(url, headers=headers)
         with opener.open(req, timeout=8) as resp:
             return resp.status
-    except urllib.error.HTTPError as e:
-        return e.code
-    except Exception:
-        return 0
+
+    try:
+        return _open_with(_verified_ssl_ctx())
+    except Exception as exc:
+        if not _is_ssl_error(exc):
+            if isinstance(exc, urllib.error.HTTPError):
+                return exc.code
+            return 0
+        try:
+            return _open_with(_unverified_ssl_ctx())
+        except urllib.error.HTTPError as e:
+            return e.code
+        except Exception:
+            return 0
