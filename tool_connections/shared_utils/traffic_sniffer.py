@@ -20,13 +20,16 @@ Workflow:
   3. Perform target actions in the browser (see connection file for suggestions)
   4. Close the browser or Ctrl+C
   5. Inspect the JSONL output — every URL, header, and body is there
-  6. Replay interesting calls via REST; document verified ones in
-     personal/{tool}/connection-{auth}.md
+  6. Replay interesting calls via REST; document verified ones in the
+     connection file.
 
 --tool shortcut:
   If the tool's connection file has a sniffer: block in its frontmatter,
   --tool <name> pre-fills --profile, --url, and --filter automatically.
-  Connection file location: personal/{tool}/connection-*.md
+  Connection file locations, in order:
+    personal/{tool}/connection-*.md
+    personal/tool_connections/{tool}/connection-*.md
+    tool_connections/{tool}/connection-*.md
 
   Example frontmatter:
     sniffer:
@@ -35,7 +38,7 @@ Workflow:
       filter: /voyager/api
 
 Usage:
-    # Shortcut — reads defaults from personal/linkedin/connection-*.md:
+    # Shortcut — reads defaults from a linkedin connection-*.md:
     source .venv/bin/activate
     python3 tool_connections/shared_utils/traffic_sniffer.py --tool linkedin
 
@@ -89,29 +92,35 @@ import json
 import re
 import sys
 import threading
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parents[2]))
-from tool_connections.shared_utils.browser import sync_playwright, BROWSER_AUTOMATION_DIR
+from tool_connections.shared_utils.browser import sync_playwright
 
 _REPO_ROOT = Path(__file__).parents[2]
 
 
 def _load_tool_config(tool_name: str) -> dict:
     """
-    Read sniffer defaults from personal/{tool}/connection-*.md frontmatter.
+    Read sniffer defaults from a connection-*.md frontmatter.
 
     Returns a dict with keys: profile, url, filters (list).
     Raises FileNotFoundError if no connection file found for the tool.
     """
-    tool_dir = _REPO_ROOT / "personal" / tool_name
-    candidates = list(tool_dir.glob("connection-*.md"))
+    candidate_dirs = [
+        _REPO_ROOT / "personal" / tool_name,
+        _REPO_ROOT / "personal" / "tool_connections" / tool_name,
+        _REPO_ROOT / "tool_connections" / tool_name,
+    ]
+    candidates = []
+    for tool_dir in candidate_dirs:
+        candidates.extend(tool_dir.glob("connection-*.md"))
     if not candidates:
+        searched = "\n".join(f"  - {p.relative_to(_REPO_ROOT)}/connection-*.md" for p in candidate_dirs)
         raise FileNotFoundError(
-            f"No connection file found at personal/{tool_name}/connection-*.md\n"
+            f"No connection file found for {tool_name}. Searched:\n{searched}\n"
             f"Run setup.md to connect {tool_name} first."
         )
     conn_file = candidates[0]
@@ -265,7 +274,7 @@ def sniff(
         page = ctx.new_page()
         page.goto(start_url, wait_until="domcontentloaded", timeout=30_000)
 
-        print(f"\n  Sniffer active — performing actions in the browser window.")
+        print("\n  Sniffer active — performing actions in the browser window.")
         print(f"  Filtering: {filters if filters else '(all requests)'}")
         print(f"  Response bodies: {'on' if capture_bodies else 'off (recommended for LinkedIn)'}")
         if output_path:
@@ -317,7 +326,7 @@ def _main():
     )
     parser.add_argument("--tool", default=None,
                         help="Tool name (e.g. 'linkedin') — reads profile/url/filter from "
-                             "personal/{tool}/connection-*.md frontmatter. "
+                             "the first matching connection-*.md frontmatter. "
                              "Overridden by explicit --profile/--url/--filter if provided.")
     parser.add_argument("--profile", type=Path, default=None,
                         help="Path to persistent Chromium profile directory")

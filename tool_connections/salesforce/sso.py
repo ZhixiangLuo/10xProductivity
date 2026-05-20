@@ -138,7 +138,7 @@ def main():
     update_env("SF_BASE_URL", result["SF_BASE_URL"])
     update_env("SF_USERNAME", result["SF_USERNAME"])
 
-    print(f"✓ SF_SID saved to .env (first 40 chars): {result['SF_SID'][:40]}...")
+    print("✓ SF_SID saved to .env")
     print(f"✓ SF_BASE_URL: {result['SF_BASE_URL']}")
 
 

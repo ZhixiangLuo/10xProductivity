@@ -130,8 +130,8 @@ def main():
             tokens = mod.capture(env)
             write_env(tokens, args.env_file)
             env.update(tokens)
-            for k, v in tokens.items():
-                print(f"    {k}: {v[:50]}...")
+            for k in tokens:
+                print(f"    Updated {k}")
         except Exception as e:
             print(f"  ERROR refreshing {name}: {e}", file=sys.stderr)
 
