@@ -161,6 +161,8 @@ class GDriveServer:
         # All Playwright calls must happen on the main thread.
         # Network threads put (req, result_queue) here; main loop drains it.
         self._work_queue: queue.Queue = queue.Queue()
+        self._stop_event = Event()
+        self._shutting_down = False
 
     def log(self, msg):
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -181,8 +183,10 @@ class GDriveServer:
             f"http://127.0.0.1:{CDP_PORT}"
         )
         # When the user closes the Chrome window (right-click → Exit, ⌘Q, etc.),
-        # send SIGTERM to ourselves so the shutdown handler runs cleanly.
-        self._browser.on("disconnected", lambda: os.kill(os.getpid(), signal.SIGTERM))
+        # ask the daemon loop to stop. Do not send SIGTERM here: shutdown closes
+        # the browser too, and re-entering the signal handler can leave a stale
+        # Python process behind.
+        self._browser.on("disconnected", self._on_browser_disconnected)
         self._ctx = self._browser.contexts[0]
         self._ctx.set_default_timeout(30_000)
         self._ctx.set_default_navigation_timeout(45_000)
@@ -203,6 +207,12 @@ class GDriveServer:
                     "Chrome window opened for Drive, then retry the command."
                 ) from e
         self.log("Browser ready.")
+
+    def _on_browser_disconnected(self):
+        if self._shutting_down:
+            return
+        self.log("Browser disconnected — stopping daemon.")
+        self._stop_event.set()
 
     def handle(self, req: dict) -> dict:
         from playwright.sync_api import TimeoutError as PWTimeout
@@ -250,7 +260,7 @@ class GDriveServer:
             self.log(f"Error handling {action}: {e}\n{traceback.format_exc()}")
             return {"ok": False, "error": str(e)}
 
-    def serve(self, stop_event: Event):
+    def serve(self):
         SOCKET_PATH.parent.mkdir(parents=True, exist_ok=True)
         if SOCKET_PATH.exists():
             SOCKET_PATH.unlink()
@@ -287,7 +297,7 @@ class GDriveServer:
                 conn.close()
 
         try:
-            while not stop_event.is_set():
+            while not self._stop_event.is_set():
                 # Accept new connections (non-blocking)
                 try:
                     conn, _ = server.accept()
@@ -308,6 +318,7 @@ class GDriveServer:
             if SOCKET_PATH.exists():
                 SOCKET_PATH.unlink()
             # Always close browser on the way out so Chromium never lingers
+            self._shutting_down = True
             self.log("Closing browser.")
             try:
                 if self._browser:
@@ -326,17 +337,16 @@ def run_daemon():
     server.start_browser()
     PID_FILE.write_text(str(os.getpid()))
 
-    stop_event = Event()
-
     def shutdown(sig, frame):
         server.log(f"Received signal {sig} — shutting down.")
-        stop_event.set()  # signal the serve() loop to exit cleanly
+        server._shutting_down = True
+        server._stop_event.set()
 
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
 
     try:
-        server.serve(stop_event)
+        server.serve()
     finally:
         if PID_FILE.exists():
             PID_FILE.unlink()
