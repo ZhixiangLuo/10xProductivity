@@ -1,6 +1,6 @@
 ---
 name: enterprise-search
-description: Search institutional knowledge across all connected tools. Always searches Slack and Confluence; may include AI-synthesized search tools listed in verified_connections; adds Jira, Linear, Notion, or GitHub as needed. Reads verified_connections.md to determine what is available and adapts accordingly.
+description: Search institutional knowledge across all connected tools. Uses Slackbot/Slack AI as the default first search; validates with Confluence or other official sources when useful; adds Jira, Linear, Notion, or GitHub as needed. Reads verified_connections.md to determine what is available and adapts accordingly.
 ---
 
 # Enterprise Search — Institutional Knowledge
@@ -30,9 +30,11 @@ Read `verified_connections.md`. Note which tools are available. Only search tool
 
 ## Step 2: Search
 
-**Always run Slack + Confluence in parallel** (when each is connected). They cover the widest ground for any question — Slack has real-time conversational knowledge, Confluence has deliberate documentation.
+**Start with Slackbot / Slack AI by default** (when Slack is connected). It is the first search for most enterprise knowledge questions because it can synthesize the current conversational record across Slack and often surfaces the practical answer fastest, especially for time-sensitive employee/process questions.
 
-**Also scan `verified_connections.md` for AI-synthesized search** — connections whose descriptions say they answer natural-language questions across *multiple* backends (internal AI assistants, enterprise knowledge search, “institutional memory,” etc.). They are not the same as a single-source tool like Jira. If you find any, open the linked `connection-*.md` and run the query flow it documents **in the same parallel batch** as Slack and Confluence. Those tools often return one answer that already spans several systems.
+**Also run Confluence in the same batch when it can validate or explain the answer.** Slack is the default source for current state and informal institutional knowledge; Confluence is the deliberate documentation source. For policy, process, HR, compliance, runbook, or "what is the official rule?" questions, use Confluence to confirm the Slack answer when available.
+
+**Also scan `verified_connections.md` for AI-synthesized search** — connections whose descriptions say they answer natural-language questions across *multiple* backends (internal AI assistants, enterprise knowledge search, “institutional memory,” etc.). They are not the same as a single-source tool like Jira. If you find any, open the linked `connection-*.md` and run the query flow it documents **in the same parallel batch** as Slackbot and any validation sources. Those tools often return one answer that already spans several systems.
 
 Add the named tools below based on what you see or what was asked:
 
@@ -42,7 +44,7 @@ Add the named tools below based on what you see or what was asked:
 | GitHub | Query mentions code, a function, file, PR, error, or implementation detail |
 | Notion | Connected and Confluence didn't return enough |
 
-Run all selected searches simultaneously. Do not wait for one to finish before starting the next.
+Run all selected searches simultaneously after selecting the batch. Do not wait for one to finish before starting the next.
 
 ---
 
@@ -288,7 +290,7 @@ After all searches complete, give the user **one direct answer** — not a tool-
 
 - **Lead with the answer**, not with which tool found it. The user doesn't care that "Slack AI said X" or "Notion found Y" — they asked a question, give them the answer.
 - **Merge all results** into a single coherent response. If multiple sources agree, state the conclusion once. If they conflict, surface the conflict briefly.
-- **Include links** only when they point to something directly actionable or worth reading (e.g. a doc page, a ticket). Skip links to raw Slack messages or intermediate search results.
+- **Include original source links whenever available and useful.** Prefer links to the Slack thread/message, Confluence page, Jira ticket, doc, PR, or other source that directly supports the answer. If the only evidence is a raw Slack message or intermediate search result, include that link rather than dropping provenance, unless the link would expose irrelevant or sensitive context.
 - **If a source found nothing useful, do not mention it.** Omit empty-handed tools entirely — "Notion didn't find anything" adds no value.
 - **If a result looks like a full doc worth reading**, offer to fetch it: *"There's a Confluence page 'Cursor Install Guide' — want me to read the full content?"*
 
