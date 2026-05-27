@@ -93,3 +93,29 @@ python3 tool_connections/shared_utils/playwright_sso.py --slack-only --account a
 ```
 
 Token TTL: ~8h. Re-run when `auth.test` returns `ok=False`.
+
+## Verified multi-workspace setup
+
+The default and account-scoped flows were both tested with real Slack sessions
+and scrubbed output:
+
+```text
+$ python3 tool_connections/shared_utils/playwright_sso.py --slack-only
+# → slack: ok
+# → auth.test: ok=True, team=Development, user=alice
+# → conversations.open: ok=True, channel=D0123456789
+# → chat.postMessage: ok=True
+
+$ python3 tool_connections/shared_utils/playwright_sso.py --slack-only --account chatbotgig
+# → slack:chatbotgig: ok
+# → auth.test: ok=True, team=slack_chatbot_gig, user=alice
+# → conversations.open: ok=True, channel=D9876543210
+# → chat.postMessage: ok=True
+```
+
+Failure case: private workspaces that use Google sign-in may show `This browser
+or app may not be secure` in Playwright-controlled Chromium. If the scoped
+`SLACK_<ACCOUNT>_XOXC` and `SLACK_<ACCOUNT>_D_COOKIE` values are still valid,
+the refresher validates them and skips browser login. If they are expired, log
+in through the opened browser manually or refresh from an already trusted
+browser session.

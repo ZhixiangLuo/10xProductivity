@@ -61,6 +61,30 @@ python3 tool_connections/shared_utils/playwright_sso.py --slack-only --account a
 The account name becomes an uppercase prefix, so this writes
 `SLACK_ACME_XOXC` and `SLACK_ACME_D_COOKIE`.
 
+## Verified multi-workspace flow
+
+The account-scoped flow was verified against two Slack workspaces:
+
+```text
+$ python3 tool_connections/shared_utils/playwright_sso.py --slack-only
+# → slack: ok
+# → auth.test: ok=True, team=Development, user=alice
+# → conversations.open: ok=True, channel=D0123456789
+# → chat.postMessage: ok=True
+
+$ python3 tool_connections/shared_utils/playwright_sso.py --slack-only --account chatbotgig
+# → slack:chatbotgig: ok
+# → auth.test: ok=True, team=slack_chatbot_gig, user=alice
+# → conversations.open: ok=True, channel=D9876543210
+# → chat.postMessage: ok=True
+```
+
+Observed failure case: Google sign-in for a private personal workspace can show
+`This browser or app may not be secure` in Playwright-controlled Chromium. If a
+valid scoped token already exists, `check()` now validates `xoxc` together with
+the `d` cookie and skips browser login. If no valid token exists, log in through
+the opened browser manually or capture from an already trusted browser session.
+
 ---
 
 ## Choosing the right method
