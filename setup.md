@@ -1,10 +1,10 @@
-# Setup Guide
+# Personal AI Assistant for Work Setup Guide
 
-> **What this file is for:** Setting up any tool connection — whether a pre-built recipe exists or not. This is the single entry point: it routes to `verified_connections.md` (already set up), `personal/` (your own recipes), `tool_connections/` (pre-built community recipes), or `add-new-tool.md` (build from scratch) based on what already exists.
+> **What this file is for:** Setting up the foundation for your personal AI assistant for work: connected tools. Whether a pre-built recipe exists or not, this is the single entry point. It routes to `verified_connections.md` (already set up), `personal/` (your own recipes), `tool_connections/` (pre-built community recipes), or `add-new-tool.md` (build from scratch) based on what already exists.
 
 This file is for your agent. Point your agent here first:
 
-> *"Read setup.md and set up my tool connections."*
+> *"Read setup.md and set up my personal AI assistant for work."*
 
 ---
 
@@ -130,7 +130,7 @@ Then summarize for the user what connected and what was skipped.
 
 ## Step 3b: Test the search workflow
 
-Read `workflows/search/search.md` and run a test search across all connected tools using a simple query the user would actually care about — e.g. the name of a project, team, or recent topic they mentioned. This confirms the tools work end-to-end together, not just in isolation.
+Read `workflows/enterprise-search/enterprise-search.md` and run a test search across all connected tools using a simple query the user would actually care about — e.g. the name of a project, team, or recent topic they mentioned. This confirms the tools work end-to-end together, not just in isolation.
 
 If any tool fails during the search (wrong auth format, missing env var, etc.), patch it now before moving on.
 

@@ -1,6 +1,6 @@
-# 10xProductivity
+# 10xProductivity — Personal AI Assistant for Work, Built on Coding Agents
 
-**A human-AI interaction platform for building a personal assistant on top of the coding agents and tools you already use.**
+**A human-AI interaction platform for building a personal AI assistant for work on top of the coding agents and tools you already use.**
 
 You connect your tools, coach your agent through real work, and gradually turn repeated patterns into reusable skills and trusted workflows.
 
@@ -24,7 +24,18 @@ The shift is not "let an AI run autonomously." The shift is **human-AI interacti
 - Mistakes and tool use become better skills.
 - Trusted skills become workflows you can launch from chat or cron.
 
-Tool connections are still the foundation, but they are no longer the whole product. They are the first layer of a broader personal assistant stack.
+Tool connections are still the foundation, but they are no longer the whole product. They are the first layer of a broader personal AI assistant for work stack.
+
+## Available Today / Coming Next
+
+| Layer | Status | What it means |
+|---|---|---|
+| Tool connections | Available today | Pre-built recipes for 25+ tools, plus a playbook for connecting any internal or custom tool |
+| Enterprise search | Available today | Search across connected tools like Slack, Confluence, Jira, GitHub, Linear, Notion, and more |
+| Agent skills | Available today | Packaged Cursor and Claude Code skills for tool setup, search, workflow creation, UI discovery, and more |
+| Reusable workflows | Early | A few workflows exist today; the next step is turning more repeated work into durable workflows |
+| Slack interaction | Coming next | Slack becomes the async entry point for trusted jobs and threaded human-AI interaction |
+| Scheduled learning and jobs | Coming next | Trusted workflows, memory build, reflection, and capability learning can run on a schedule |
 
 ## How It Works
 
@@ -68,7 +79,7 @@ A skill is more than an API recipe. It teaches the agent how to do a kind of wor
 - Write a standup update
 - Review open follow-ups
 
-Over time, your skill library becomes the operating manual for your personal assistant.
+Over time, your skill library becomes the operating manual for your personal AI assistant for work.
 
 ### 4. Run Trusted Workflows
 
@@ -117,6 +128,54 @@ setup-python.md          Python and Playwright setup helper
 
 The current repo is strongest at the connection layer. The workflow layer exists, but is still early. The next product direction is to build upward from connections into reusable workflows, agent skills, Slack interaction, and trusted scheduled jobs.
 
+## Supported Tools
+
+The repo includes setup guides for common tools, and the same setup path works for internal systems and custom company tools.
+
+| Tool | Setup |
+|---|---|
+| Slack | [`tool_connections/slack/setup.md`](tool_connections/slack/setup.md) |
+| Jira | [`tool_connections/jira/setup.md`](tool_connections/jira/setup.md) |
+| GitHub | [`tool_connections/github/setup.md`](tool_connections/github/setup.md) |
+| Confluence | [`tool_connections/confluence/setup.md`](tool_connections/confluence/setup.md) |
+| Google Drive | [`tool_connections/google-drive/setup.md`](tool_connections/google-drive/setup.md) |
+| Outlook | [`tool_connections/outlook/setup.md`](tool_connections/outlook/setup.md) |
+| Microsoft Teams | [`tool_connections/microsoft-teams/setup.md`](tool_connections/microsoft-teams/setup.md) |
+| Microsoft Teams Enterprise | [`tool_connections/microsoft-teams-enterprise/setup.md`](tool_connections/microsoft-teams-enterprise/setup.md) |
+| OneNote | [`tool_connections/onenote/setup.md`](tool_connections/onenote/setup.md) |
+| SharePoint / OneDrive | [`tool_connections/sharepoint-onedrive/setup.md`](tool_connections/sharepoint-onedrive/setup.md) |
+| Salesforce | [`tool_connections/salesforce/setup.md`](tool_connections/salesforce/setup.md) |
+| Gmail | [`tool_connections/gmail/setup.md`](tool_connections/gmail/setup.md) |
+| PagerDuty | [`tool_connections/pagerduty/setup.md`](tool_connections/pagerduty/setup.md) |
+| Grafana | [`tool_connections/grafana/setup.md`](tool_connections/grafana/setup.md) |
+| Datadog | [`tool_connections/datadog/setup.md`](tool_connections/datadog/setup.md) |
+| Jenkins | [`tool_connections/jenkins/setup.md`](tool_connections/jenkins/setup.md) |
+| Linear | [`tool_connections/linear/setup.md`](tool_connections/linear/setup.md) |
+| Notion | [`tool_connections/notion/setup.md`](tool_connections/notion/setup.md) |
+| Bitbucket Server | [`tool_connections/bitbucket-server/setup.md`](tool_connections/bitbucket-server/setup.md) |
+| Artifactory | [`tool_connections/artifactory/setup.md`](tool_connections/artifactory/setup.md) |
+| Backstage | [`tool_connections/backstage/setup.md`](tool_connections/backstage/setup.md) |
+| Figma | [`tool_connections/figma/setup.md`](tool_connections/figma/setup.md) |
+| Miro | [`tool_connections/miro/setup.md`](tool_connections/miro/setup.md) |
+| LinkedIn | [`tool_connections/linkedin/setup.md`](tool_connections/linkedin/setup.md) |
+| M365 Copilot Search | [`tool_connections/m365-copilot-search/setup.md`](tool_connections/m365-copilot-search/setup.md) |
+| DepMap | [`tool_connections/depmap/setup.md`](tool_connections/depmap/setup.md) |
+
+Not listed? Use [`add-new-tool.md`](add-new-tool.md). If it has an API, CLI, browser interface, or local files, your agent can usually learn to use it.
+
+## Agent Skills
+
+Agent skills are the product layer above raw tool connections. They teach a coding agent when and how to use connected tools.
+
+| Skill | Runtime | Use it for |
+|---|---|---|
+| [`tool-connector`](.cursor/skills/tool-connector/SKILL.md) | Cursor | Connect Slack, Jira, GitHub, Confluence, internal tools, and other work systems to your agent |
+| [`enterprise-search`](.cursor/skills/enterprise-search/SKILL.md) | Cursor | Search institutional knowledge across connected tools in one query |
+| [`create-workflow`](.cursor/skills/create-workflow/SKILL.md) | Cursor / Claude Code | Design and build multi-step workflows across tools |
+| [`discover-ui-surface`](.cursor/skills/discover-ui-surface/SKILL.md) | Cursor / Claude Code | Map UI interactions and browser/API surfaces before automation |
+| [`linkedin-engagement`](.cursor/skills/linkedin-engagement/SKILL.md) | Cursor / Claude Code | Draft and run a supervised LinkedIn engagement workflow |
+| [`colleague-distillation`](.cursor/skills/colleague-distillation/SKILL.md) | Cursor / Claude Code | Distill tool-backed context about a colleague into a reusable AI skill |
+
 ## Quick Start
 
 1. Install a coding agent such as [Cursor](https://cursor.com/download), Claude Code, Codex, or another agent you trust.
@@ -134,10 +193,10 @@ cd 10xProductivity
 Read setup-python.md and prepare this repo.
 ```
 
-4. Ask your agent to connect your tools:
+4. Ask your agent to set up your personal AI assistant for work. The first step is connecting your tools:
 
 ```text
-Read setup.md and set up my tool connections.
+Read setup.md and set up my personal AI assistant for work.
 ```
 
 5. Try a first workflow:
@@ -148,9 +207,9 @@ Read workflows/enterprise-search/enterprise-search.md and search across my conne
 
 From there, coach the agent through work you actually do. When a pattern repeats, capture it as a skill or workflow.
 
-## Example Workflows
+## Example Workflows and Prompts
 
-**Enterprise search**
+**Available today: enterprise search**
 
 ```text
 Search for everything related to the decision to deprecate the v1 API.
@@ -158,21 +217,21 @@ Search for everything related to the decision to deprecate the v1 API.
 
 The agent searches across connected tools, synthesizes the answer, and links back to source material.
 
-**Sprint triage**
+**Coaching example: sprint triage**
 
 ```text
 Review my Jira sprint, identify stale tickets, and draft follow-up comments.
 ```
 
-The agent reads Jira, checks related docs or PRs, and prepares updates for your review.
+The agent can learn this from connected Jira, docs, and PRs. Once the pattern is reliable, capture it as a workflow or skill.
 
-**Morning brief**
+**Coaching example: morning brief**
 
 ```text
 Summarize what changed since yesterday across Slack, Jira, GitHub, and my calendar.
 ```
 
-Once trusted, this becomes a scheduled workflow.
+Once trusted, this can become a scheduled workflow.
 
 ## Who This Is For
 
@@ -181,13 +240,13 @@ Once trusted, this becomes a scheduled workflow.
 - Developers who want one agent to work across code, tickets, docs, and chat
 - Engineering managers who want cross-tool status and follow-up automation
 - Product managers, support engineers, analysts, sales teams, and operators who live across many tools
-- Power users who want to coach their own personal assistant instead of waiting for a centralized platform rollout
+- Power users who want to coach their own personal AI assistant for work instead of waiting for a centralized platform rollout
 
 The same stack works differently for each person because the tools, skills, and trusted workflows are personal.
 
 ## Project Direction
 
-10xProductivity started as the tool connection layer for coding agents. It is evolving into an open-source personal assistant stack:
+10xProductivity started as the tool connection layer for coding agents. It is evolving into an open-source personal AI assistant for work stack:
 
 1. **Tool connections** — let the agent use the tools you already use.
 2. **Workflows** — compose connections into repeatable multi-step jobs.
@@ -197,7 +256,7 @@ The same stack works differently for each person because the tools, skills, and 
 6. **Self-awareness** — track capabilities and limitations based on evidence from real use.
 7. **Trusted automation** — run proven workflows from chat or cron.
 
-The goal is not to replace Cursor, Claude Code, Codex, or Copilot. The goal is to give those approved coding agents the missing layer: tool access, reusable skills, workflows, and a coaching loop that turns them into personal assistants.
+The goal is not to replace Cursor, Claude Code, Codex, or Copilot. The goal is to give those approved coding agents the missing layer: tool access, reusable skills, workflows, and a coaching loop that turns them into personal AI assistants for work.
 
 ## Contributing
 

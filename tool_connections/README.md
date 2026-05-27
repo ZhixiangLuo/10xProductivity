@@ -1,6 +1,6 @@
-# Tool Connections
+# Layer 1: Tool Connections
 
-This page preserves the original 10xProductivity README for the tool connection layer. The top-level README now describes the broader personal assistant platform; this file remains the home for the zero-infrastructure, local-agent connection philosophy.
+This page documents the tool connection layer: the foundation that lets your coding agent use the tools you already use. For the broader personal AI assistant for work platform, start with the [top-level README](../README.md).
 
 ## The Philosophy
 
