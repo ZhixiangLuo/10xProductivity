@@ -1,230 +1,219 @@
 # 10xProductivity
 
-**Turn your coding agent into a personal assistant at work — without any IT hassle.**
-**10x the output (not just a single task) of every person in your company — from executives to ICs.**
+**A human-AI interaction platform for building a personal assistant on top of the coding agents and tools you already use.**
 
-Cursor, Claude Code, and similar tools are far more than coding assistants. Connected to your work tools, they become agents that can search, triage, draft, and automate — for anyone on your team, from top executives to product managers, analysts, sales, HR, and developers — with full access to the institutional knowledge you can access.
-
-> *Every tool you can use as a human on your laptop, your agent can use too — with zero infrastructure, zero cloud services, zero new permissions.*
+You connect your tools, coach your agent through real work, and gradually turn repeated patterns into reusable skills and trusted workflows.
 
 [![GitHub Stars](https://img.shields.io/github/stars/ZhixiangLuo/10xProductivity?style=social)](https://github.com/ZhixiangLuo/10xProductivity/stargazers)
 
-If this saves you time, consider giving it a ⭐ — it helps others discover it.
+If this saves you time, consider giving it a star. It helps others discover the project.
 
-## Star History
+## The Idea
 
-<a href="https://www.star-history.com/?repos=ZhixiangLuo%2F10xProductivity&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ZhixiangLuo/10xProductivity&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ZhixiangLuo/10xProductivity&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ZhixiangLuo/10xProductivity&type=date&legend=top-left" />
- </picture>
-</a>
+Coding agents are no longer just coding assistants. Cursor, Claude Code, Codex, Copilot, and similar tools can read files, run scripts, call APIs, use browsers, and work across your local environment.
 
-## The Philosophy
+10xProductivity turns that agent into a personal work assistant.
 
-Most "AI integration" approaches ask you to:
-- Set up cloud middleware (Zapier, MCP servers, hosted agents)
-- Request IT-approved service accounts
-- Wait for admin provisioning
-- Accept new attack surfaces and vendor lock-in
+The shift is not "let an AI run autonomously." The shift is **human-AI interaction**:
 
-**10xProductivity flips this completely.**
+- You delegate work in natural language.
+- The agent uses your connected tools to search, draft, triage, update, and automate.
+- You supervise, correct, and coach when the work is new or important.
+- Repeated patterns become reusable agent skills.
+- Working sessions become persistent memory.
+- Mistakes and tool use become better skills.
+- Trusted skills become workflows you can launch from chat or cron.
 
-Apps are built for humans on laptops. Browsers, CLIs, REST APIs — they're all already there. Your agent uses the same surface. No integration layer, no middleware, no new permissions.
+Tool connections are still the foundation, but they are no longer the whole product. They are the first layer of a broader personal assistant stack.
 
-### Four principles
-
-**1. Local agent as the universal client**
-Your laptop is the platform. The agent is just a smarter version of you running scripts. No new infrastructure required.
-
-**2. Security by locality**
-The threat model is identical to you doing it manually. Nothing new is exposed. No cloud service sits between you and your tools holding your credentials. The only trust you extend is to the agent runtime itself (Cursor, Claude Code, Codex, Copilot, etc.) — which you've already decided to trust.
-
-**3. Identity = accountability**
-Your personal token. Your name on every action. This is a stronger audit trail than most enterprise automation, where actions are taken by service accounts with shared credentials. The agent acts *as you*: you get the credit, you get the blame, and the audit log is already there in every system you use.
-
-**4. Zero friction to start**
-No OAuth app approval. No IT ticket. No staging environment. If you can log in, your agent can act. Clone the repo, point your agent at `setup.md`, and it handles the rest.
-
-### Read vs read+write+act
-
-Most AI tools — enterprise search platforms, knowledge bases, even ChatGPT — are **read-only**. They find information and surface it in a chat box. You then manually take that answer and do something with it.
-
-10xProductivity is **read + write + act**. The agent doesn't just find the Jira ticket — it updates it. It doesn't just summarize the Slack thread — it posts the summary back. It doesn't just locate the bug — it opens the PR that fixes it.
-
-The output isn't text in a box. The output is the thing done, in the right place, in the right tool.
-
-This is a categorical difference. Any AI tool that only answers can be replaced by a better search engine. An agent that acts is a different class of capability entirely.
-
-### The result
-
-If every individual is 10x productive, the team and company is 10x as a result. Not through a top-down platform rollout — through individuals who are dramatically more capable, spreading organically.
-
----
-
-## What becomes possible
-
-Each connection you add isn't just a new tool — it compounds with everything else.
-
-Once your agent can see across your tools simultaneously, a new class of capability emerges:
-
-**Connected knowledge**
-Ask questions that span systems. "What was the decision behind this change?" pulls the GitHub PR, the Jira ticket it closed, the Slack thread where it was debated, and the Confluence doc that captured the outcome — in one answer, in seconds.
-
-**Cross-tool reasoning**
-"Show me all PagerDuty incidents from last week that still have open Jira follow-ups with no activity in 3 days." That query touches three systems, requires no new integration layer, and runs right now. The agent is the integration layer.
-
-**Compound automation**
-Repetitive multi-step work — triage a Slack alert, file a Jira ticket, assign it, post a summary back to the channel — becomes a single agent instruction. The tools are already connected; the only thing left is telling it what to do.
-
-**Institutional memory**
-Your agent stops being a generic assistant and starts being a contextual one — aware of how your team works, who owns what, what's in flight, and what happened before. That context doesn't live in any one tool. It lives in the connections between them.
-
-The pre-built recipes in this repo are a starting point. The actual ceiling is "everything you can do on your laptop" — which is everything.
-
----
-
-## Enterprise search: one question, every tool
-
-Once your tools are connected, the built-in enterprise search workflow lets your agent query all of them simultaneously — Slack, Confluence, Jira, Linear, Notion, GitHub, and more — and synthesize a single answer.
-
-**One prompt, every connected source:**
+## How It Works
 
 ```
-Search for everything related to the decision to deprecate the v1 API.
+Human
+  ↓
+Slack thread                    Laptop coding-agent session
+  ↓                                      ↓
+Thin routing layer              Individual skill or workflow
+  ↓                                      ↓
+Agent skills and workflows      Connected tools directly
+  ↓                                      ↓
+Connected tools                         |
+  ↓                                      ↓
+Work done in Slack, Jira, GitHub, docs, calendar, CRM, internal portals, and more
 ```
 
-The agent fans out across every connected tool, pulls relevant results, and returns a synthesized answer with citations — no tab switching, no copy-paste, no hunting across systems.
+### 1. Connect Your Tools
 
-**What it replaces:**
-- Opening Slack, searching, scrolling, opening threads
-- Switching to Confluence, searching again
-- Checking Jira, checking GitHub PRs, checking Linear
-- Mentally stitching together five partial answers
+Your agent needs access to the same tools you already use: Slack, Jira, GitHub, Confluence, Google Drive, Outlook, Salesforce, internal portals, or anything else with an API, CLI, browser surface, or local files.
 
-**When to use it:** Any time you're asking a question that might be answered in more than one place — "what was the decision on X", "who owns Y", "is there a doc on Z", "any context on this incident", "what did we decide about this feature".
+10xProductivity provides agent-readable setup guides in [`tool_connections/`](tool_connections/). The core principle is still zero new infrastructure: your local coding agent acts as you, using your existing access.
 
-To activate: `Read /path/to/10xProductivity/workflows/enterprise-search/enterprise-search.md`
+For the detailed connection philosophy, see [`tool_connections/README.md`](tool_connections/README.md).
 
----
+### 2. Coach Through Real Work
 
-## What's in this repo
+The assistant learns by doing real work with you.
 
-**Agent-readable playbooks** for connecting your local agent to the tools you already use — with no limit on what those tools can be.
+When a workflow is new, you supervise from the laptop in Cursor, Claude Code, Codex, or another coding-agent session. You correct mistakes, explain judgment calls, and shape the process. That coaching becomes durable instructions.
 
+### 3. Capture Reusable Agent Skills
+
+A skill is more than an API recipe. It teaches the agent how to do a kind of work:
+
+- Search across tools for context
+- Triage a Jira sprint
+- Summarize an incident
+- Draft a PR description
+- Prepare a customer call
+- Write a standup update
+- Review open follow-ups
+
+Over time, your skill library becomes the operating manual for your personal assistant.
+
+### 4. Run Trusted Workflows
+
+Once a workflow has been coached and proven, you can run it with less supervision:
+
+- From a Slack thread
+- From a scheduled cron job
+- From a repeatable workflow prompt
+- From your laptop when you want richer interaction
+
+Automation is reserved for workflows you trust. Everything else stays in the human-AI interaction loop.
+
+### 5. Learn Continuously
+
+The assistant should get better the more you use it.
+
+One scheduled loop reviews recent work: what the agent tried, where it got stuck, which tools and skills it used, what the human corrected, and what patterns repeated. That loop turns working sessions into persistent memory and improves the skills that caused friction.
+
+Another loop broadens capability. When the assistant needs to learn a new tool, workflow, domain, or work surface, it follows a guided, battle-tested learning skill with verifiable progress. Sometimes that learning is human-coached; sometimes the agent can learn independently through a structured skill, as long as it can test the result and produce evidence that the capability works. After enough evidence from real use, the new capability can be captured as a reusable skill and eventually become trusted.
+
+This gives the system self-awareness: it should know what it can do reliably, what it has only tried a few times, what it can plausibly learn, and where it still needs human supervision. Capability is evidence-based, not aspirational.
+
+## Interaction Surfaces
+
+**Slack** is the async entry point. It is a natural place to delegate lightweight or trusted work, receive updates, answer questions, and keep a thread as the task conversation.
+
+Slack is where the thin routing layer matters: incoming messages need to be classified, routed to the right skill or workflow, and replied to in the right thread.
+
+**Laptop sessions** are the coaching surface. This is where you supervise complex work, correct the agent, refine skills, and teach the assistant new workflows. On the laptop, you do not need a routing layer first; you can directly invoke the individual skill, workflow, or tool connection you want to work on.
+
+The product is designed around both: quick delegation when the workflow is familiar, active coaching when the workflow is still being learned.
+
+## What's In This Repo
+
+```text
+tool_connections/        Pre-built recipes for connecting tools to your agent
+workflows/               Multi-tool workflows built on top of connections
+.cursor/skills/          Cursor agent skills packaged with the repo
+.claude/skills/          Claude Code agent skills packaged with the repo
+staging/                 Community contributions under review
+personal/                Your private, gitignored local connections and workflows
+setup.md                 Main setup path for connecting tools
+add-new-tool.md          Playbook for connecting tools not yet in the repo
+setup-python.md          Python and Playwright setup helper
 ```
-tool_connections/    ← pre-built recipes for common tools (e.g. Slack, GitHub, Jira)
-  slack/
-    setup.md         ← how to connect
-    connection-sso.md
 
-personal/            ← your own recipes (gitignored) — internal tools stay private, never committed
-  {tool-name}/
-    setup.md
-    connection-{auth-method}.md
+The current repo is strongest at the connection layer. The workflow layer exists, but is still early. The next product direction is to build upward from connections into reusable workflows, agent skills, Slack interaction, and trusted scheduled jobs.
 
-workflows/           ← pre-built workflows that compose multiple tool connections
-  enterprise-search/
-    enterprise-search.md  ← search across all your connected tools simultaneously in one query
+## Quick Start
 
-add-new-tool.md      ← connect anything not in tool_connections/ — internal portals, custom systems, any tool with an API or browser interface
+1. Install a coding agent such as [Cursor](https://cursor.com/download), Claude Code, Codex, or another agent you trust.
 
-setup-python.md      ← detect OS, try winget/brew/apt then python.org if needed; Python 3.12 + venv + Playwright (no git — you already have this folder)
-```
-
-`tool_connections/` has pre-built recipes for tools most teams share. `personal/` is where your internal company tools live — same setup path, stays on your machine. Once connected, workflows like the built-in search let your agent query Slack, Confluence, Jira, and more in a single request.
-
-**The pre-built list is just a head start.** `add-new-tool.md` is a playbook for connecting any tool that isn't there yet — internal portals, proprietary systems, niche SaaS, anything. If it has an API or a browser interface, your agent can use it.
-
----
-
-## Quick start
-
-1. **Install Cursor** (the editor your agent runs in): open **[cursor.com/download](https://cursor.com/download)**, download the installer for **Windows** or **macOS**, run it, and sign in or create an account when prompted.
+2. Clone and open this repo:
 
 ```bash
 git clone https://github.com/ZhixiangLuo/10xProductivity.git
 cd 10xProductivity
 ```
 
-Open the **`10xProductivity`** folder in Cursor (**File → Open Folder…**).
+3. If needed, set up Python and Playwright:
 
-If you do not have **Python 3** yet (common on a fresh laptop), point your agent at **`setup-python.md`** first — it detects your system, tries **winget / Homebrew / apt** when present, otherwise guides a **python.org** install, then prepares `.venv` + Playwright. **No `git` in that playbook** — you already have this folder.
-
-Then point your agent at the setup guide:
-
-```
-Read /path/to/10xProductivity/setup.md and set up my tool connections.
+```text
+Read setup-python.md and prepare this repo.
 ```
 
-Your agent handles the rest — it will ask which tools you use and the URLs, get the credentials it needs, run SSO where required, and verify each connection works. Works for any tool: pre-built recipes for common tools, and an identical setup path for internal or custom tools.
+4. Ask your agent to connect your tools:
 
----
+```text
+Read setup.md and set up my tool connections.
+```
 
-## Who this is for
+5. Try a first workflow:
 
-**It works for everyone — not just developers.**
+```text
+Read workflows/enterprise-search/enterprise-search.md and search across my connected tools for <topic>.
+```
 
-The agent is the same for a CTO and a support rep. What differs is the content: the tools they connect, the skills they build, the workflows they automate. A developer writes a skill to triage GitHub issues. A sales rep writes one to pull CRM context before a call. An executive writes one to get a cross-tool status summary every morning.
+From there, coach the agent through work you actually do. When a pattern repeats, capture it as a skill or workflow.
 
-Same setup. Same chat interface. Completely different leverage depending on what you do.
+## Example Workflows
 
-The comparison isn't "AI vs no AI." It's **AI vs hiring**. A new hire takes months to onboard, needs hand-holding, and costs $100k+/year. The agent is set up in a day, already knows all your tools, never forgets context, and works at any hour.
+**Enterprise search**
 
-**Enterprise deployment model:**
-- **IT** installs Cursor, connects shared tools once, sets company-wide rules and skills, runs onboarding workshops
-- **Power users** (one or two per team) build the skills and workflows that matter for their team's work
-- **Everyone** benefits — the whole team gets access to those skills without building anything themselves
-- **Credentials stay personal** — each person's agent acts as them, sees only what they can see, with their name on every action
+```text
+Search for everything related to the decision to deprecate the v1 API.
+```
 
-The skills and workflows a team builds accumulate over time. The longer it runs, the more capable it becomes. That's a compounding advantage no static tool can match.
+The agent searches across connected tools, synthesizes the answer, and links back to source material.
 
----
+**Sprint triage**
 
-## Who uses this repo and how
+```text
+Review my Jira sprint, identify stale tickets, and draft follow-up comments.
+```
 
-**User** — you want to connect your agent to tools you already use:
-1. Clone the repo and point your agent at it: *"Read /path/to/10xProductivity/setup.md and set up my tool connections"*
-2. Your agent asks which tools you use, handles credentials, runs SSO where needed, and verifies each connection
-3. From that point your tools and the search workflow are available automatically at the start of every session — no MCP server, no plugin, no admin approval
+The agent reads Jira, checks related docs or PRs, and prepares updates for your review.
 
-**Contributor** — you want to add a new tool or improve an existing connection:
-1. Ask your agent: *"Load add-new-tool.md and add a connection for [Tool]"*
-2. The skill walks through: research auth → ask URL first → try the most likely auth → ask only for missing credentials → validate → write → PR (contribution is optional and only for commercial tools)
-3. Community files (`staging/`) have a lower bar; core (`tool_connections/`) requires multi-environment validation
+**Morning brief**
 
----
+```text
+Summarize what changed since yesterday across Slack, Jira, GitHub, and my calendar.
+```
+
+Once trusted, this becomes a scheduled workflow.
+
+## Who This Is For
+
+10xProductivity is for people who already use a coding agent and want it to become useful outside the code editor:
+
+- Developers who want one agent to work across code, tickets, docs, and chat
+- Engineering managers who want cross-tool status and follow-up automation
+- Product managers, support engineers, analysts, sales teams, and operators who live across many tools
+- Power users who want to coach their own personal assistant instead of waiting for a centralized platform rollout
+
+The same stack works differently for each person because the tools, skills, and trusted workflows are personal.
+
+## Project Direction
+
+10xProductivity started as the tool connection layer for coding agents. It is evolving into an open-source personal assistant stack:
+
+1. **Tool connections** — let the agent use the tools you already use.
+2. **Workflows** — compose connections into repeatable multi-step jobs.
+3. **Agent skills** — teach the agent how you want work done.
+4. **Human-AI interaction** — delegate from Slack, coach from the laptop.
+5. **Learning and memory** — turn sessions, corrections, tool use, and mistakes into persistent improvements.
+6. **Self-awareness** — track capabilities and limitations based on evidence from real use.
+7. **Trusted automation** — run proven workflows from chat or cron.
+
+The goal is not to replace Cursor, Claude Code, Codex, or Copilot. The goal is to give those approved coding agents the missing layer: tool access, reusable skills, workflows, and a coaching loop that turns them into personal assistants.
 
 ## Contributing
 
 Contributions are welcome for:
-- **New tool** — a tool not yet in the repo
-- **New auth variant** — a different auth method for an existing tool (e.g. AD SSO vs API token)
-- **New deployment variant** — e.g. Jira Server vs Jira Cloud
-- **Improvement to an existing connection** — fixing broken snippets, adding missing endpoints, updating stale auth
 
-If something doesn't work or you want to request a new tool, open an issue.
+- New tool connections
+- New auth or deployment variants
+- Fixes to existing setup guides
+- Useful workflows built on connected tools
+- Agent skills that teach repeatable work patterns
 
-See [contributing.md](contributing.md) for the full process. The core rule: **run before you write.** Every snippet must be code you actually executed and saw succeed. No copy-paste from docs.
-
----
-
-## Final Notes
-
-This repo provides the foundational skills to unlock 10x productivity, but it won't work out of the box. Ask your favorite agent to set it up, try it out, and gradually automate everything that can be automated — humans can always be in the loop.
-
-**A real warning:** 10x productivity will not get you 10x rewards. In most organizations, the person who automates their job away doesn't get paid more — they just get more work. Be deliberate about where you direct this leverage.
-
----
-
-If this repo helped you 10x your workflow, a ⭐ goes a long way — it helps others find it.
-
----
+See [`contributing.md`](contributing.md) for the full process. The core rule for tool connections is: **run before you write.** Every snippet should be something you executed and saw succeed.
 
 ## Legal
 
-Some workflows in this repo automate actions on external platforms. Platform automation may violate Terms of Service. Read [LEGAL_NOTICE.md](LEGAL_NOTICE.md) before running any automation scripts.
+Some workflows in this repo automate actions on external platforms. Platform automation may violate Terms of Service. Read [`LEGAL_NOTICE.md`](LEGAL_NOTICE.md) before running automation scripts.
 
 ## License
 

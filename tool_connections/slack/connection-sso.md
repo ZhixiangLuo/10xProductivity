@@ -13,6 +13,10 @@ Access is via your own user session (`xoxc` client token) extracted after SSO â€
 
 Env: `SLACK_XOXC`, `SLACK_D_COOKIE` (~8h â€” refresh via `python3 tool_connections/shared_utils/playwright_sso.py --slack-only`)
 
+Multiple Slack workspaces are supported with account-scoped env keys:
+`SLACK_ACME_WORKSPACE_URL`, `SLACK_ACME_XOXC`, `SLACK_ACME_D_COOKIE`
+(refresh via `python3 tool_connections/shared_utils/playwright_sso.py --slack-only --account acme`).
+
 ---
 
 ## Verify connection
@@ -43,6 +47,19 @@ python3 tool_connections/shared_utils/playwright_sso.py --slack-only
 ```
 
 The script opens Chromium, completes SSO, and writes `SLACK_XOXC` and `SLACK_D_COOKIE` to `.env` automatically.
+
+For a second workspace, set a scoped URL and refresh with `--account`:
+
+```bash
+# .env
+SLACK_ACME_WORKSPACE_URL=https://acme.slack.com/
+
+source .venv/bin/activate
+python3 tool_connections/shared_utils/playwright_sso.py --slack-only --account acme
+```
+
+The account name becomes an uppercase prefix, so this writes
+`SLACK_ACME_XOXC` and `SLACK_ACME_D_COOKIE`.
 
 ---
 

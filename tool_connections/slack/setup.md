@@ -31,6 +31,20 @@ python3 tool_connections/shared_utils/playwright_sso.py --slack-only
 
 The script opens a Chromium window. On managed machines with enterprise SSO it completes automatically (~20s). On personal machines, the user logs in once through the browser. Tokens are written to `.env` automatically.
 
+For multiple Slack workspaces, use account-scoped keys. The account name is
+normalized to an uppercase `.env` prefix:
+
+```bash
+# .env
+SLACK_ACME_WORKSPACE_URL=https://acme.slack.com/
+
+source .venv/bin/activate
+python3 tool_connections/shared_utils/playwright_sso.py --slack-only --account acme
+```
+
+That writes `SLACK_ACME_XOXC` and `SLACK_ACME_D_COOKIE` without replacing the
+default `SLACK_XOXC` / `SLACK_D_COOKIE` pair.
+
 ---
 
 ## Verify
@@ -59,6 +73,11 @@ print(r.get("user"), r.get("team"))
 SLACK_WORKSPACE_URL=https://yourcompany.slack.com/
 SLACK_XOXC=xoxc-your-slack-client-token
 SLACK_D_COOKIE=xoxd-your-slack-d-cookie-value
+
+# Optional second workspace:
+SLACK_ACME_WORKSPACE_URL=https://acme.slack.com/
+SLACK_ACME_XOXC=xoxc-your-acme-client-token
+SLACK_ACME_D_COOKIE=xoxd-your-acme-d-cookie-value
 ```
 
 ---
@@ -68,6 +87,9 @@ SLACK_D_COOKIE=xoxd-your-slack-d-cookie-value
 ```bash
 source .venv/bin/activate
 python3 tool_connections/shared_utils/playwright_sso.py --slack-only
+
+# Refresh a named workspace/account:
+python3 tool_connections/shared_utils/playwright_sso.py --slack-only --account acme
 ```
 
 Token TTL: ~8h. Re-run when `auth.test` returns `ok=False`.

@@ -4,6 +4,8 @@ SSO session refresher — discovery orchestrator.
 
 Discovers all tool_connections/*/sso.py plugins and delegates to them.
 Each plugin exposes: TOOL_NAME, ENV_KEYS, check(env) -> bool, capture(env) -> dict.
+Plugins can also expose ACCOUNT_ENV_KEYS for account-specific config values
+such as workspace URLs.
 
 Adding a new tool never requires changes to this file — just create
 tool_connections/<tool>/sso.py with the standard interface.
@@ -16,6 +18,7 @@ Usage:
     python3 playwright_sso.py --gdrive-only    # refresh Google Drive only
     python3 playwright_sso.py --teams-only     # refresh Microsoft Teams only
     python3 playwright_sso.py --outlook-only   # refresh Outlook only
+    python3 playwright_sso.py --slack-only --account acme
     python3 playwright_sso.py --list           # list discovered plugins
 """
 
@@ -33,10 +36,17 @@ TOOL_CONNECTIONS_DIR = Path(__file__).parents[1]
 # .env helpers
 # ---------------------------------------------------------------------------
 
+def clean_env_value(value: str) -> str:
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value
+
+
 def load_env(env_path: Path = ENV_FILE) -> dict[str, str]:
     if not env_path.exists():
         return {}
-    return {k.strip(): v.strip() for line in env_path.read_text().splitlines()
+    return {k.strip(): clean_env_value(v) for line in env_path.read_text().splitlines()
             if "=" in line and not line.startswith("#") for k, v in [line.split("=", 1)]}
 
 
@@ -50,6 +60,62 @@ def write_env(tokens: dict[str, str], env_path: Path = ENV_FILE) -> None:
             content += f"\n{new_line}\n"
     env_path.write_text(content)
     print(f"  Updated {env_path}")
+
+
+def account_prefix(account: str) -> str:
+    """Normalize a user-facing account name for .env key prefixes."""
+    prefix = re.sub(r"[^A-Za-z0-9]+", "_", account).strip("_").upper()
+    if not prefix:
+        raise ValueError("--account must contain at least one letter or number")
+    return prefix
+
+
+def account_env_key(account: str, key: str) -> str:
+    """Backward-compatible account-first key, e.g. ACME_SLACK_XOXC."""
+    return f"{account_prefix(account)}_{key}"
+
+
+def scoped_env_key(account: str, key: str) -> str:
+    """Tool-first account key, e.g. SLACK_ACME_XOXC.
+
+    Most connection env vars already start with the tool namespace. Keeping that
+    namespace first groups all credentials for a tool together while inserting
+    the account/workspace name before the credential-specific suffix.
+    """
+    if "_" not in key:
+        return account_env_key(account, key)
+    namespace, suffix = key.split("_", 1)
+    return f"{namespace}_{account_prefix(account)}_{suffix}"
+
+
+def account_keys(mod: object) -> list[str]:
+    return list(getattr(mod, "ACCOUNT_ENV_KEYS", [])) + list(getattr(mod, "ENV_KEYS", []))
+
+
+def env_for_account(env: dict[str, str], mod: object, account: str | None) -> dict[str, str]:
+    """Overlay account-scoped values onto the plugin's normal env key names."""
+    if not account:
+        return dict(env)
+
+    scoped_env = dict(env)
+    for key in account_keys(mod):
+        scoped_key = scoped_env_key(account, key)
+        legacy_key = account_env_key(account, key)
+        if scoped_key in env:
+            scoped_env[key] = env[scoped_key]
+        elif legacy_key in env:
+            scoped_env[key] = env[legacy_key]
+        else:
+            scoped_env.pop(key, None)
+    scoped_env["SSO_ACCOUNT"] = account
+    scoped_env["SSO_ACCOUNT_PREFIX"] = account_prefix(account)
+    return scoped_env
+
+
+def tokens_for_account(tokens: dict[str, str], account: str | None) -> dict[str, str]:
+    if not account:
+        return tokens
+    return {scoped_env_key(account, key): value for key, value in tokens.items()}
 
 
 # ---------------------------------------------------------------------------
@@ -90,6 +156,15 @@ def main():
     parser.add_argument("--env-file", type=Path, default=ENV_FILE, metavar="PATH")
     parser.add_argument("--force", action="store_true", help="Refresh even if tokens are valid")
     parser.add_argument("--list", action="store_true", help="List discovered plugins and exit")
+    parser.add_argument(
+        "--account",
+        metavar="NAME",
+        help=(
+            "Refresh an account-scoped credential set. For example, "
+            "--slack-only --account acme reads SLACK_ACME_WORKSPACE_URL and "
+            "writes SLACK_ACME_XOXC / SLACK_ACME_D_COOKIE."
+        ),
+    )
 
     for name in plugins:
         parser.add_argument(f"--{name}-only", action="store_true",
@@ -109,6 +184,8 @@ def main():
     # Determine which tools to run
     only_flags = {name: getattr(args, f"{name}_only", False) for name in plugins}
     any_only = any(only_flags.values())
+    if args.account and sum(1 for selected in only_flags.values() if selected) != 1:
+        parser.error("--account must be used with exactly one --<tool>-only flag")
 
     targets = {name: mod for name, mod in plugins.items()
                if not any_only or only_flags.get(name)}
@@ -118,16 +195,18 @@ def main():
     print()
 
     for name, mod in targets.items():
+        plugin_env = env_for_account(env, mod, args.account)
+        label = f"{name}:{args.account}" if args.account else name
         if not args.force:
-            valid = mod.check(env)
+            valid = mod.check(plugin_env)
             status = "ok" if valid else "expired or missing"
-            print(f"  {name}: {status}")
+            print(f"  {label}: {status}")
             if valid:
                 continue
 
-        print(f"  Refreshing {name}...")
+        print(f"  Refreshing {label}...")
         try:
-            tokens = mod.capture(env)
+            tokens = tokens_for_account(mod.capture(plugin_env), args.account)
             write_env(tokens, args.env_file)
             env.update(tokens)
             for k in tokens:
