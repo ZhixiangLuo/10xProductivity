@@ -65,7 +65,7 @@ def capture(env: dict) -> dict:
     login_hint = (
         env.get("SSO_LOGIN_HINT")
         or env.get("OUTLOOK_LOGIN_HINT")
-        or env.get("WORKDAY_EMAIL")
+        or env.get("WORK_EMAIL")
         or env.get("M365_EMAIL")
         or env.get("AZURE_EMAIL")
         or ""
