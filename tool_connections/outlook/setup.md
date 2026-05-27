@@ -30,9 +30,26 @@ If Microsoft asks for an account, pass a login hint:
 python3 tool_connections/shared_utils/playwright_sso.py \
   --outlook-only \
   --login-hint user@example.com
+# → Opens Outlook with login_hint=user%40example.com
+# → Login detected; writes GRAPH_ACCESS_TOKEN + OWA_ACCESS_TOKEN to .env
 ```
 
 You can also persist the hint in `.env` as `OUTLOOK_LOGIN_HINT=user@example.com`.
+
+Verified scrubbed output:
+
+```text
+$ python3 tool_connections/shared_utils/playwright_sso.py --outlook-only --login-hint user@example.com
+# → outlook: expired or missing
+# → Opening Outlook (...) with login hint user@example.com
+# → Login detected!
+# → Updated GRAPH_ACCESS_TOKEN
+# → Updated OWA_ACCESS_TOKEN
+```
+
+Failure case: if Microsoft selects the wrong account, the Graph verify call
+returns a different user or `401`. Re-run with `--login-hint user@example.com`
+or set `OUTLOOK_LOGIN_HINT` in `.env` before refreshing.
 
 On a corporate-managed machine (Intune/MDM or similar), Azure AD SSO auto-completes in ~30s. On unmanaged machines, complete the Microsoft 365 login once through the browser.
 

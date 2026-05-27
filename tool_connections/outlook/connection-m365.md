@@ -42,12 +42,29 @@ If Microsoft asks which account to use, pass a login hint or set it in `.env`:
 python3 tool_connections/shared_utils/playwright_sso.py \
   --outlook-only \
   --login-hint user@example.com
+# → Opens https://outlook.office.com/mail/?login_hint=user%40example.com
+# → Login detected; writes GRAPH_ACCESS_TOKEN + OWA_ACCESS_TOKEN to .env
 
 # Or in .env:
 OUTLOOK_LOGIN_HINT=user@example.com
 ```
 
 The Outlook SSO plugin appends the hint to the Outlook login URL and also tries to fill the Microsoft email field if it appears.
+
+Verified scrubbed output:
+
+```text
+$ python3 tool_connections/shared_utils/playwright_sso.py --outlook-only --login-hint user@example.com
+# → outlook: expired or missing
+# → Opening Outlook (...) with login hint user@example.com
+# → Login detected!
+# → Updated GRAPH_ACCESS_TOKEN
+# → Updated OWA_ACCESS_TOKEN
+```
+
+Observed failure case: if the wrong Microsoft account is selected, Graph `/me`
+returns a different user or `401`. Re-run with `--login-hint user@example.com`
+or set `OUTLOOK_LOGIN_HINT` in `.env` before refreshing.
 
 The script intercepts two tokens from network requests as the Outlook app loads:
 - **Graph token**: from the first `graph.microsoft.com` request (user photo)
