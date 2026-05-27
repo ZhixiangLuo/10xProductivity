@@ -68,13 +68,13 @@ The account-scoped flow was verified against two Slack workspaces:
 ```text
 $ python3 tool_connections/shared_utils/playwright_sso.py --slack-only
 # → slack: ok
-# → auth.test: ok=True, team=Development, user=alice
+# → auth.test: ok=True, team=primary-workspace, user=alice
 # → conversations.open: ok=True, channel=D0123456789
 # → chat.postMessage: ok=True
 
-$ python3 tool_connections/shared_utils/playwright_sso.py --slack-only --account chatbotgig
-# → slack:chatbotgig: ok
-# → auth.test: ok=True, team=slack_chatbot_gig, user=alice
+$ python3 tool_connections/shared_utils/playwright_sso.py --slack-only --account sideproject
+# → slack:sideproject: ok
+# → auth.test: ok=True, team=sideproject-workspace, user=alice
 # → conversations.open: ok=True, channel=D9876543210
 # → chat.postMessage: ok=True
 ```
