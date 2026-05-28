@@ -42,6 +42,8 @@ If Microsoft asks which account to use, pass a login hint or set it in `.env`:
 python3 tool_connections/shared_utils/playwright_sso.py \
   --outlook-only \
   --login-hint user@example.com
+# → Opens https://outlook.office.com/mail/?login_hint=user%40example.com
+# → Login detected; writes GRAPH_ACCESS_TOKEN + OWA_ACCESS_TOKEN to .env
 
 # Or in .env:
 OUTLOOK_LOGIN_HINT=user@example.com
