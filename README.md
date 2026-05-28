@@ -128,53 +128,26 @@ setup-python.md          Python and Playwright setup helper
 
 The current repo is strongest at the connection layer. The workflow layer exists, but is still early. The next product direction is to build upward from connections into reusable workflows, agent skills, Slack interaction, and trusted scheduled jobs.
 
-## Supported Tools
+## Work Surfaces
 
-The repo includes setup guides for common tools, and the same setup path works for internal systems and custom company tools.
+This is not a connector-count competition. The point is to cover the surfaces where work actually happens, then teach your agent how to move across them.
 
-| Tool | Setup |
-|---|---|
-| Slack | [`tool_connections/slack/setup.md`](tool_connections/slack/setup.md) |
-| Jira | [`tool_connections/jira/setup.md`](tool_connections/jira/setup.md) |
-| GitHub | [`tool_connections/github/setup.md`](tool_connections/github/setup.md) |
-| Confluence | [`tool_connections/confluence/setup.md`](tool_connections/confluence/setup.md) |
-| Google Drive | [`tool_connections/google-drive/setup.md`](tool_connections/google-drive/setup.md) |
-| Outlook | [`tool_connections/outlook/setup.md`](tool_connections/outlook/setup.md) |
-| Microsoft Teams | [`tool_connections/microsoft-teams/setup.md`](tool_connections/microsoft-teams/setup.md) |
-| Microsoft Teams Enterprise | [`tool_connections/microsoft-teams-enterprise/setup.md`](tool_connections/microsoft-teams-enterprise/setup.md) |
-| OneNote | [`tool_connections/onenote/setup.md`](tool_connections/onenote/setup.md) |
-| SharePoint / OneDrive | [`tool_connections/sharepoint-onedrive/setup.md`](tool_connections/sharepoint-onedrive/setup.md) |
-| Salesforce | [`tool_connections/salesforce/setup.md`](tool_connections/salesforce/setup.md) |
-| Gmail | [`tool_connections/gmail/setup.md`](tool_connections/gmail/setup.md) |
-| PagerDuty | [`tool_connections/pagerduty/setup.md`](tool_connections/pagerduty/setup.md) |
-| Grafana | [`tool_connections/grafana/setup.md`](tool_connections/grafana/setup.md) |
-| Datadog | [`tool_connections/datadog/setup.md`](tool_connections/datadog/setup.md) |
-| Jenkins | [`tool_connections/jenkins/setup.md`](tool_connections/jenkins/setup.md) |
-| Linear | [`tool_connections/linear/setup.md`](tool_connections/linear/setup.md) |
-| Notion | [`tool_connections/notion/setup.md`](tool_connections/notion/setup.md) |
-| Bitbucket Server | [`tool_connections/bitbucket-server/setup.md`](tool_connections/bitbucket-server/setup.md) |
-| Artifactory | [`tool_connections/artifactory/setup.md`](tool_connections/artifactory/setup.md) |
-| Backstage | [`tool_connections/backstage/setup.md`](tool_connections/backstage/setup.md) |
-| Figma | [`tool_connections/figma/setup.md`](tool_connections/figma/setup.md) |
-| Miro | [`tool_connections/miro/setup.md`](tool_connections/miro/setup.md) |
-| LinkedIn | [`tool_connections/linkedin/setup.md`](tool_connections/linkedin/setup.md) |
-| M365 Copilot Search | [`tool_connections/m365-copilot-search/setup.md`](tool_connections/m365-copilot-search/setup.md) |
-| DepMap | [`tool_connections/depmap/setup.md`](tool_connections/depmap/setup.md) |
-
-Not listed? Use [`add-new-tool.md`](add-new-tool.md). If it has an API, CLI, browser interface, or local files, your agent can usually learn to use it.
-
-## Agent Skills
-
-Agent skills are the product layer above raw tool connections. They teach a coding agent when and how to use connected tools.
-
-| Skill | Runtime | Use it for |
+| Work surface | Example tools | What this unlocks in real work |
 |---|---|---|
-| [`tool-connector`](.cursor/skills/tool-connector/SKILL.md) | Cursor | Connect Slack, Jira, GitHub, Confluence, internal tools, and other work systems to your agent |
-| [`enterprise-search`](.cursor/skills/enterprise-search/SKILL.md) | Cursor | Search institutional knowledge across connected tools in one query |
-| [`create-workflow`](.cursor/skills/create-workflow/SKILL.md) | Cursor / Claude Code | Design and build multi-step workflows across tools |
-| [`discover-ui-surface`](.cursor/skills/discover-ui-surface/SKILL.md) | Cursor / Claude Code | Map UI interactions and browser/API surfaces before automation |
-| [`linkedin-engagement`](.cursor/skills/linkedin-engagement/SKILL.md) | Cursor / Claude Code | Draft and run a supervised LinkedIn engagement workflow |
-| [`colleague-distillation`](.cursor/skills/colleague-distillation/SKILL.md) | Cursor / Claude Code | Distill tool-backed context about a colleague into a reusable AI skill |
+| Team communication | [Slack](tool_connections/slack/setup.md), [Microsoft Teams](tool_connections/microsoft-teams/setup.md), [Outlook](tool_connections/outlook/setup.md), etc. | Summarize threads, find decisions, draft replies, prepare for meetings, and keep follow-ups from disappearing |
+| Work tracking | [Jira](tool_connections/jira/setup.md), [Linear](tool_connections/linear/setup.md), etc. | Triage tickets, spot stale work, draft updates, connect roadmap items to code, docs, and conversations |
+| Code and delivery | [GitHub](tool_connections/github/setup.md), [Bitbucket Server](tool_connections/bitbucket-server/setup.md), [Jenkins](tool_connections/jenkins/setup.md), [Artifactory](tool_connections/artifactory/setup.md), etc. | Review PR context, investigate build failures, trace releases, and connect code changes back to tickets and incidents |
+| Knowledge and documents | [Confluence](tool_connections/confluence/setup.md), [Google Drive](tool_connections/google-drive/setup.md), [SharePoint / OneDrive](tool_connections/sharepoint-onedrive/setup.md), [Notion](tool_connections/notion/setup.md), [OneNote](tool_connections/onenote/setup.md), etc. | Find the source of truth, compare stale docs with current discussions, and turn scattered context into usable briefs |
+| Operations and observability | [PagerDuty](tool_connections/pagerduty/setup.md), [Grafana](tool_connections/grafana/setup.md), [Datadog](tool_connections/datadog/setup.md), etc. | Prepare incident context, connect alerts to owners and tickets, and summarize operational follow-ups |
+| Business and collaboration | [Salesforce](tool_connections/salesforce/setup.md), [Figma](tool_connections/figma/setup.md), [Miro](tool_connections/miro/setup.md), etc. | Prep customer calls, inspect design context, and summarize planning boards |
+
+Internal portals and custom company tools matter just as much as commercial SaaS. If a tool has an API, CLI, browser interface, or local files, use [`add-new-tool.md`](add-new-tool.md) to teach your agent how to use it privately.
+
+## Agent Skills and Workflows
+
+Agent skills sit above raw tool connections. They teach your coding agent how to do work, not just how to call an API.
+
+Packaged skills currently cover [tool setup](.cursor/skills/tool-connector/SKILL.md), [enterprise search](.cursor/skills/enterprise-search/SKILL.md), [workflow creation](.cursor/skills/create-workflow/SKILL.md), [UI surface discovery](.cursor/skills/discover-ui-surface/SKILL.md), and [colleague distillation](.cursor/skills/colleague-distillation/SKILL.md).
 
 ## Quick Start
 

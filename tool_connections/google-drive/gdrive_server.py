@@ -168,6 +168,14 @@ class GDriveServer:
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
         self._log.write(f"[{ts}] {msg}\n")
 
+    def save_storage_state(self):
+        """Persist the current Google session after auth or cookie rotation."""
+        if self._ctx is None:
+            return
+        AUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
+        self._ctx.storage_state(path=str(AUTH_FILE))
+        self.log(f"Saved storage_state to {AUTH_FILE}")
+
     def start_browser(self):
         from playwright.sync_api import sync_playwright
         self.log("Starting browser via system Chrome CDP...")
@@ -206,6 +214,7 @@ class GDriveServer:
                     "Google Drive login is required. Complete sign-in in the visible "
                     "Chrome window opened for Drive, then retry the command."
                 ) from e
+        self.save_storage_state()
         self.log("Browser ready.")
 
     def _on_browser_disconnected(self):

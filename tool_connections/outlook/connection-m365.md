@@ -42,45 +42,12 @@ If Microsoft asks which account to use, pass a login hint or set it in `.env`:
 python3 tool_connections/shared_utils/playwright_sso.py \
   --outlook-only \
   --login-hint user@example.com
-# → Opens https://outlook.office.com/mail/?login_hint=user%40example.com
-# → Login detected; writes GRAPH_ACCESS_TOKEN + OWA_ACCESS_TOKEN to .env
 
 # Or in .env:
 OUTLOOK_LOGIN_HINT=user@example.com
 ```
 
 The Outlook SSO plugin appends the hint to the Outlook login URL and also tries to fill the Microsoft email field if it appears.
-
-Verified scrubbed output:
-
-```text
-$ python3 tool_connections/shared_utils/playwright_sso.py --outlook-only --force
-SSO token refresher
-  .env: /path/to/10xProductivity/.env
-
-  Refreshing outlook...
-  Opening Outlook (https://outlook.office.com/mail/) with login hint alice@example.com — Azure AD SSO should auto-complete...
-    Waiting for Outlook login to complete (up to 3 min — Ctrl+C to abort)...
-    Still waiting... (163s remaining — Ctrl+C to abort)
-    Login detected!
-    Graph token captured (3215 chars)
-    OWA token captured (5098 chars)
-  Updated /path/to/10xProductivity/.env
-    Updated GRAPH_ACCESS_TOKEN
-    Updated OWA_ACCESS_TOKEN
-
-Done.
-
-$ python3 - <<'PY'  # verify Graph /me and OWA messages with refreshed tokens
-# → graph /me status: 200
-# → graph user present: True
-# → owa messages status: 200
-# → owa messages returned: 1
-```
-
-Observed failure case: if the wrong Microsoft account is selected, Graph `/me`
-returns a different user or `401`. Re-run with `--login-hint user@example.com`
-or set `OUTLOOK_LOGIN_HINT` in `.env` before refreshing.
 
 The script intercepts two tokens from network requests as the Outlook app loads:
 - **Graph token**: from the first `graph.microsoft.com` request (user photo)
