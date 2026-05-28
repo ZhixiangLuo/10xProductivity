@@ -138,6 +138,7 @@ This is not a connector-count competition. The point is to cover the surfaces wh
 | Work tracking | [Jira](tool_connections/jira/setup.md), [Linear](tool_connections/linear/setup.md), etc. | Triage tickets, spot stale work, draft updates, connect roadmap items to code, docs, and conversations |
 | Code and delivery | [GitHub](tool_connections/github/setup.md), [Bitbucket Server](tool_connections/bitbucket-server/setup.md), [Jenkins](tool_connections/jenkins/setup.md), [Artifactory](tool_connections/artifactory/setup.md), etc. | Review PR context, investigate build failures, trace releases, and connect code changes back to tickets and incidents |
 | Knowledge and documents | [Confluence](tool_connections/confluence/setup.md), [Google Drive](tool_connections/google-drive/setup.md), [SharePoint / OneDrive](tool_connections/sharepoint-onedrive/setup.md), [Notion](tool_connections/notion/setup.md), [OneNote](tool_connections/onenote/setup.md), etc. | Find the source of truth, compare stale docs with current discussions, and turn scattered context into usable briefs |
+| Web and AI search | [Google AI Mode](tool_connections/google-ai-mode/setup.md) | Real-time web research with AI-synthesized answers and multi-turn follow-up — your agent can search the live web, not just its training data |
 | Operations and observability | [PagerDuty](tool_connections/pagerduty/setup.md), [Grafana](tool_connections/grafana/setup.md), [Datadog](tool_connections/datadog/setup.md), etc. | Prepare incident context, connect alerts to owners and tickets, and summarize operational follow-ups |
 | Business and collaboration | [Salesforce](tool_connections/salesforce/setup.md), [Figma](tool_connections/figma/setup.md), [Miro](tool_connections/miro/setup.md), etc. | Prep customer calls, inspect design context, and summarize planning boards |
 
@@ -189,6 +190,15 @@ Search for everything related to the decision to deprecate the v1 API.
 ```
 
 The agent searches across connected tools, synthesizes the answer, and links back to source material.
+
+**Available today: real-time web research**
+
+```text
+Research the current state of WebAssembly support across major browsers
+and summarize what changed in the last 6 months.
+```
+
+The agent queries Google AI Mode for AI-synthesized answers grounded in live web sources, with multi-turn follow-up for deeper investigation. No API key — sign in to Google once.
 
 **Coaching example: sprint triage**
 
