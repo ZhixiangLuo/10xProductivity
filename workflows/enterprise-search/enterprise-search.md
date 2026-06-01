@@ -25,6 +25,7 @@ Read `verified_connections.md`. Note which tools are available. Only search tool
 | Linear | Project issues, bugs, feature requests |
 | Notion | Pages and databases shared with your integration |
 | GitHub | Code, PRs, issues, commit history |
+| Google AI Mode | Open-web / external knowledge — synthesized answer across Google's index (news, public docs, market data, company info) |
 
 ---
 
@@ -43,6 +44,7 @@ Add the named tools below based on what you see or what was asked:
 | Jira / Linear | Query mentions a ticket, feature, bug, sprint, or "is X done?" |
 | GitHub | Query mentions code, a function, file, PR, error, or implementation detail |
 | Notion | Connected and Confluence didn't return enough |
+| Google AI Mode | Query needs **external / open-web** knowledge — public docs, news, market or company data, "what is X" about the outside world. Prefer it over raw web search/fetch: ask the question and let it synthesize across Google's index. |
 
 Run all selected searches simultaneously after selecting the batch. Do not wait for one to finish before starting the next.
 
@@ -281,6 +283,20 @@ curl -s -H "Authorization: token $GITHUB_TOKEN" \
 ```
 
 To scope to a specific repo: append `+repo:{owner}/{repo}` to the query.
+
+---
+
+### Google AI Mode *(external / open-web questions)*
+
+For anything outside the company's own systems — public documentation, news, market data, competitor or company facts — prefer Google AI Mode over raw web search + fetch. It reads across Google's index and returns one synthesized, sourced answer. Ask the question; let it fetch. Supports multi-turn `--followup`.
+
+```bash
+cd ~/git_repos/10xProductivity && .venv/bin/python3 personal/google-ai-mode/google_ai_mode.py \
+  "<YOUR QUESTION>" \
+  --followup "<OPTIONAL DRILL-IN>"
+```
+
+See `personal/google-ai-mode/connection-cdp.md` for setup and behavior. Use raw `WebFetch` only to verify an exact figure or confirm a primary source.
 
 ---
 
