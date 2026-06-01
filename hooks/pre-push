@@ -170,13 +170,14 @@ else
     exit 1
 fi
 
-# For Cursor agent: verify authentication (keychain-based, run `agent login` once).
-# Use `agent whoami` — fast (~1s) and purpose-built for auth checks.
-# The old probe ran a full prompt which could exceed the timeout in hook context.
+# Verify saved CLI authentication from `agent whoami`.
+# Some versions return status 0 even when printing "Not logged in".
 if $USING_CURSOR_AGENT; then
-    if ! agent whoami > /dev/null 2>&1; then
+    AGENT_WHOAMI="$(agent whoami 2>&1 || true)"
+    if ! echo "$AGENT_WHOAMI" | grep -q "Logged in as"; then
         echo "❌ Push blocked — Cursor agent is not authenticated."
         echo "   Fix: run 'agent login' once (opens browser, saves to keychain)."
+        echo "   Current status: $AGENT_WHOAMI"
         echo "   To bypass intentionally: set SKIP_AI_REVIEW=1 in .env"
         exit 1
     fi
