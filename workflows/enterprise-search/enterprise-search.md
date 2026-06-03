@@ -291,7 +291,7 @@ To scope to a specific repo: append `+repo:{owner}/{repo}` to the query.
 For anything outside the company's own systems — public documentation, news, market data, competitor or company facts — prefer Google AI Mode over raw web search + fetch. It reads across Google's index and returns one synthesized, sourced answer. Ask the question; let it fetch. Supports multi-turn `--followup`.
 
 ```bash
-cd ~/git_repos/10xProductivity && .venv/bin/python3 personal/google-ai-mode/google_ai_mode.py \
+cd /path/to/10xProductivity && .venv/bin/python3 tool_connections/google-ai-mode/google_ai_mode.py \
   "<YOUR QUESTION>" \
   --followup "<OPTIONAL DRILL-IN>"
 ```

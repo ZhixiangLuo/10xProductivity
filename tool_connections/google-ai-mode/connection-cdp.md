@@ -37,7 +37,7 @@ Launch real Google Chrome with a dedicated automation profile and attach over CD
 The SSO script resumes the existing profile session if valid, and only opens Chrome for sign-in when needed:
 
 ```bash
-cd ~/git_repos/10xProductivity
+cd /path/to/10xProductivity
 .venv/bin/python3 tool_connections/google-ai-mode/sso.py
 ```
 
@@ -62,7 +62,7 @@ The session persists in this dedicated profile.
 
 ```bash
 # Single-turn AI Mode query.
-cd ~/git_repos/10xProductivity
+cd /path/to/10xProductivity
 .venv/bin/python3 tool_connections/google-ai-mode/google_ai_mode.py \
   "what should a team member report in daily standup? answer briefly"
 ```
@@ -93,7 +93,7 @@ Verified scrubbed output:
 
 ```bash
 # Multi-turn AI Mode conversation.
-cd ~/git_repos/10xProductivity
+cd /path/to/10xProductivity
 .venv/bin/python3 tool_connections/google-ai-mode/google_ai_mode.py \
   "What should a team member report in daily standup? Keep it brief." \
   --followup "Now tailor that for a principal engineer leading an AI platform migration."
@@ -130,7 +130,7 @@ Verified scrubbed output (second turn):
 
 ```bash
 # Traffic capture for endpoint research.
-cd ~/git_repos/10xProductivity
+cd /path/to/10xProductivity
 .venv/bin/python3 tool_connections/shared_utils/traffic_sniffer.py \
   --profile "$HOME/.browser_automation/google_ai_mode_cdp_profile" \
   --url "https://www.google.com/search?udm=50&q=example" \

@@ -4,11 +4,11 @@
 # Designed for the repo owner (pushes to main), but safe to install by anyone:
 #   - Fast scan runs for all pushes to GitHub — catches real credentials/personal data.
 #   - AI review is REQUIRED. A push is blocked if the agent is missing or unauthenticated.
-#     Escape hatch: set SKIP_AI_REVIEW=1 in .env for an intentional, logged bypass.
+#     Escape hatch: set SKIP_AI_REVIEW=1 in TENX_PRIVATE_DIR/.env for an intentional, logged bypass.
 #
 # Two layers:
 #   1. Fast regex scan — blocks obvious credentials, .env, personal/ files. No API call.
-#   2. AI agent review (optional) — reads the diff, runs safety + quality checks,
+#   2. AI agent review — reads the diff, runs safety + quality checks,
 #      returns a structured PASS/FAIL verdict. Blocks on FAIL when it runs.
 #
 # Agent resolution order (first match wins):
@@ -24,10 +24,11 @@ set -euo pipefail
 REMOTE="$1"
 URL="$2"
 
-# Load BANNED_TERM from .env (gitignored) — never committed as a literal
+# Load BANNED_TERM from TENX_PRIVATE_DIR/.env — never committed as a literal
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$SCRIPT_DIR/..")"
-ENV_FILE="$REPO_ROOT/.env"
+TENX_PRIVATE_DIR="${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}"
+ENV_FILE="$TENX_PRIVATE_DIR/.env"
 BANNED_TERM=""
 SKIP_AI_REVIEW=""
 if [[ -f "$ENV_FILE" ]]; then
@@ -104,14 +105,16 @@ if echo "$CHANGED_FILES" | grep -qE "^\.env$"; then
 fi
 
 # personal/ must never be pushed
-if echo "$CHANGED_FILES" | grep -qE "^personal/"; then
+PERSONAL_FILES="$(echo "$CHANGED_FILES" | grep -E "^personal/" | grep -vE "^personal/README\\.md$" || true)"
+if [[ -n "$PERSONAL_FILES" ]]; then
     echo "❌ BLOCKED: personal/ files staged — these are gitignored and must never be committed."
-    echo "$CHANGED_FILES" | grep "^personal/" | sed 's/^/    /'
+    echo "$PERSONAL_FILES" | sed 's/^/    /'
     FAIL=1
 fi
 
-# Obvious credential patterns
-CRED_PATTERN='(eyJ[a-zA-Z0-9]{50,}|xoxc-[a-zA-Z0-9-]{20,}|xoxd-[a-zA-Z0-9-]{20,}|ghp_[a-zA-Z0-9]{36}|ATATT[a-zA-Z0-9]{32,})'
+# Obvious credential patterns. Keep this conservative: prefer blocking and
+# reviewing a false positive over pushing a real secret to the public repo.
+CRED_PATTERN='(eyJ[a-zA-Z0-9_-]{50,}|xox[baprsd]-[A-Za-z0-9-]{20,}|xapp-[A-Za-z0-9-]{20,}|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{40,}|glpat-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|ATATT[A-Za-z0-9_-]{32,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)'
 while IFS= read -r file; do
     [[ -f "$file" ]] || continue
     if grep -qiE "$CRED_PATTERN" "$file" 2>/dev/null; then
@@ -144,8 +147,8 @@ echo "✅ Fast scan passed."
 # ── Step 2: Agent review ──────────────────────────────────────────────────────
 # Escape hatch: SKIP_AI_REVIEW=1 in .env bypasses the agent review intentionally.
 if [[ "${SKIP_AI_REVIEW:-}" == "1" ]]; then
-    echo "⚠️  AI review bypassed — SKIP_AI_REVIEW=1 is set in .env. Fast scan passed."
-    echo "   Remove SKIP_AI_REVIEW from .env when done."
+    echo "⚠️  AI review bypassed — SKIP_AI_REVIEW=1 is set in TENX_PRIVATE_DIR/.env. Fast scan passed."
+    echo "   Remove SKIP_AI_REVIEW from TENX_PRIVATE_DIR/.env when done."
     exit 0
 fi
 
@@ -166,7 +169,7 @@ else
     echo "❌ Push blocked — no agent found and AI review is required."
     echo "   Fix: install Cursor agent (https://cursor.com) and run: agent login"
     echo "   Or set AI_REVIEW_CMD to any CLI that reads a prompt from stdin."
-    echo "   To bypass intentionally: set SKIP_AI_REVIEW=1 in .env"
+    echo "   To bypass intentionally: set SKIP_AI_REVIEW=1 in TENX_PRIVATE_DIR/.env"
     exit 1
 fi
 
@@ -178,7 +181,7 @@ if $USING_CURSOR_AGENT; then
         echo "❌ Push blocked — Cursor agent is not authenticated."
         echo "   Fix: run 'agent login' once (opens browser, saves to keychain)."
         echo "   Current status: $AGENT_WHOAMI"
-        echo "   To bypass intentionally: set SKIP_AI_REVIEW=1 in .env"
+        echo "   To bypass intentionally: set SKIP_AI_REVIEW=1 in TENX_PRIVATE_DIR/.env"
         exit 1
     fi
 fi
@@ -286,7 +289,7 @@ else
 fi || {
     echo "❌ Push blocked — agent failed to run and AI review is required."
     echo "   Check that the agent CLI is working: agent -p --mode=ask --trust 'say: ok'"
-    echo "   To bypass intentionally: set SKIP_AI_REVIEW=1 in .env"
+    echo "   To bypass intentionally: set SKIP_AI_REVIEW=1 in TENX_PRIVATE_DIR/.env"
     exit 1
 }
 
@@ -305,6 +308,6 @@ else
     echo "❌ Push blocked — agent returned an unexpected verdict format (not PASS or FAIL)."
     echo "   Agent output:"
     cat "$VERDICT_FILE" | sed 's/^/    /'
-    echo "   To bypass intentionally: set SKIP_AI_REVIEW=1 in .env"
+    echo "   To bypass intentionally: set SKIP_AI_REVIEW=1 in TENX_PRIVATE_DIR/.env"
     exit 1
 fi

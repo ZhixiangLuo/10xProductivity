@@ -7,7 +7,9 @@ __pycache__/
 .DS_Store
 # ~/.browser_automation/ lives outside the repo (home dir) — git never tracks it
 /scripts
-/personal/
+/personal/*
+!/personal/
+!/personal/README.md
 # Raw session/HAR trace files (may contain session cookies)
 **/*trace*.json
 **/*.har

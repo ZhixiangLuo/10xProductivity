@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# pre-commit hook - fast staged-content safety scan for the public repo.
+#
+# This catches secrets before they become commits. The pre-push hook remains the
+# broader safety net and runs the required AI review before pushing to GitHub.
+#
+# To install:
+#   cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -euo pipefail
+
+TENX_PRIVATE_DIR="${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}"
+ENV_FILE="$TENX_PRIVATE_DIR/.env"
+BANNED_TERM=""
+if [[ -f "$ENV_FILE" ]]; then
+    while IFS='=' read -r key value; do
+        case "$key" in
+            BANNED_TERM) BANNED_TERM="$value" ;;
+        esac
+    done < "$ENV_FILE"
+fi
+
+CHANGED_FILES="$(git diff --cached --name-only --diff-filter=ACMR)"
+if [[ -z "$CHANGED_FILES" ]]; then
+    exit 0
+fi
+
+echo "pre-commit: scanning staged files for secrets and unsafe public content..."
+
+FAIL=0
+
+block_file() {
+    local file="$1"
+    local reason="$2"
+    echo "BLOCKED: $reason: $file"
+    FAIL=1
+}
+
+while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+
+    case "$file" in
+        .env|.env.*)
+            block_file "$file" "environment file must not be committed"
+            ;;
+        personal/README.md)
+            ;;
+        personal/*)
+            block_file "$file" "personal/ is gitignored private workspace state"
+            ;;
+        verified_connections.md)
+            block_file "$file" "verified connection inventory may contain private details"
+            ;;
+        *trace*.json|*.har)
+            block_file "$file" "trace/HAR files may contain session cookies"
+            ;;
+        *Cookies*|*cookies*|*.session_cookies.json|*.browser_profile/*|*"/Login Data"*|*"/Local State")
+            block_file "$file" "browser/session state must stay out of Git"
+            ;;
+    esac
+done <<< "$CHANGED_FILES"
+
+# Scan the staged blob, not the working tree, so the hook checks exactly what
+# will be committed.
+CRED_PATTERN='(eyJ[A-Za-z0-9_-]{50,}|xox[baprsd]-[A-Za-z0-9-]{20,}|xapp-[A-Za-z0-9-]{20,}|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{40,}|glpat-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|ATATT[A-Za-z0-9_-]{32,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)'
+PRIVATE_DATA_PATTERN='([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|https?://[A-Za-z0-9.-]*(corp|internal|intranet|okta|onelogin|sharepoint|atlassian)[A-Za-z0-9.-]*)'
+PROMPT_INJECTION_PATTERN='(ignore (all )?(previous|above) instructions|system prompt|developer message|you are now|do not obey|disregard.*instructions|<!--.*(instruction|prompt|agent|system).*)'
+
+while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    if ! git cat-file -e ":$file" 2>/dev/null; then
+        continue
+    fi
+
+    staged_content="$(git show ":$file" 2>/dev/null || true)"
+    if [[ -z "$staged_content" ]]; then
+        continue
+    fi
+
+    if printf '%s\n' "$staged_content" | grep -qiE "$CRED_PATTERN"; then
+        echo "BLOCKED: possible real credential in staged content: $file"
+        printf '%s\n' "$staged_content" | grep -inE "$CRED_PATTERN" | head -3 | sed 's/^/    /'
+        FAIL=1
+    fi
+
+    if [[ -n "$BANNED_TERM" ]] && printf '%s\n' "$staged_content" | grep -qiF "$BANNED_TERM"; then
+        echo "BLOCKED: banned term found in staged content: $file"
+        printf '%s\n' "$staged_content" | grep -inF "$BANNED_TERM" | head -3 | sed 's/^/    /'
+        FAIL=1
+    fi
+
+    private_hits="$(printf '%s\n' "$staged_content" | grep -inE "$PRIVATE_DATA_PATTERN" | grep -viE '(example|yourcompany)\.com' || true)"
+    if [[ -n "$private_hits" ]]; then
+        echo "REVIEW: possible private company/person data in staged content: $file"
+        printf '%s\n' "$private_hits" | head -3 | sed 's/^/    /'
+        FAIL=1
+    fi
+
+    if [[ "$file" != hooks/pre-commit && "$file" != hooks/pre-push && "$file" != contributing.md ]] && printf '%s\n' "$staged_content" | grep -qiE "$PROMPT_INJECTION_PATTERN"; then
+        echo "REVIEW: possible prompt-injection text in staged content: $file"
+        printf '%s\n' "$staged_content" | grep -inE "$PROMPT_INJECTION_PATTERN" | head -3 | sed 's/^/    /'
+        FAIL=1
+    fi
+done <<< "$CHANGED_FILES"
+
+if [[ $FAIL -eq 1 ]]; then
+    echo ""
+    echo "Commit blocked by pre-commit safety scan. Remove or scrub the staged content, then commit again."
+    exit 1
+fi
+
+echo "pre-commit: safety scan passed."
+exit 0

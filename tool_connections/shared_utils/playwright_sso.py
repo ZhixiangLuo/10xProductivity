@@ -29,7 +29,13 @@ import re
 import sys
 from pathlib import Path
 
-ENV_FILE = Path(__file__).parents[2] / ".env"
+try:
+    from browser import DEFAULT_ENV_FILE
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).parent))
+    from browser import DEFAULT_ENV_FILE
+
+ENV_FILE = DEFAULT_ENV_FILE
 TOOL_CONNECTIONS_DIR = Path(__file__).parents[1]
 
 
@@ -52,6 +58,7 @@ def load_env(env_path: Path = ENV_FILE) -> dict[str, str]:
 
 
 def write_env(tokens: dict[str, str], env_path: Path = ENV_FILE) -> None:
+    env_path.parent.mkdir(parents=True, exist_ok=True)
     content = env_path.read_text() if env_path.exists() else ""
     for key, value in tokens.items():
         new_line = f"{key}={value}"

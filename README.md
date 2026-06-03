@@ -130,11 +130,23 @@ workflows/               Multi-tool workflows built on top of connections
 .cursor/skills/          Cursor agent skills packaged with the repo
 .claude/skills/          Claude Code agent skills packaged with the repo
 staging/                 Community contributions under review
-personal/                Your private, gitignored local connections and workflows
 setup.md                 Main setup path for connecting tools
 add-new-tool.md          Playbook for connecting tools not yet in the repo
 setup-python.md          Python and Playwright setup helper
 ```
+
+Private runtime state lives outside the public repo by default:
+
+```text
+~/.10xProductivity/
+  .env                    Tokens, cookies, and private config
+  personal/               Your active private tool recipes and patched copies
+  verified_connections.md Device-specific connection index
+```
+
+Set `TENX_PRIVATE_DIR` if you want a different private directory. The repo keeps hooks and `.gitignore` as safety nets, but credentials and browser/session state should not live under the repo tree.
+
+Migration note: older local instructions may point at `/path/to/10xProductivity/.env`, `/path/to/10xProductivity/personal/`, or `/path/to/10xProductivity/verified_connections.md`. Those now map to `TENX_PRIVATE_DIR/.env`, `TENX_PRIVATE_DIR/personal/`, and `TENX_PRIVATE_DIR/verified_connections.md`. The repo `personal/` folder is only a placeholder with this reminder.
 
 The current repo is strongest at the connection layer. The workflow layer exists, but is still early. The next product direction is to build upward from connections into reusable workflows, agent skills, Slack interaction, and trusted scheduled jobs.
 

@@ -18,7 +18,10 @@ import asyncio
 import sys
 from pathlib import Path
 
-ENV_FILE = Path(__file__).parent.parent.parent / ".env"
+sys.path.insert(0, str(Path(__file__).parents[2] / "tool_connections"))
+from shared_utils.browser import DEFAULT_ENV_FILE
+
+ENV_FILE = DEFAULT_ENV_FILE
 
 
 def load_env():
@@ -69,6 +72,7 @@ def check(env: dict) -> bool:
 
 def update_env(key: str, value: str):
     """Upsert a key=value line in .env."""
+    ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
     lines = ENV_FILE.read_text().splitlines() if ENV_FILE.exists() else []
     found = False
     new_lines = []

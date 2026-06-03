@@ -217,7 +217,10 @@ if __name__ == "__main__":
     import argparse
     from pathlib import Path
 
-    ENV_FILE = Path(__file__).parents[2] / ".env"
+    sys.path.insert(0, str(Path(__file__).parents[2] / "tool_connections"))
+    from shared_utils.browser import DEFAULT_ENV_FILE
+
+    ENV_FILE = DEFAULT_ENV_FILE
 
     def _clean_env_value(value: str) -> str:
         value = value.strip()
@@ -233,6 +236,7 @@ if __name__ == "__main__":
 
     def _write_env(tokens):
         import re
+        ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
         content = ENV_FILE.read_text() if ENV_FILE.exists() else ""
         for key, value in tokens.items():
             new_line = f"{key}={value}"

@@ -1,13 +1,13 @@
 ---
 
 ## name: add-new-tool
-description: Add a new tool from scratch — research auth, validate against a live instance, write files to personal/{tool-name}/. Use when a tool has no recipe yet. Do NOT use this if the tool already exists in tool_connections/ — use setup.md instead.
+description: Add a new tool from scratch — research auth, validate against a live instance, write files to TENX_PRIVATE_DIR/personal/{tool-name}/. Use when a tool has no recipe yet. Do NOT use this if the tool already exists in tool_connections/ — use setup.md instead.
 
 # Add a New Tool
 
-> **What this file is for:** The tool has no recipe yet anywhere (`tool_connections/` or `personal/`). You are building one from scratch — researching auth, validating against a live instance, and writing the files to `personal/{tool-name}/` for your own use.
+> **What this file is for:** The tool has no recipe yet anywhere (`tool_connections/` or `TENX_PRIVATE_DIR/personal/`). You are building one from scratch — researching auth, validating against a live instance, and writing the files to `TENX_PRIVATE_DIR/personal/{tool-name}/` for your own use.
 >
-> **Wrong file?** If the tool already exists in `tool_connections/` or `personal/`, use `setup.md` instead — it will route you to the right recipe and handle patching if something is broken.
+> **Wrong file?** If the tool already exists in `tool_connections/` or `TENX_PRIVATE_DIR/personal/`, use `setup.md` instead — it will route you to the right recipe and handle patching if something is broken.
 >
 > **Want to contribute back?** After completing Phase 1, read `contributing.md`.
 
@@ -22,7 +22,7 @@ Turn "I want my agent to access Tool X" into a working, verified connection file
 
 ## Non-negotiable rules
 
-1. `**personal/` first, always.** All work — new tools, improvements to existing connections, new auth variants, fixes — starts in `personal/`. Never edit `tool_connections/` directly. `personal/` is gitignored and safe for your email, org URLs, tokens, and company-specific details. Nothing leaves `personal/` until it is verified, scrubbed, and promoted via `staging/` → PR. This applies to improvements just as much as new tools.
+1. **`TENX_PRIVATE_DIR/personal/` first, always.** All work — new tools, improvements to existing connections, new auth variants, fixes — starts in `TENX_PRIVATE_DIR/personal/`. Never edit `tool_connections/` directly. `TENX_PRIVATE_DIR/personal/` lives outside the public repo and is safe for your email, org URLs, tokens, and company-specific details. Nothing leaves `TENX_PRIVATE_DIR/personal/` until it is verified, scrubbed, and promoted via `staging/` → PR. This applies to improvements just as much as new tools.
 2. **Research viability first.** Before asking the user for anything, determine what auth methods exist for this tool. If no viable method exists (no public API, no session-based workaround, no OAuth path), stop — there is nothing to build.
 3. **Ask only what the auth method actually needs.** The credential ask must be proportional to the auth method: SSO/browser-session → ask for nothing (just a URL to confirm the instance); API token → ask for the token and where to generate it; username+password → ask for both. Never ask vague questions the user can't answer.
 4. **A URL is your best minimal input.** If you need to confirm an instance, ask for any URL from that tool (profile page, dashboard, ticket). It reveals the base URL, regional variant, and proves the user has access — without requiring them to know anything about auth.
@@ -68,8 +68,8 @@ Before asking the user for anything:
 
 **SSO-only tools:** If the tool uses enterprise SSO and has no API token path, the only option is browser session capture (Priority 2). This is fine — but do three things:
 
-1. Write a plugin-compliant `sso.py` in `**personal/{tool-name}/`** (not `tool_connections/`) with `TOOL_NAME`, `check(env) -> bool`, and `capture(env) -> dict`. Run it directly: `python3 personal/{tool-name}/sso.py`. If you later contribute the recipe upstream (owner-add or contribute workflow), `sso.py` is copied to `tool_connections/` as part of that process — not before.
-2. Document the refresh command in the connection file: `python3 personal/{tool-name}/sso.py` — the agent cannot self-refresh without the user present.
+1. Write a plugin-compliant `sso.py` in `TENX_PRIVATE_DIR/personal/{tool-name}/` (not `tool_connections/`) with `TOOL_NAME`, `check(env) -> bool`, and `capture(env) -> dict`. Run it directly: `python3 "${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}/personal/{tool-name}/sso.py"`. If you later contribute the recipe upstream (owner-add or contribute workflow), `sso.py` is copied to `tool_connections/` as part of that process — not before.
+2. Document the refresh command in the connection file: `python3 "${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}/personal/{tool-name}/sso.py"` — the agent cannot self-refresh without the user present.
 3. Document the token TTL (usually ~8h) — so the user knows when to expect re-authentication prompts.
 
 **The browser is a traffic sniffer, not an automation target.** Use Playwright once to capture auth tokens — then call the REST API directly for all subsequent operations. If you find yourself using Playwright to click buttons or read DOM content for regular operations, stop — you haven't found the API yet.
@@ -81,7 +81,7 @@ Once the tool is set up (connection file written with a `sniffer:` frontmatter b
 ```bash
 source .venv/bin/activate
 
-# Shortcut — reads profile/url/filter from personal/{tool}/connection-*.md:
+# Shortcut — reads profile/url/filter from TENX_PRIVATE_DIR/personal/{tool}/connection-*.md:
 python3 tool_connections/shared_utils/traffic_sniffer.py --tool {tool}
 
 # Explicit — full control (for first-time discovery before connection file exists):
@@ -160,9 +160,9 @@ Sites redirect. Confirm the real base URL before researching. Note any site-vari
 
 ### Step 3: Store credentials
 
-Add to `.env` (repo root) only — do not edit root `env.sample` (it is a stub) or other shared index files. Document new variables in `personal/{tool}/setup.md` under `**.env` entries**.
+Add to `TENX_PRIVATE_DIR/.env` only — do not edit root `env.sample` (it is a stub) or other shared index files. Document new variables in `TENX_PRIVATE_DIR/personal/{tool}/setup.md` under `**.env` entries**.
 
-> `**sso.py` must read credentials from `.env`, never hardcode them.** Even in `personal/`, scripts must call `load_env()` and read `SF_USERNAME`, `SF_PASSWORD`, etc. from the parsed env dict — not from module-level string literals. Hardcoded credentials in scripts are a scrubbing risk and make the recipe non-generalizable. If a value is missing from `.env`, prompt the user at runtime (`input()` / `getpass`) rather than baking it in.
+> `**sso.py` must read credentials from `TENX_PRIVATE_DIR/.env`, never hardcode them.** Even in `TENX_PRIVATE_DIR/personal/`, scripts must call `load_env()` and read `SF_USERNAME`, `SF_PASSWORD`, etc. from the parsed env dict — not from module-level string literals. Hardcoded credentials in scripts are a scrubbing risk and make the recipe non-generalizable. If a value is missing from `TENX_PRIVATE_DIR/.env`, prompt the user at runtime (`input()` / `getpass`) rather than baking it in.
 
 > **Watch for tools with explicit resource-sharing requirements.** Some tools (e.g. Notion) require you to explicitly grant the integration access to specific resources (pages, databases) even after auth succeeds. Workspace-level installation ≠ data access. If auth passes but read endpoints return 404 or empty results, look for a resource-level sharing step — usually found in the tool's Settings → Integrations/Apps → edit the integration → content/resource access panel. Document this in the Notes section of the connection file.
 
@@ -247,8 +247,8 @@ Skipping this step leaves the agent blind to the tool's most useful capabilities
 
 ### Step 5: Write the connection files
 
-**Location:** `personal/{tool-name}/` — always. This is gitignored and never committed.
-Do not write to `tool_connections/`, `staging/`, or anywhere else outside `personal/`.
+**Location:** `TENX_PRIVATE_DIR/personal/{tool-name}/` — always. This lives outside the public repo and is never committed.
+Do not write to `tool_connections/`, `staging/`, or anywhere else outside `TENX_PRIVATE_DIR/personal/`.
 
 **Two files are required** — both must be present before you can contribute:
 
@@ -366,9 +366,9 @@ Run `python3 tool_connections/shared_utils/traffic_sniffer.py --tool {tool-name}
 
 Once both files are written and at least 2 snippets are verified with real output, add the tool to your active capability index.
 
-> **Eligibility vs scrubbing — these are different gates at different stages.** Credentials, org-specific URLs, and personal data should always go in `.env` — not hardcoded in scripts. But if they do exist in `personal/` files, `personal/` is gitignored and they will never be committed. Either way, they are **scrubbing concerns** handled later in the owner-add or contribute workflow, not eligibility disqualifiers at this stage. Eligibility (Step 2 of `contributing.md`) asks only whether the tool is commercial/public and whether the auth pattern is general *in principle* — not whether your current files are already clean. A recipe that still needs scrubbing is still eligible; it just needs to be cleaned before promotion.
+> **Eligibility vs scrubbing — these are different gates at different stages.** Credentials, org-specific URLs, and personal data should always go in `.env` — not hardcoded in scripts. But if they do exist in `TENX_PRIVATE_DIR/personal/` files, `TENX_PRIVATE_DIR/personal/` is gitignored and they will never be committed. Either way, they are **scrubbing concerns** handled later in the owner-add or contribute workflow, not eligibility disqualifiers at this stage. Eligibility (Step 2 of `contributing.md`) asks only whether the tool is commercial/public and whether the auth pattern is general *in principle* — not whether your current files are already clean. A recipe that still needs scrubbing is still eligible; it just needs to be cleaned before promotion.
 
-Read the tool's `connection-*.md` frontmatter and append to `verified_connections.md`:
+Read the tool's `connection-*.md` frontmatter and append to `TENX_PRIVATE_DIR/verified_connections.md`:
 
 ```markdown
 ---
@@ -379,7 +379,7 @@ Read the tool's `connection-*.md` frontmatter and append to `verified_connection
 Env: `ENV_VAR_1`, `ENV_VAR_2`
 ```
 
-Then reload `verified_connections.md` — the new tool is now live in your session.
+Then reload `TENX_PRIVATE_DIR/verified_connections.md` — the new tool is now live in your session.
 
 ---
 
@@ -400,14 +400,14 @@ If the tool is commercial/publicly available and you want to share the connectio
 - Native search API tested — verified snippet recorded, or explicitly noted as absent
 - AI/chat API checked — verified snippet recorded, or explicitly noted as unavailable/paywalled
 - `verified: YYYY-MM` filled in (blank = not ready)
-- `.env` updated with new credentials
-- `personal/{tool-name}/connection-{auth-method}.md` written with only verified snippets
+- `TENX_PRIVATE_DIR/.env` updated with new credentials
+- `TENX_PRIVATE_DIR/personal/{tool-name}/connection-{auth-method}.md` written with only verified snippets
 - Python snippets use `urlopen()` from `tool_connections.shared_utils.browser` — not hand-rolled `ssl.CERT_NONE`
 - `sniffer:` frontmatter block added to connection file (profile, url, filter)
 - `## Agent behavior` section written (read vs write approval rules, error URL)
 - `## Typical actions to capture` section written
-- `personal/{tool-name}/setup.md` written (what to ask, `.env` entries, verify snippet)
+- `TENX_PRIVATE_DIR/personal/{tool-name}/setup.md` written (what to ask, `.env` entries, verify snippet)
 - Prompt injection check: scanned all `# →` output comments for instruction-like content (see `contributing.md` Step 3)
-- `verified_connections.md` updated — section appended from connection file frontmatter
+- `TENX_PRIVATE_DIR/verified_connections.md` updated — section appended from connection file frontmatter
 
 **To contribute back:** see `contributing.md`

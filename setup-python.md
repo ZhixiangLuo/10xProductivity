@@ -142,7 +142,8 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install playwright
 playwright install chromium
-touch .env
+mkdir -p "${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}/personal"
+touch "${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}/.env"
 ```
 
 If `python3` is too old but `python3.12` exists:
@@ -150,7 +151,7 @@ If `python3` is too old but `python3.12` exists:
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
-# ... same pip / playwright / touch .env as above
+# ... same pip / playwright / private directory setup as above
 ```
 
 **Windows (cmd from repo root):**
@@ -161,7 +162,8 @@ py -3 -m venv .venv
 python -m pip install --upgrade pip
 pip install playwright
 playwright install chromium
-type nul > .env
+if not exist "%USERPROFILE%\\.10xProductivity\\personal" mkdir "%USERPROFILE%\\.10xProductivity\\personal"
+type nul > "%USERPROFILE%\\.10xProductivity\\.env"
 ```
 
 PowerShell activation (if execution policy allows):
@@ -194,7 +196,7 @@ Then continue with **`setup.md`** — tool SSO scripts and verify snippets expec
 - [ ] `.venv/` exists and activates without error
 - [ ] `pip show playwright` shows an installed version
 - [ ] `playwright install chromium` completed
-- [ ] Empty `.env` at repo root (or existing file preserved)
+- [ ] Empty private `.env` exists at `${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}/.env` (or existing file preserved)
 
 ---
 

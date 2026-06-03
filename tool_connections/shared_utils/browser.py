@@ -31,10 +31,19 @@ __all__ = [
     "load_env_var", "load_env_file", "update_env_file",
     "http_get", "http_get_no_redirect",
     "make_ssl_ctx", "urlopen",
-    "DEFAULT_ENV_FILE", "BROWSER_AUTOMATION_DIR",
+    "DEFAULT_ENV_FILE", "TENX_PRIVATE_DIR", "private_path", "BROWSER_AUTOMATION_DIR",
 ]
 
-DEFAULT_ENV_FILE = Path(__file__).parents[2] / ".env"
+TENX_PRIVATE_DIR = Path(
+    os.environ.get("TENX_PRIVATE_DIR", Path.home() / ".10xProductivity")
+).expanduser()
+
+
+def private_path(*parts: str) -> Path:
+    return TENX_PRIVATE_DIR.joinpath(*parts)
+
+
+DEFAULT_ENV_FILE = private_path(".env")
 
 # Shared home for all persistent browser profiles and auth snapshots.
 # Lives outside the repo (~/.browser_automation/) so sessions survive

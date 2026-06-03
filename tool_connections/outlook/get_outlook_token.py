@@ -44,7 +44,7 @@ except ImportError:
     sys.exit(1)
 
 sys.path.insert(0, str(Path(__file__).parents[2] / "tool_connections"))
-from shared_utils.browser import BROWSER_AUTOMATION_DIR
+from shared_utils.browser import BROWSER_AUTOMATION_DIR, DEFAULT_ENV_FILE
 
 OUTLOOK_PROFILE = BROWSER_AUTOMATION_DIR / "outlook_profile"
 ENV_KEY = "OUTLOOK_ACCESS_TOKEN"
@@ -54,13 +54,11 @@ VERIFY_URL = "https://outlook.office.com/api/v2.0/me/messages?$top=1&$select=Sub
 def _find_env_file(explicit: str | None) -> Path:
     if explicit:
         return Path(explicit)
-    for candidate in [Path(".env"), Path(__file__).parent.parent.parent / ".env"]:
-        if candidate.exists():
-            return candidate
-    return Path(".env")
+    return DEFAULT_ENV_FILE
 
 
 def _update_env(env_path: Path, token: str) -> None:
+    env_path.parent.mkdir(parents=True, exist_ok=True)
     content = env_path.read_text() if env_path.exists() else ""
     new_line = f"{ENV_KEY}={token}"
     if ENV_KEY + "=" in content:

@@ -3,7 +3,7 @@ name: colleague-distillation
 description: Distill a colleague into a reusable AI skill (work + persona) using tool connections — Slack, Slack AI, Jira, GHE, Bitbucket, Confluence, SharePoint, Teams, Outlook, Notion, Linear, Google Docs, and more — without manual paste. Use when the user wants a colleague skill, digital twin of a coworker, or capture of someone's technical voice from workplace systems. Requires tool_connections + 10xProductivity verified_connections (or equivalent .env).
 ---
 
-> **Canonical copy:** `~/git_repos/the-genesis/.genesis/skills/colleague-distillation/SKILL.md`. This file is a **mirror** for Cursor when the workspace is 10xProductivity only; prefer editing Genesis first, then re-copy if needed.
+> **10xProductivity skill:** This file is the Cursor entry point for colleague distillation when working in this repo.
 
 # Colleague distillation (tool-backed)
 
@@ -24,10 +24,10 @@ Output layout matches the open **[colleague-skill](https://github.com/titanwings
 
 ## Prerequisites
 
-1. Load **`tool_connections`** — `$GENESIS_DIRECTORY/.genesis/skills/tool_connections/SKILL.md`, or if `GENESIS_DIRECTORY` is unset use `~/git_repos/the-genesis/.genesis/skills/tool_connections/SKILL.md`.
-2. Load **`~/git_repos/10xProductivity/verified_connections.md`** — only call tools listed there (or documented in `10xProductivity/tool_connections/` / `personal/`).
-3. Load **`jira`** — `$GENESIS_DIRECTORY/.genesis/skills/jira/SKILL.md` or `~/git_repos/the-genesis/.genesis/skills/jira/SKILL.md` for all Jira JQL and REST.
-4. **Credentials:** `source` or load **`~/git_repos/10xProductivity/.env`** (or project `.env`) before `curl` / scripts. Never commit secrets.
+1. Load the relevant 10xProductivity connection docs under **`tool_connections/`** and any allowed private recipes under **`$TENX_PRIVATE_DIR/personal/`**.
+2. Load **`$TENX_PRIVATE_DIR/verified_connections.md`** — only call tools listed there (or documented in `10xProductivity/tool_connections/` / `personal/`).
+3. For Jira, use the verified Jira connection documentation and recipes in this repo.
+4. **Credentials:** `source` or load **`$TENX_PRIVATE_DIR/.env`** (or project `.env`) before `curl` / scripts. Never commit secrets.
 
 ---
 
@@ -35,7 +35,7 @@ Output layout matches the open **[colleague-skill](https://github.com/titanwings
 
 | Environment | Where to put generated files | How this skill is loaded |
 |-------------|------------------------------|---------------------------|
-| **Cursor** | Repo root: `colleagues/{slug}/` (e.g. 10xProductivity or the-genesis) | `.cursor/skills/colleague-distillation/SKILL.md` |
+| **Cursor** | Repo root: `colleagues/{slug}/` | `.cursor/skills/colleague-distillation/SKILL.md` |
 | **Claude Code** | Same `colleagues/{slug}/` under the active project | `.claude/skills/colleague-distillation/SKILL.md` |
 
 Use the **same** slug and folder layout in both; only the skill *install path* differs.

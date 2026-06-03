@@ -8,13 +8,13 @@ description: "[your-device-name] Your active tool connections — verified and r
 
 **This is the example file.** Do not load this as your capability index.
 
-- **Your active connections:** load `verified_connections.md` (gitignored — device-specific, never committed).
+- **Your active connections:** load `TENX_PRIVATE_DIR/verified_connections.md` (device-specific, outside the public repo, never committed).
 - **To set up connections:** *"Read setup.md and set up my tool connections."*
 - **To refresh short-lived tokens (~8h):** run the tool's `sso.py` (e.g. `source .venv/bin/activate && python3 tool_connections/slack/sso.py`)
 
-> **`device:`** Set this to your machine name (e.g. `my-macbook`, `work-laptop`). Because `verified_connections.md` is gitignored and device-specific — each machine has its own set of verified tokens — the device field lets the agent know which machine it's running on and prevents confusion when context from multiple devices appears in the same session.
+> **`device:`** Set this to your machine name (e.g. `my-macbook`, `work-laptop`). Because `TENX_PRIVATE_DIR/verified_connections.md` is device-specific and outside the public repo — each machine has its own set of verified tokens — the device field lets the agent know which machine it's running on and prevents confusion when context from multiple devices appears in the same session.
 
-The sections below illustrate the format. After verifying a tool, append its section to `verified_connections.md` using the same format — read the tool's `connection-*.md` frontmatter for name, description, and env_vars.
+The sections below illustrate the format. After verifying a tool, append its section to `TENX_PRIVATE_DIR/verified_connections.md` using the same format — read the tool's `connection-*.md` frontmatter for name, description, and env_vars.
 
 ---
 
@@ -34,4 +34,4 @@ Env: `SLACK_XOXC`, `SLACK_D_COOKIE` (long-lived user session; refresh with `pyth
 
 ## Adding new connections
 
-Add `tool_connections/{tool}/connection-*.md` with core frontmatter (`name`, `auth`, `description`, `env_vars`). After verifying, append a section to `verified_connections.md` following the format above.
+Add `tool_connections/{tool}/connection-*.md` with core frontmatter (`name`, `auth`, `description`, `env_vars`). After verifying, append a section to `TENX_PRIVATE_DIR/verified_connections.md` following the format above.

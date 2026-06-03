@@ -5,7 +5,7 @@ Distilled **work + persona** skills land here when you run the **colleague-disti
 - `.cursor/skills/colleague-distillation/SKILL.md` (Cursor)
 - `.claude/skills/colleague-distillation/SKILL.md` (Claude Code)
 
-Canonical instructions: `~/git_repos/the-genesis/.genesis/skills/colleague-distillation/SKILL.md`.
+Skill instructions live in the repo-local Cursor and Claude Code skill files above.
 
 ## Layout (per person)
 

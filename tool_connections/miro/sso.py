@@ -33,7 +33,10 @@ TOOL_NAME = "miro"
 ENV_KEYS = ["MIRO_TOKEN"]
 MIRO_URL = "https://miro.com/app/"
 COOKIE_URLS = ["https://miro.com", "https://www.miro.com"]
-ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+sys.path.insert(0, str(Path(__file__).parents[2] / "tool_connections"))
+from shared_utils.browser import DEFAULT_ENV_FILE
+
+ENV_FILE = DEFAULT_ENV_FILE
 
 
 def check(env: dict) -> bool:
@@ -126,6 +129,7 @@ def _load_env() -> dict[str, str]:
 
 
 def _write_env(tokens: dict[str, str]) -> None:
+    ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
     content = ENV_FILE.read_text() if ENV_FILE.exists() else ""
     for key, value in tokens.items():
         new_line = f"{key}={value}"

@@ -25,9 +25,11 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parents[2] / "tool_connections"))
+from shared_utils.browser import DEFAULT_ENV_FILE
+
 BASE = "https://miro.com/api/v1"
-REPO_ROOT = Path(__file__).resolve().parents[2]
-ENV_FILE = REPO_ROOT / ".env"
+ENV_FILE = DEFAULT_ENV_FILE
 
 
 def load_env(path: Path) -> dict[str, str]:
