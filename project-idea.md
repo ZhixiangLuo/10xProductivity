@@ -4,13 +4,13 @@
 
 The goal is to help someone download the repo, connect their own tools, and build a useful personal AI assistant on their own machine. The repo should contain general patterns, setup guides, skills, workflows, and connection recipes that can work for many people without inheriting the maintainer's private context.
 
-## Relationship To Genesis
+## Relationship To Private Incubation
 
-Genesis is the private internal repo. It is where personal workflows are incubated, tested, and refined against real work.
+A private workspace is where personal workflows can be incubated, tested, and refined against real work before they are generalized.
 
-10xProductivity is the public repo. It receives only the parts of Genesis that have been generalized enough for external users.
+10xProductivity is the public repo. It receives only the parts of that private work that have been generalized enough for external users.
 
-This means Genesis can contain personal facts, diary entries, local machine assumptions, employer-specific links, private credentials workflows, rough experiments, and opinionated personal routines. 10xProductivity should not.
+This means private spaces can contain personal facts, diary entries, local machine assumptions, employer-specific links, private credentials workflows, rough experiments, and opinionated personal routines. 10xProductivity should not.
 
 ## Promotion Criteria
 
@@ -41,4 +41,4 @@ A capability can move from Genesis to 10xProductivity when it is:
 
 ## Current Direction
 
-The repo starts from tool connections and grows upward into skills, workflows, and local automation. Genesis remains the proving ground. 10xProductivity is where the reusable, sanitized, externally useful pieces land after they have earned their way out of the private system.
+The repo starts from tool connections and grows upward into skills, workflows, and local automation. Private workspaces remain the proving ground. 10xProductivity is where the reusable, sanitized, externally useful pieces land after they have earned their way out of private incubation.
