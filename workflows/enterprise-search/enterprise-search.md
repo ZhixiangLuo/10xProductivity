@@ -122,7 +122,8 @@ for _ in range(60):
     time.sleep(1)
     replies = slack_api("GET", "conversations.replies", params={"channel": dm, "ts": msg_ts, "limit": "20"})
     ai = [m for m in replies.get("messages", [])
-          if float(m.get("ts","0")) > float(msg_ts) and m.get("subtype") == "ai"]
+          if float(m.get("ts","0")) > float(msg_ts)
+          and m.get("subtype") in {"ai", "ai_complete"}]
     if ai:
         answer = extract_ai_answer(ai[-1])
         if answer and "Thinking" not in answer:

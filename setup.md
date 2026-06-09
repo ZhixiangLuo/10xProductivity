@@ -181,7 +181,7 @@ Repo: `/absolute/path/to/10xProductivity`
 
 Read these two files immediately:
 
-1. `/absolute/path/to/10xProductivity/verified_connections.md` — active tool connections and capability index
+1. `TENX_PRIVATE_DIR/verified_connections.md` — active tool connections and capability index
 2. `/absolute/path/to/10xProductivity/workflows/enterprise-search/enterprise-search.md` — cross-tool search workflow
 
 ## Routing
@@ -194,7 +194,7 @@ Read these two files immediately:
 | A tool has no recipe in `tool_connections/` | Read `add-new-tool.md` to build one |
 ```
 
-Replace every occurrence of `/absolute/path/to/10xProductivity` with the actual path from `pwd`.
+Replace every occurrence of `/absolute/path/to/10xProductivity` with the actual path from `pwd`, and replace `TENX_PRIVATE_DIR` with your private 10x directory, usually `~/.10xProductivity`.
 
 Create the directory and write the file:
 

@@ -107,7 +107,7 @@ the opened browser manually or capture from an already trusted browser session.
 
 **Requires:** Slack Business+ or Enterprise+ plan (not available on Free/Pro as of Jan 2026)
 
-**Pattern:** Post question to Slackbot DM → poll `conversations.replies` for response with `subtype='ai'`
+**Pattern:** Post question to Slackbot DM → poll `conversations.replies` for response with `subtype='ai'` or `subtype='ai_complete'`
 
 **⚠ Key gotcha:** Response arrives in ~0.2s — poll immediately with 1s sleep, not with long delay
 
@@ -148,7 +148,8 @@ for _ in range(60):
     time.sleep(1)
     r = api("GET", "conversations.replies", params={"channel": slackbot_dm, "ts": msg_ts, "limit": "20"})
     ai_replies = [m for m in r.get("messages", [])
-                  if float(m.get("ts", "0")) > float(msg_ts) and m.get("subtype") == "ai"]
+                  if float(m.get("ts", "0")) > float(msg_ts)
+                  and m.get("subtype") in {"ai", "ai_complete"}]
     if ai_replies:
         # Parse blocks to extract answer (you can access msg["blocks"] for rich text, or msg["text"] for plain)
         print(ai_replies[-1])
