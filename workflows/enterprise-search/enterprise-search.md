@@ -296,7 +296,7 @@ cd /path/to/10xProductivity && .venv/bin/python3 tool_connections/google-ai-mode
   --followup "<OPTIONAL DRILL-IN>"
 ```
 
-See `personal/google-ai-mode/connection-cdp.md` for setup and behavior. Use raw `WebFetch` only to verify an exact figure or confirm a primary source.
+See `TENX_PRIVATE_DIR/personal/google-ai-mode/connection-cdp.md` for your active private copy, or `tool_connections/google-ai-mode/connection-cdp.md` for the public recipe. Use raw `WebFetch` only to verify an exact figure or confirm a primary source.
 
 ---
 

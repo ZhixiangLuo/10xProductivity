@@ -54,14 +54,18 @@ Notes:
       faster than headless for Drive (hardware-accelerated JS rendering)
     - data-id in Drive DOM is truncated; full 44-char IDs come from href
     - read() uses browser download interception (temp path, NOT ~/Downloads)
-    - Bridge cache lives in tool_connections/google-drive/bridge_cache/ (gitignored)
+    - Bridge cache lives in TENX_PRIVATE_DIR/personal/tool_connections/google-drive/bridge_cache/
 """
 
 import json, re, time
+import os
 from pathlib import Path
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
 AUTH_FILE = Path.home() / ".browser_automation" / "gdrive_auth.json"
+TENX_PRIVATE_DIR = Path(
+    os.environ.get("TENX_PRIVATE_DIR", Path.home() / ".10xProductivity")
+).expanduser()
 
 _STUB_EXTENSIONS = {".gdoc", ".gsheet", ".gslides", ".gform", ".gdraw", ".gmap", ".gsite"}
 # Bridge cache files use .gdrive.json (Drive for Desktop drops writes to _STUB_EXTENSIONS)
@@ -301,13 +305,11 @@ class GDriveLocal:
 
     # ── Bridge cache ──────────────────────────────────────────────────────────
 
-    # Cache lives in personal/tool_connections/google-drive/bridge_cache/ —
-    # user-specific data (searched file IDs) that must stay gitignored.
-    # Resolved by walking up from this file to the repo root, then into personal/.
+    # Cache lives under TENX_PRIVATE_DIR because searched file IDs are
+    # user-specific runtime data and must stay outside the public repo.
     @property
     def _bridge_cache_dir(self) -> Path:
-        repo_root = Path(__file__).parent.parent.parent  # tool_connections/google-drive → repo root
-        cache_dir = repo_root / "personal" / "tool_connections" / "google-drive" / "bridge_cache"
+        cache_dir = TENX_PRIVATE_DIR / "personal" / "tool_connections" / "google-drive" / "bridge_cache"
         cache_dir.mkdir(parents=True, exist_ok=True)
         return cache_dir
 
@@ -316,9 +318,8 @@ class GDriveLocal:
         """
         Write a bridge cache entry to bridge_cache/.
 
-        This is inside the repo so the agent can write to it without sandbox
-        restrictions. smart_search() checks this cache before going online,
-        so repeated searches for the same file are instant.
+        smart_search() checks this private cache before going online, so
+        repeated searches for the same file are instant.
 
         name:      display name of the file
         file_id:   Google Drive file ID (44-char string)

@@ -135,7 +135,7 @@ cd /path/to/10xProductivity
   --profile "$HOME/.browser_automation/google_ai_mode_cdp_profile" \
   --url "https://www.google.com/search?udm=50&q=example" \
   --filter "google.com" \
-  --output "personal/google-ai-mode/google_ai_mode_traffic.jsonl"
+  --output "${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}/personal/google-ai-mode/google_ai_mode_traffic.jsonl"
 # → Captures /search?udm=50 and AI Mode async calls. Direct replay of /async/folif returned HTTP 400, so browser extraction remains the supported path.
 ```
 

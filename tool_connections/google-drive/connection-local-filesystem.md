@@ -43,7 +43,7 @@ results = local.search("sprint capacity")
 # Smart search: local Spotlight → cache → online (covers "Shared with me" too)
 results = local.smart_search("AI projects")
 # → first call: [smart_search] Not found locally — searching online for 'AI projects'...
-# →   20 results returned, stubs written to personal/tool_connections/google-drive/bridge_cache/
+# →   20 results returned, stubs written to TENX_PRIVATE_DIR/personal/tool_connections/google-drive/bridge_cache/
 # → subsequent calls: instant from cache (source: "cache")
 
 # Get file ID from a .gdoc/.gsheet stub
@@ -114,7 +114,7 @@ Pass it to `local.drive.read(doc_id, "document")` to export content as plain tex
 
 ## Bridge cache
 
-`smart_search()` caches online results to `personal/tool_connections/google-drive/bridge_cache/` (gitignored — lives in `personal/` with all other user-specific data) as `.gdrive.json` files. Subsequent searches for the same query return instantly without hitting the network.
+`smart_search()` caches online results to `TENX_PRIVATE_DIR/personal/tool_connections/google-drive/bridge_cache/` as `.gdrive.json` files. The default `TENX_PRIVATE_DIR` is `~/.10xProductivity`, keeping searched file IDs and other user-specific data outside this repo. Subsequent searches for the same query return instantly without hitting the network.
 
 ```json
 {

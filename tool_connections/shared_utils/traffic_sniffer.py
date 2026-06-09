@@ -27,8 +27,8 @@ Workflow:
   If the tool's connection file has a sniffer: block in its frontmatter,
   --tool <name> pre-fills --profile, --url, and --filter automatically.
   Connection file locations, in order:
-    personal/{tool}/connection-*.md
-    personal/tool_connections/{tool}/connection-*.md
+    $TENX_PRIVATE_DIR/personal/{tool}/connection-*.md
+    $TENX_PRIVATE_DIR/personal/tool_connections/{tool}/connection-*.md
     tool_connections/{tool}/connection-*.md
 
   Example frontmatter:
@@ -89,6 +89,7 @@ Output format (one JSON object per line):
 
 import argparse
 import json
+import os
 import re
 import sys
 import threading
@@ -97,9 +98,35 @@ from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parents[2]))
-from tool_connections.shared_utils.browser import sync_playwright
+from tool_connections.shared_utils.browser import TENX_PRIVATE_DIR, sync_playwright
 
 _REPO_ROOT = Path(__file__).parents[2]
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(_REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _expand_path(value: str) -> Path:
+    return Path(os.path.expandvars(value)).expanduser()
+
+
+def _resolve_output_path(output_path: Optional[Path]) -> Optional[Path]:
+    """Map migrated repo-local personal outputs into TENX_PRIVATE_DIR."""
+    if output_path is None:
+        return None
+    if not output_path.is_absolute() and output_path.parts[:1] == ("personal",):
+        return TENX_PRIVATE_DIR.joinpath(*output_path.parts)
+    try:
+        relative_to_repo = output_path.resolve().relative_to(_REPO_ROOT)
+    except ValueError:
+        return output_path
+    if relative_to_repo.parts[:1] == ("personal",):
+        return TENX_PRIVATE_DIR.joinpath(*relative_to_repo.parts)
+    return output_path
 
 
 def _load_tool_config(tool_name: str) -> dict:
@@ -110,15 +137,15 @@ def _load_tool_config(tool_name: str) -> dict:
     Raises FileNotFoundError if no connection file found for the tool.
     """
     candidate_dirs = [
-        _REPO_ROOT / "personal" / tool_name,
-        _REPO_ROOT / "personal" / "tool_connections" / tool_name,
+        TENX_PRIVATE_DIR / "personal" / tool_name,
+        TENX_PRIVATE_DIR / "personal" / "tool_connections" / tool_name,
         _REPO_ROOT / "tool_connections" / tool_name,
     ]
     candidates = []
     for tool_dir in candidate_dirs:
         candidates.extend(tool_dir.glob("connection-*.md"))
     if not candidates:
-        searched = "\n".join(f"  - {p.relative_to(_REPO_ROOT)}/connection-*.md" for p in candidate_dirs)
+        searched = "\n".join(f"  - {_display_path(p)}/connection-*.md" for p in candidate_dirs)
         raise FileNotFoundError(
             f"No connection file found for {tool_name}. Searched:\n{searched}\n"
             f"Run setup.md to connect {tool_name} first."
@@ -147,8 +174,7 @@ def _load_tool_config(tool_name: str) -> dict:
             cfg[m.group(1)] = m.group(2).strip()
 
     profile_str = cfg.get("profile", "")
-    # Expand ~ in profile path
-    profile = Path(profile_str.replace("~", str(Path.home())))
+    profile = _expand_path(profile_str) if profile_str else Path()
     url = cfg.get("url", "")
     filters_raw = cfg.get("filter", "")
     filters = [f.strip() for f in filters_raw.split(",") if f.strip()] if filters_raw else []
@@ -204,6 +230,8 @@ def sniff(
     lock = threading.Lock()
 
     profile_dir.mkdir(parents=True, exist_ok=True)
+    if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Remove stale SingletonLock that prevents re-launch after a crash
     stale_lock = profile_dir / "SingletonLock"
@@ -213,6 +241,7 @@ def sniff(
     with sync_playwright() as p:
         ctx = p.chromium.launch_persistent_context(
             str(profile_dir),
+            channel="chrome",
             headless=headless,
             args=["--window-size=1280,900", "--window-position=100,50"],
         )
@@ -365,16 +394,20 @@ def _main():
             url = cfg["url"]
         if not filters:
             filters = cfg["filters"]
-        print(f"  Tool:    {args.tool}  ({cfg['conn_file'].relative_to(_REPO_ROOT)})")
+        print(f"  Tool:    {args.tool}  ({_display_path(cfg['conn_file'])})")
 
     if profile is None or url is None:
         parser.error("--profile and --url are required unless --tool is specified.")
+
+    output = _resolve_output_path(args.output)
+    if args.output is not None and output != args.output:
+        print(f"  Output redirected to private dir: {output}")
 
     sniff(
         profile_dir=profile,
         start_url=url,
         filters=filters,
-        output_path=args.output,
+        output_path=output,
         capture_bodies=args.capture_bodies,
         headless=args.headless,
     )
