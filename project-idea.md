@@ -14,7 +14,7 @@ This means private spaces can contain personal facts, diary entries, local machi
 
 ## Promotion Criteria
 
-A capability can move from Genesis to 10xProductivity when it is:
+A capability can move from private incubation to 10xProductivity when it is:
 
 - **General:** Useful beyond one person's exact job, machine, or private workflow.
 - **Depersonalized:** Free of names, diary content, employer-specific context, private URLs, tokens, cookies, local-only paths, and personal preferences that do not belong in an open-source repo.
