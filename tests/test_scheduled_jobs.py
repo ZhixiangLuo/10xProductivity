@@ -10,12 +10,12 @@ def test_build_agent_prompt_contains_workflow_context_and_rules(tmp_path: Path) 
     workflow = tmp_path / "standup-prep.md"
     prompt = standup_prep.build_agent_prompt(
         workflow=workflow,
-        meeting_context="Daily stand-up for Search Platform",
+        meeting_context="Daily stand-up for Example Team",
         since="2026-06-08T12:00:00Z",
     )
 
     assert str(workflow) in prompt
-    assert "Daily stand-up for Search Platform" in prompt
+    assert "Daily stand-up for Example Team" in prompt
     assert "2026-06-08T12:00:00Z" in prompt
     assert "Do not post to Slack yourself" in prompt
     assert "Output only the final brief text" in prompt
