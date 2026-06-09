@@ -1,0 +1,1 @@
+"""macOS Notification Center trigger."""

@@ -11,5 +11,8 @@ python-dotenv==1.2.2
 msal==1.35.1
 PyJWT==2.12.1
 
+# Development / verification
+pytest
+
 # Optional — improves bot avoidance for browser sessions
 # pip install playwright-stealth

@@ -43,7 +43,8 @@ Set `TENX_PRIVATE_DIR` in your shell if you want a different private location.
 ```bash
 # macOS / Linux — create env and browser automation deps (skip if setup-python.md already did this)
 python3 -m venv .venv && source .venv/bin/activate
-pip install playwright && playwright install chromium
+pip install -e ".[dev]"
+playwright install chromium
 
 # Create private runtime files (fill .env from each tool's setup.md as you connect)
 mkdir -p "${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}/personal"
@@ -55,7 +56,8 @@ touch "${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}/.env"
 ```bat
 py -3 -m venv .venv
 .venv\Scripts\activate.bat
-pip install playwright && playwright install chromium
+pip install -e ".[dev]"
+playwright install chromium
 if not exist "%USERPROFILE%\\.10xProductivity\\personal" mkdir "%USERPROFILE%\\.10xProductivity\\personal"
 type nul > "%USERPROFILE%\\.10xProductivity\\.env"
 ```
@@ -202,6 +204,56 @@ mkdir -p ~/.cursor/skills/tool-connections
 ```
 
 Once written, the skill is active. Cursor and Claude Code will load `verified_connections.md` and the search workflow automatically at the start of every session.
+
+---
+
+## Step 5: Optional triggers and runtime
+
+After tool connections work, you can test local triggers and runtime. Start with Slack self-DM polling only after the Slack connection has verified `SLACK_XOXC` and `SLACK_D_COOKIE`.
+
+```bash
+source .venv/bin/activate
+10x-host --trigger slack-polling --workflow workflows/assistant/assistant.md --engine cursor
+```
+
+For Slack self-DM polling, add these to `TENX_PRIVATE_DIR/.env`:
+
+```text
+SLACK_XOXC=xoxc-...
+SLACK_D_COOKIE=...
+TENX_AGENT_ENGINE=cursor
+```
+
+This path does not require a personal Slack app, Socket Mode, webhook, or bot token.
+
+For macOS notifications, configure watched apps:
+
+```text
+TENX_MACOS_NOTIF_WATCH_APPS=com.tinyspeck.slackmacgap,com.microsoft.Outlook
+```
+
+Then run a workflow against that trigger:
+
+```bash
+10x-host --trigger macos-notifications --workflow workflows/assistant/assistant.md --engine cursor
+```
+
+The first scheduled workflow is stand-up prep:
+
+```bash
+10x-standup-prep --meeting-context "Daily stand-up for <team/project>" --dry-run
+```
+
+Set `TENX_STANDUP_PREP_SLACK_CHANNEL` and pass `--post` only after reviewing the dry-run output.
+
+The folder structure is:
+
+```text
+triggers/         local event sources
+runtime/          local execution mechanics
+workflows/        useful automations
+tool_connections/ external system access
+```
 
 ---
 

@@ -43,23 +43,24 @@ Tool connections are still the foundation, but they are no longer the whole prod
 | Tool connections | Available today | Pre-built recipes for 25+ tools, plus a playbook for connecting any internal or custom tool |
 | Enterprise search | Available today | Search across connected tools like Slack, Confluence, Jira, GitHub, Linear, Notion, and more |
 | Agent skills | Available today | Packaged Cursor and Claude Code skills for tool setup, search, workflow creation, UI discovery, and more |
-| Reusable workflows | Early | A few workflows exist today; the next step is turning more repeated work into durable workflows |
-| Slack interaction | Coming next | Slack becomes the async entry point for trusted jobs and threaded human-AI interaction |
-| Scheduled learning and jobs | Coming next | Trusted workflows, memory build, reflection, and capability learning can run on a schedule |
+| Triggers | Early | Reusable event listeners that detect app and service events, then wake up workflows and automations |
+| Runtime | Early | Local execution machinery for polling, scheduling, state, replies, and coding-agent invocation |
+| Reusable workflows | Early | Enterprise search and stand-up prep exist today; future examples include automatic PR review and morning brief |
+| Learning and memory | Roadmap | Scheduled reflection, capability learning, and durable memory are planned but not complete |
 
 ## How It Works
 
 ```
 Human
   ↓
-Slack thread                    Laptop coding-agent session
-  ↓                                      ↓
-Thin routing layer              Individual skill or workflow
-  ↓                                      ↓
-Agent skills and workflows      Connected tools directly
-  ↓                                      ↓
-Connected tools                         |
-  ↓                                      ↓
+Trigger or schedule          Laptop coding-agent session
+  ↓                                   ↓
+Runtime host                 Workflow / skill
+  ↓                                   ↓
+Workflow                     Tool connections
+  ↓                                   ↓
+Tool connections                     |
+  ↓                                   ↓
 Work done in Slack, Jira, GitHub, docs, calendar, CRM, internal portals, and more
 ```
 
@@ -95,12 +96,14 @@ Over time, your skill library becomes the operating manual for your personal AI 
 
 Once a workflow has been coached and proven, you can run it with less supervision:
 
-- From a Slack thread
-- From a scheduled cron job
+- From a local trigger, such as Slack self-DM polling or a desktop notification
+- From a scheduled cron/launchd job
 - From a repeatable workflow prompt
 - From your laptop when you want richer interaction
 
 Automation is reserved for workflows you trust. Everything else stays in the human-AI interaction loop.
+
+The current runtime is intentionally thin and local. Triggers notice events, runtime handles execution mechanics, workflows define the work, and tool connections fetch or update external systems.
 
 ### 5. Learn Continuously
 
@@ -114,19 +117,28 @@ This gives the system self-awareness: it should know what it can do reliably, wh
 
 ## Interaction Surfaces
 
-**Slack** is the async entry point. It is a natural place to delegate lightweight or trusted work, receive updates, answer questions, and keep a thread as the task conversation.
+**Tool connections** are the pull layer: the agent uses them to fetch context or take action in systems, tools, and apps when a workflow asks for it.
 
-Slack is where the thin routing layer matters: incoming messages need to be classified, routed to the right skill or workflow, and replied to in the right thread.
+**Triggers** are the push layer: they listen for events from systems, tools, and apps, normalize them into workflow events, and wake up workflows or automations when something happens. The event may originate in a cloud service like GitHub, Slack, Outlook, PagerDuty, or Jira; the trigger may detect it through an available surface such as a desktop app, browser notification, macOS notification, authenticated session, email, or polling.
+
+Triggers are deliberately separate from tool connections. A trigger notices that something happened; a tool connection fetches authoritative context or takes action afterward.
 
 **Laptop sessions** are the coaching surface. This is where you supervise complex work, correct the agent, refine skills, and teach the assistant new workflows. On the laptop, you do not need a routing layer first; you can directly invoke the individual skill, workflow, or tool connection you want to work on.
+
+**Runtime** is the local execution machinery. It handles polling cadence, jitter/backoff, scheduling, state, dedupe, reply logging, and invoking Cursor, Claude Code, or Codex. It should stay thin.
+
+**Workflows** are the useful automations. Stand-up prep is the first scheduled workflow. Automatic PR review is a good future example: a GitHub/GHE review request may arrive via Outlook, Slack, Teams, or a macOS notification; the workflow then uses GitHub/GHE, Jira, Slack, and CI connections to review the PR and produce a summary or draft comment.
 
 The product is designed around both: quick delegation when the workflow is familiar, active coaching when the workflow is still being learned.
 
 ## What's In This Repo
 
 ```text
-tool_connections/        Pre-built recipes for connecting tools to your agent
+tool_connections/        How agents access systems, tools, and apps
+triggers/                Event listeners that wake up workflows and automations
+runtime/                 Local execution machinery: scheduling, state, replies, agent clients
 workflows/               Multi-tool workflows built on top of connections
+tests/                   Regression tests for triggers, runtime, and workflows
 .cursor/skills/          Cursor agent skills packaged with the repo
 .claude/skills/          Claude Code agent skills packaged with the repo
 staging/                 Community contributions under review
@@ -142,13 +154,14 @@ Private runtime state lives outside the public repo by default:
   .env                    Tokens, cookies, and private config
   personal/               Your active private tool recipes and patched copies
   verified_connections.md Device-specific connection index
+  tmp/                    Trigger state, runtime sessions, scheduler state, reply logs
 ```
 
 Set `TENX_PRIVATE_DIR` if you want a different private directory. The repo keeps hooks and `.gitignore` as safety nets, but credentials and browser/session state should not live under the repo tree.
 
 Migration note: older local instructions may point at `/path/to/10xProductivity/.env`, `/path/to/10xProductivity/personal/`, or `/path/to/10xProductivity/verified_connections.md`. Those now map to `TENX_PRIVATE_DIR/.env`, `TENX_PRIVATE_DIR/personal/`, and `TENX_PRIVATE_DIR/verified_connections.md`. The repo `personal/` folder is only a placeholder with this reminder.
 
-The current repo is strongest at the connection layer. The workflow layer exists, but is still early. The next product direction is to build upward from connections into reusable workflows, agent skills, Slack interaction, and trusted scheduled jobs.
+The current repo is strongest at the connection layer. The trigger, runtime, and workflow layers now exist, but are still early. The next product direction is to harden local-first triggers, promote more workflows, and make runtime execution reliable without requiring enterprise app installs or new infrastructure.
 
 ## Work Surfaces
 
@@ -170,7 +183,7 @@ Internal portals and custom company tools matter just as much as commercial SaaS
 
 Agent skills sit above raw tool connections. They teach your coding agent how to do work, not just how to call an API.
 
-Packaged skills currently cover [tool setup](.cursor/skills/tool-connector/SKILL.md), [enterprise search](.cursor/skills/enterprise-search/SKILL.md), [workflow creation](.cursor/skills/create-workflow/SKILL.md), [UI surface discovery](.cursor/skills/discover-ui-surface/SKILL.md), and [colleague distillation](.cursor/skills/colleague-distillation/SKILL.md).
+Packaged skills currently cover [tool setup](.cursor/skills/tool-connector/SKILL.md), [enterprise search](.cursor/skills/enterprise-search/SKILL.md), [workflow creation](.cursor/skills/create-workflow/SKILL.md), [UI surface discovery](.cursor/skills/discover-ui-surface/SKILL.md), [colleague distillation](.cursor/skills/colleague-distillation/SKILL.md), and the [assistant runtime](.cursor/skills/assistant-orchestrator/SKILL.md).
 
 ## Quick Start
 
@@ -189,16 +202,30 @@ cd 10xProductivity
 Read setup-python.md and prepare this repo.
 ```
 
-4. Ask your agent to set up your personal AI assistant for work. The first step is connecting your tools:
+4. Install the local runtime:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+5. Ask your agent to set up your personal AI assistant for work. The first step is connecting your tools:
 
 ```text
 Read setup.md and set up my personal AI assistant for work.
 ```
 
-5. Try a first workflow:
+6. Try a first workflow:
 
 ```text
 Read workflows/enterprise-search/enterprise-search.md and search across my connected tools for <topic>.
+```
+
+7. Try a local trigger host after configuring a trigger:
+
+```bash
+10x-host --trigger slack-polling --workflow workflows/assistant/assistant.md --engine cursor
 ```
 
 From there, coach the agent through work you actually do. When a pattern repeats, capture it as a skill or workflow.
@@ -238,6 +265,31 @@ Summarize what changed since yesterday across Slack, Jira, GitHub, and my calend
 
 Once trusted, this can become a scheduled workflow.
 
+**Early trigger example: Slack self-DM polling**
+
+```bash
+10x-host --trigger slack-polling --workflow workflows/assistant/assistant.md --engine cursor
+```
+
+The trigger uses `SLACK_XOXC` and `SLACK_D_COOKIE` from `TENX_PRIVATE_DIR/.env`. It does not require a personal Slack app, Socket Mode, or webhook.
+
+**Early scheduled job example: stand-up prep**
+
+```bash
+10x-standup-prep --meeting-context "Daily stand-up for <team/project>" --dry-run
+```
+
+Add `--post` only after reviewing the output and setting `TENX_STANDUP_PREP_SLACK_CHANNEL`.
+
+**Future workflow example: automatic PR review**
+
+```text
+A review-request notification arrives from Outlook, Slack, Teams, or GitHub Desktop.
+The macOS notification trigger captures it.
+The automatic PR review workflow fetches PR, ticket, and CI context through tool connections.
+The agent returns a review summary or draft comment for approval.
+```
+
 ## Who This Is For
 
 10xProductivity is for people who already use a coding agent and want it to become useful outside the code editor:
@@ -254,12 +306,14 @@ The same stack works differently for each person because the tools, skills, and 
 10xProductivity started as the tool connection layer for coding agents. It is evolving into an open-source personal AI assistant for work stack:
 
 1. **Tool connections** — let the agent use the tools you already use.
-2. **Workflows** — compose connections into repeatable multi-step jobs.
-3. **Agent skills** — teach the agent how you want work done.
-4. **Human-AI interaction** — delegate from Slack, coach from the laptop.
-5. **Learning and memory** — turn sessions, corrections, tool use, and mistakes into persistent improvements.
-6. **Self-awareness** — track capabilities and limitations based on evidence from real use.
-7. **Trusted automation** — run proven workflows from chat or cron.
+2. **Triggers** — detect incoming work through local signals that enterprise users already have.
+3. **Runtime** — provide the local machinery for polling, scheduling, state, replies, and agent invocation.
+4. **Workflows** — compose triggers, runtime, and connections into repeatable work.
+5. **Agent skills** — teach the agent how you want work done.
+6. **Human-AI interaction** — delegate through safe local triggers, coach from the laptop.
+7. **Learning and memory** — turn sessions, corrections, tool use, and mistakes into persistent improvements.
+8. **Self-awareness** — track capabilities and limitations based on evidence from real use.
+9. **Trusted automation** — run proven workflows from triggers or schedules.
 
 The goal is not to replace Cursor, Claude Code, Codex, or Copilot. The goal is to give those approved coding agents the missing layer: tool access, reusable skills, workflows, and a coaching loop that turns them into personal AI assistants for work.
 
