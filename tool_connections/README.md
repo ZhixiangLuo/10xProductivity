@@ -1,6 +1,8 @@
 # Layer 1: Tool Connections
 
-This page documents the tool connection layer: the foundation that lets your coding agent use the tools you already use. For the broader personal AI assistant for work platform, start with the [top-level README](../README.md).
+This page documents the tool connection layer: the pull layer that lets your coding agent use the tools you already use. For the broader personal AI assistant for work stack, start with the [top-level README](../README.md).
+
+Tool connections fetch context and take action when a workflow asks for it. They complement `triggers/`, which listen for app and service events and wake workflows up.
 
 ## The Philosophy
 
@@ -12,7 +14,7 @@ Most "AI integration" approaches ask you to:
 
 **10xProductivity flips this completely.**
 
-Apps are built for humans on laptops. Browsers, CLIs, REST APIs — they're all already there. Your agent uses the same surface. No integration layer, no middleware, no new permissions.
+Apps are built for humans on laptops. Browsers, CLIs, REST APIs — they're all already there. Your agent uses the same surface. No company-wide integration layer, no middleware, no new permissions.
 
 ### Four principles
 
@@ -32,7 +34,7 @@ No OAuth app approval. No IT ticket. No staging environment. If you can log in, 
 
 Most AI tools — enterprise search platforms, knowledge bases, even ChatGPT — are **read-only**. They find information and surface it in a chat box. You then manually take that answer and do something with it.
 
-10xProductivity is **read + write + act**. The agent doesn't just find the Jira ticket — it updates it. It doesn't just summarize the Slack thread — it posts the summary back. It doesn't just locate the bug — it opens the PR that fixes it.
+10xProductivity is **read + write + act**. The agent doesn't just find the Jira ticket — it can update it when the workflow calls for that. It doesn't just summarize the Slack thread — it can post the summary back. It doesn't just locate the bug — it can open the PR that fixes it.
 
 The output isn't text in a box. The output is the thing done, in the right place, in the right tool.
 

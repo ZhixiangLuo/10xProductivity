@@ -1,6 +1,6 @@
 # Community Contributions
 
-Tool connections contributed by the staging. Not part of the verified core — quality and maintenance vary by contributor.
+Tool connections contributed through staging are not part of the verified core. Quality and maintenance vary by contributor.
 
 ## Structure
 

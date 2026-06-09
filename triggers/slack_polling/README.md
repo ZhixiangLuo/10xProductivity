@@ -2,7 +2,7 @@
 
 This trigger watches the user's own Slack self-DM using an existing authenticated Slack session.
 
-It is useful when enterprise employees cannot create a personal Slack app, install a bot, register webhooks, or use Socket Mode. The trigger is a local workaround: it uses the user's current Slack session (`SLACK_XOXC` + `SLACK_D_COOKIE`) and emits a normalized event when the user sends themselves a message.
+It is useful when enterprise employees cannot create a personal Slack app, install a bot, register webhooks, or use Socket Mode. The trigger works through a surface the user already has: their current Slack session (`SLACK_XOXC` + `SLACK_D_COOKIE`). It emits a normalized event when the user sends themselves a message.
 
 ## What It Does
 
