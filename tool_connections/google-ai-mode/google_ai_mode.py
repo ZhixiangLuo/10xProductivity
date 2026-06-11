@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import time
 import urllib.parse
@@ -40,11 +41,14 @@ CDP_PORT = 9236
 PROFILE_DIR = Path.home() / ".browser_automation" / "google_ai_mode_cdp_profile"
 AI_MODE_URL = "https://www.google.com/aimode"
 
-# The signed-in personal Google account whose AI Mode history we want to use.
+# The signed-in Google account whose AI Mode history we want to use.
 # Chrome stores each signed-in account as its own sub-profile inside PROFILE_DIR
 # (e.g. "Default", "Profile 2"). We pin to the sub-profile for this account so
 # automation never falls back to a different (e.g. managed/work) account.
-SIGNED_IN_EMAIL = "jeffreyluozx@gmail.com"
+# Set via the GOOGLE_AI_MODE_EMAIL env var (e.g. in your gitignored .env) — not
+# hard-coded, so no personal address lives in this shared repo. When unset, the
+# profile resolver falls back to DEFAULT_PROFILE_DIRECTORY.
+SIGNED_IN_EMAIL = os.environ.get("GOOGLE_AI_MODE_EMAIL", "")
 DEFAULT_PROFILE_DIRECTORY = "Default"
 
 
@@ -54,6 +58,8 @@ def resolve_profile_directory(profile_dir: Path = PROFILE_DIR, email: str = SIGN
     Reads ``Local State`` -> profile.info_cache to map sub-profile dirs to
     account emails. Falls back to DEFAULT_PROFILE_DIRECTORY if not found.
     """
+    if not email:
+        return DEFAULT_PROFILE_DIRECTORY
     try:
         cache = json.loads((profile_dir / "Local State").read_text())
         info = cache.get("profile", {}).get("info_cache", {})
