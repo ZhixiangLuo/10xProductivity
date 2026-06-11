@@ -175,9 +175,14 @@ fi
 
 # Verify saved CLI authentication from `agent whoami`.
 # Some versions return status 0 even when printing "Not logged in".
+# Accept multiple logged-in phrasings across CLI versions:
+#   - older: "Logged in as <user>"
+#   - newer: "Logged in (user details not available)" / "Login successful"
+# while still rejecting "Not logged in".
 if $USING_CURSOR_AGENT; then
     AGENT_WHOAMI="$(agent whoami 2>&1 || true)"
-    if ! echo "$AGENT_WHOAMI" | grep -q "Logged in as"; then
+    if echo "$AGENT_WHOAMI" | grep -qi "not logged in" \
+        || ! echo "$AGENT_WHOAMI" | grep -qiE "Logged in( as| \(|$)|Login successful"; then
         echo "❌ Push blocked — Cursor agent is not authenticated."
         echo "   Fix: run 'agent login' once (opens browser, saves to keychain)."
         echo "   Current status: $AGENT_WHOAMI"
