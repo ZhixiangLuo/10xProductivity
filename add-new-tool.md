@@ -72,7 +72,9 @@ Before asking the user for anything:
 2. Document the refresh command in the connection file: `python3 "${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}/personal/{tool-name}/sso.py"` — the agent cannot self-refresh without the user present.
 3. Document the token TTL (usually ~8h) — so the user knows when to expect re-authentication prompts.
 
-**The browser is a traffic sniffer, not an automation target.** Use Playwright once to capture auth tokens — then call the REST API directly for all subsequent operations. If you find yourself using Playwright to click buttons or read DOM content for regular operations, stop — you haven't found the API yet.
+**Use Agent Browser for interactive reconnaissance.** Before heavier traffic capture, use `workflows/discover-ui-surface/agent-browser.md` when you need the agent to open a page, inspect visible UI, click through a read-only flow, or confirm what the user can see. Keep this generic: named sessions and profile paths are fine, but machine-specific CDP ports are runtime-only and must not be written into recipes.
+
+**The browser is a traffic sniffer, not the durable automation target.** Use browser automation to discover and validate the surface — then call the REST API directly for subsequent operations whenever a replayable API exists. If you find yourself using browser clicks or DOM reads for regular operations, document that explicitly as a limitation and confirm no usable API endpoint exists.
 
 **Use `tool_connections/shared_utils/traffic_sniffer.py`** — a ready-to-run generic sniffer. It attaches a context-level listener before any page loads (catches service workers and background frames that `page.on` misses), opens the persistent profile, and records all matching traffic to a JSONL file while the user performs actions manually. Response bodies are **off by default** (LinkedIn and other heavy SPAs: reading large bodies in the sync handler can stall the driver and drop most later traffic); pass `--capture-bodies` only when you need response payloads.
 
@@ -144,7 +146,8 @@ Sites redirect. Confirm the real base URL before researching. Note any site-vari
 1. Official docs (`docs.tool.com/api` or `developer.tool.com`)
 2. OpenAPI/Swagger spec (`/api/swagger.json`, `/openapi.json`)
 3. GitHub code search — working callers are more accurate than docs
-4. **Browser traffic capture** — when docs are missing or incomplete: run `tool_connections/shared_utils/traffic_sniffer.py` (see above), ask the user to perform the target action, and read the JSONL output. The URL, headers, and body are everything you need to replay the call directly.
+4. **Agent Browser reconnaissance** — when the UI is unfamiliar: read `workflows/discover-ui-surface/agent-browser.md`, open the page, inspect `snapshot -i`, and confirm labels, redirects, and read-only visible state with minimal token cost.
+5. **Browser traffic capture** — when docs are missing or incomplete and you need replayable endpoints: run `tool_connections/shared_utils/traffic_sniffer.py` (see above), ask the user to perform the target action, and read the JSONL output. The URL, headers, and body are everything you need to replay the call directly.
 
 **Collect before moving on:**
 

@@ -1,6 +1,6 @@
 ---
 name: discover-ui-surface
-description: Walk through a UI flow once manually and capture a durable interaction map — which DOM elements to click, which network requests they trigger, and what field shapes they expose. Produces a reusable selector+endpoint reference for automation scripts. Use before writing any Playwright block for a JS-heavy SPA (LinkedIn, Figma, Notion, etc.) where selectors and API paths are not obvious from source inspection alone. Three modes: Chrome DevTools Recorder (fastest), Playwright observer (richest), Playwright codegen+trace (most structured).
+description: Walk through a UI flow once manually and capture a durable interaction map — which DOM elements to click, which network requests they trigger, and what field shapes they expose. Produces a reusable selector+endpoint reference for automation scripts. Use before writing any browser automation block for a JS-heavy SPA (LinkedIn, Figma, Notion, etc.) where selectors and API paths are not obvious from source inspection alone. Modes include Agent Browser for low-token interactive reconnaissance, Chrome DevTools Recorder, Playwright observer, and Playwright codegen+trace.
 ---
 
 # Discover UI Surface
@@ -33,19 +33,45 @@ Writing an automation block without first observing both surfaces leads to:
 
 ---
 
-## Three modes — pick one per session
+## Four modes — pick one per session
 
 | Mode | Best for | Output |
 |------|----------|--------|
-| **[A] Chrome DevTools Recorder](#mode-a-chrome-devtools-recorder)** | Quick discovery, any site, no setup | Playwright script + manual network annotation |
-| **[B] Playwright observer](#mode-b-playwright-observer-script)** | Richest correlation: click → network call mapped automatically | Structured JSON log + selector map |
-| **[C] Playwright codegen + trace](#mode-c-playwright-codegen--trace)** | Full timeline review after the fact | Trace zip with correlated action/network timeline |
+| **[A] Agent Browser](#mode-a-agent-browser)** | Low-token interactive reconnaissance, page reads, forms, saved sessions | Accessibility snapshot + element refs + screenshots/text extracts |
+| **[B] Chrome DevTools Recorder](#mode-b-chrome-devtools-recorder)** | Quick discovery, any site, no setup | Playwright script + manual network annotation |
+| **[C] Playwright observer](#mode-c-playwright-observer-script)** | Richest correlation: click → network call mapped automatically | Structured JSON log + selector map |
+| **[D] Playwright codegen + trace](#mode-d-playwright-codegen--trace)** | Full timeline review after the fact | Trace zip with correlated action/network timeline |
 
-Start with **Mode A** if you've never explored the site. Use **Mode B** when you need the click↔network correlation automated. Use **Mode C** when you want to review the full timeline offline.
+Start with **Mode A** if you need the agent to read or drive a page with minimal token cost. Use **Mode B** when you want Chrome's built-in selector recording. Use **Mode C** when you need automated click↔network correlation. Use **Mode D** when you want to review the full timeline offline.
 
 ---
 
-## Mode A — Chrome DevTools Recorder
+## Mode A — Agent Browser
+
+**Time to set up:** ~1 minute after Node is available. Best for agent-driven page reads and exploratory clicks.
+
+See [`agent-browser.md`](agent-browser.md) for install, safety boundaries, session persistence, and command patterns. Quick summary:
+
+```bash
+# Install once:
+npm i -g agent-browser
+agent-browser install
+
+# Load version-matched instructions:
+agent-browser skills get core
+
+# Drive a page:
+agent-browser open --headed "https://app.example.com"
+agent-browser snapshot -i -u
+agent-browser click @e3
+agent-browser snapshot -i
+```
+
+Use Agent Browser before heavier capture when the question is "what is visible?" or "which control should I click?" Do not write `@eN` refs into durable recipes; they are page-instance specific. If the task requires reusable API calls, escalate to Mode C or `tool_connections/shared_utils/traffic_sniffer.py`.
+
+---
+
+## Mode B — Chrome DevTools Recorder
 
 **Time to set up:** zero. Built into Chrome/Edge.
 
@@ -71,7 +97,7 @@ If the Recorder only gives you a generated class name for a critical button, ins
 
 ---
 
-## Mode B — Playwright observer script
+## Mode C — Playwright observer script
 
 **Time to set up:** ~30s. Requires Playwright installed.
 
@@ -170,7 +196,7 @@ python3 workflows/discover-ui-surface/assets/observe_session.py \
 
 ---
 
-## Mode C — Playwright codegen + trace
+## Mode D — Playwright codegen + trace
 
 **Time to set up:** ~10s.
 
