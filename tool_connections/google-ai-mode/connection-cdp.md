@@ -169,7 +169,9 @@ Then perform:
 
 - This is a browser connection, not a stable REST API. Prefer rendered-page extraction over replaying Google async endpoints.
 - Google may route saved chats and some new queries into `chrome://contextual-tasks`; the script reads the matching embedded webview when normal page navigation reports `ERR_ABORTED`.
-- Follow-up questions after a new query is recovered from `chrome://contextual-tasks` are not yet supported.
+- When a new query is recovered from `chrome://contextual-tasks`, follow-ups are
+  submitted through the host page's native `Ask anything` composer. They remain
+  visible as back-and-forth turns in the same saved Google thread.
 - Direct replay of captured `/async/folif` and `/async/folwr` calls returned HTTP 400 because requests include volatile page/session parameters.
 - Anonymous access may work for some queries but can hit Google's unusual-traffic interstitial. A signed-in dedicated Chrome profile is more reliable.
 - Do not use the user's daily Chrome profile; use the dedicated automation profile only.
