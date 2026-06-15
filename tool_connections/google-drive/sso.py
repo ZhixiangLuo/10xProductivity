@@ -87,6 +87,7 @@ def capture(env: dict) -> dict:
                 try:
                     page.wait_for_url("https://drive.google.com/**", timeout=180_000)
                 except KeyboardInterrupt:
+                    ctx.close()
                     browser.close()
                     raise RuntimeError("Aborted by user — Google Drive login did not complete.")
             else:
@@ -121,6 +122,7 @@ def capture(env: dict) -> dict:
             f"{k}={cookie_dict[k]}" for k in cookie_keys
             if k in cookie_dict and cookie_dict[k]
         )
+        ctx.close()
         browser.close()
 
     print(f"    SAPISID captured ({len(sapisid)} chars)")
