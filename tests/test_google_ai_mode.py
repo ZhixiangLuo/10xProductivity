@@ -13,38 +13,37 @@ google_ai_mode = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(google_ai_mode)
 
 
-def test_submit_contextual_followup_uses_native_composer(monkeypatch):
-    calls = []
-
-    class Textbox:
-        def fill(self, value, timeout):
-            calls.append(("fill", value, timeout))
-
-        def press(self, key):
-            calls.append(("press", key))
-
+def test_run_turns_refuses_contextual_followup_until_verified(monkeypatch):
     class Page:
-        def locator(self, selector):
-            calls.append(("locator", selector))
-            return Textbox()
+        def goto(self, *args, **kwargs):
+            raise RuntimeError("ERR_ABORTED")
 
-    expected = {"query": "follow-up", "lines": ["answer"], "url": "thread"}
-    monkeypatch.setattr(
-        google_ai_mode,
-        "_recover_contextual_followup",
-        lambda browser, mtid, followup: expected,
-    )
+    class Context:
+        pages = []
 
-    result = google_ai_mode._submit_contextual_followup(
-        Page(),
-        object(),
-        "https://www.google.com/search?udm=50&mtid=thread-id",
-        "follow-up",
-    )
+        def new_page(self):
+            return Page()
 
-    assert result == expected
-    assert calls == [
-        ("locator", 'textarea[placeholder="Ask anything"]'),
-        ("fill", "follow-up", 10_000),
-        ("press", "Enter"),
-    ]
+    class Browser:
+        contexts = [Context()]
+
+    class Chromium:
+        def connect_over_cdp(self, url):
+            return Browser()
+
+    class Playwright:
+        chromium = Chromium()
+
+    recovered = {
+        "query": "initial",
+        "lines": ["answer"],
+        "url": "https://www.google.com/search?udm=50&mtid=thread-id",
+    }
+    monkeypatch.setattr(google_ai_mode, "_recover_query_webview", lambda *args: recovered)
+
+    try:
+        google_ai_mode._run_turns(Playwright(), 9222, "initial", ["follow-up"], "https://google.com")
+    except RuntimeError as exc:
+        assert "follow-ups are not supported" in str(exc)
+    else:
+        raise AssertionError("contextual-task follow-up should not be submitted without live evidence")

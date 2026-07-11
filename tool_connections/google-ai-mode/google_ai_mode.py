@@ -379,44 +379,6 @@ def _recover_query_webview(browser, query: str, timeout_ms: int = EXISTING_CHAT_
     raise RuntimeError("Could not recover the new Google AI Mode query from its webview")
 
 
-def _recover_contextual_followup(
-    browser,
-    mtid: str,
-    followup: str,
-    timeout_ms: int = EXISTING_CHAT_TIMEOUT_MS,
-) -> dict:
-    """Read a completed native follow-up from its contextual-task webview."""
-    deadline = time.time() + (timeout_ms / 1000)
-    while time.time() < deadline:
-        session = browser.new_browser_cdp_session()
-        targets = session.send("Target.getTargets")["targetInfos"]
-        for target in targets:
-            if target.get("type") != "webview" or mtid not in target.get("url", ""):
-                continue
-            text = _evaluate_webview(browser, target["targetId"], "document.body.innerText")
-            turns = _parse_existing_chat(text)
-            if not turns or turns[-1]["user"] != followup:
-                continue
-            answer = turns[-1]["assistant"]
-            if "AI Mode response is ready" not in answer:
-                continue
-            return {"query": followup, "lines": answer, "url": target["url"]}
-        time.sleep(0.5)
-    raise RuntimeError("Timed out waiting for the native Google AI Mode follow-up")
-
-
-def _submit_contextual_followup(page, browser, thread_url: str, followup: str) -> dict:
-    """Submit a native follow-up through Chrome's contextual-task host page."""
-    params = urllib.parse.parse_qs(urllib.parse.urlparse(thread_url).query)
-    mtid = params.get("mtid", [""])[0]
-    if not mtid:
-        raise RuntimeError("Recovered Google AI Mode thread is missing mtid")
-    textbox = page.locator('textarea[placeholder="Ask anything"]')
-    textbox.fill(followup, timeout=10_000)
-    textbox.press("Enter")
-    return _recover_contextual_followup(browser, mtid, followup)
-
-
 def _run_turns(playwright, port: int, query: str, followups: list[str], url: str) -> dict:
     browser = playwright.chromium.connect_over_cdp(f"http://127.0.0.1:{port}")
     context = browser.contexts[0]
@@ -432,8 +394,11 @@ def _run_turns(playwright, port: int, query: str, followups: list[str], url: str
 
     for followup in followups:
         if recovered_webview:
-            turns.append(_submit_contextual_followup(page, browser, turns[-1]["url"], followup))
-            continue
+            raise RuntimeError(
+                "Google routed this query into a contextual-task webview. "
+                "Initial-query recovery succeeded, but follow-ups are not supported "
+                "through that webview until a live run verifies the submission path."
+            )
         textbox = page.locator("textarea").last
         textbox.click(timeout=5_000)
         page.keyboard.press("Meta+A")
