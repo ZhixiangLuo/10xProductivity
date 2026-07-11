@@ -7,10 +7,17 @@ human-visible flow does.
 
 It complements the 10x connection workflow:
 
-- Use Agent Browser for interactive reconnaissance and read-only page checks.
+- Use a supported official API when one provides the required capability.
+- When no suitable API exists, use Agent Browser as the default browser-backed
+  operating path.
 - Use `tool_connections/shared_utils/traffic_sniffer.py` when you need durable
   reusable API endpoints, headers, and payload shapes.
-- Use Playwright scripts when the result must become repeatable automation.
+- Use custom Playwright/CDP scripts only when repeated structured automation,
+  monitoring, or batching materially benefits from dedicated code.
+
+This makes Agent Browser a first-class fallback, not merely a reconnaissance
+tool. It is well suited to personalized feeds, recommendation surfaces, chat,
+and ordinary authenticated UI workflows that an official API does not expose.
 
 ---
 
@@ -67,35 +74,92 @@ agent-browser find label "Email" fill "user@example.com"
 agent-browser find placeholder "Search" type "invoice"
 ```
 
+- For feeds or result lists, extract a compact shortlist rather than returning
+  the full page: title, context/source, stable URL, age, engagement signals, and
+  a short excerpt.
+- Read one selected item deeply only after ranking the shortlist.
+- Before any send, post, comment, reaction, submit, or other representational
+  action, show the exact target and content and get action-time approval.
+- After an approved write, verify the resulting item and return its permalink.
+
 ---
 
-## Session Persistence
+## Session persistence — reuse existing CDP profiles first
 
-For a tool-specific browser session, use a named session:
+**Default:** Before creating a new empty profile under
+`~/.browser_automation/`, check whether the coach already has a **logged-in CDP
+profile** for that identity or site class. Reuse it with Agent Browser instead of
+starting from a blank profile or raw headless Playwright (many SaaS signup pages
+block headless automation).
+
+Read `~/.10xProductivity/verified_connections.md` and list
+`~/.browser_automation/*_cdp_profile` when the task needs Google, Drive, or
+another tool that already has a dedicated profile.
+
+### Coach CDP profiles (reuse map)
+
+| Need | Profile directory | CDP port (when launched via tool SSO) | Refresh session |
+|------|-------------------|---------------------------------------|-----------------|
+| **Google account / SSO** (“Continue with Google”, Gmail, Google sign-in) | `$HOME/.browser_automation/google_ai_mode_cdp_profile` | `9236` | `~/git_repos/10xProductivity/.venv/bin/python3 tool_connections/google-ai-mode/sso.py` |
+| Google Drive / Docs / Sheets UI read | `$HOME/.browser_automation/gdrive_cdp_profile` | `9223` (default `GDRIVE_CDP_PORT`) | `tool_connections/google-drive/sso.py --force` + gdrive daemon |
+| Site-specific (Reddit, Medium, …) | `$HOME/.browser_automation/<tool>_cdp_profile` | discover at runtime | that tool’s `sso.py` if present |
+
+**Examples:** Airtable signup with “Continue with Google”, new SaaS OAuth, or
+third-party admin UIs that accept Google SSO → start with
+`google_ai_mode_cdp_profile`, not a new `airtable_profile`.
+
+### Pattern A — `--profile` (same user-data dir)
+
+Agent Browser launches Chrome for Testing with that directory as user-data-dir.
+**Close** any other Chrome/Playwright process using the same profile path first
+(profile lock).
+
+```bash
+source "$HOME/.nvm/nvm.sh" && nvm use 24
+
+agent-browser --session my-task \
+  --profile "$HOME/.browser_automation/google_ai_mode_cdp_profile" \
+  open --headed "https://airtable.com/signup"
+agent-browser --session my-task snapshot -i -u
+```
+
+### Pattern B — `--cdp` (attach to running real Chrome)
+
+Preferred when the tool’s SSO script already launched signed-in Chrome. Ports are
+**runtime discovery** — do not hard-code in durable recipes except the table
+above for this coach’s known Google profiles.
+
+```bash
+# Ensure Google session (opens Chrome only if needed)
+cd ~/git_repos/10xProductivity
+.venv/bin/python3 tool_connections/google-ai-mode/sso.py
+
+source "$HOME/.nvm/nvm.sh" && nvm use 24
+agent-browser --session my-task --cdp 9236 open --headed "https://airtable.com/signup"
+agent-browser --session my-task snapshot -i -u
+```
+
+To find a port when unsure: check the launcher (`sso.py`, `gdrive_server.py`) or
+`curl -s "http://127.0.0.1:<port>/json/version"` on likely ports (`9236`, `9223`).
+
+### Named session only (no auth)
+
+For a **new** site with no existing profile and no Google SSO, use a named
+session or a **new** tool-specific profile path — not before checking the reuse
+map above.
 
 ```bash
 agent-browser --session my-tool open --headed "https://app.example.com"
 agent-browser --session my-tool snapshot -i
 ```
 
-For a saved browser profile, pass a generic profile path. Do not document
-machine-specific ports or paths in reusable recipes.
+### Anti-patterns
 
-```bash
-agent-browser --profile "$HOME/.browser_automation/my_tool_profile" \
-  open --headed "https://app.example.com"
-```
-
-If a browser profile is already running with Chrome DevTools Protocol enabled,
-you can attach to its port as an advanced local workaround:
-
-```bash
-agent-browser --cdp <port> snapshot -i
-```
-
-Treat CDP ports as runtime discovery, never as recipe content. If you need to
-find one locally, probe common ports or inspect the launcher that started the
-browser, then keep the number in the current session only.
+- Blank `--profile "$HOME/.browser_automation/new_empty_profile"` for flows that
+  need Google SSO when `google_ai_mode_cdp_profile` exists.
+- Headless Playwright without profile on signup/login pages (bot walls).
+- Documenting CDP port numbers in connection recipes — use SSO scripts + session
+  attach; ports stay in the agent-browser skill table for this environment only.
 
 ---
 
@@ -116,12 +180,14 @@ values.
 
 ---
 
-## When To Escalate To Traffic Sniffing
+## When To Escalate
 
 Agent Browser is enough when the task is "what is visible on this page?" or
-"click through this flow once." Escalate to
-`tool_connections/shared_utils/traffic_sniffer.py` when you need to write a
-connection file with verified snippets:
+"click through this flow." Continue using it for recurring interactive work
+when the site's UI or personalization is the required source of truth.
+
+Escalate to `tool_connections/shared_utils/traffic_sniffer.py` when you need to
+write a connection file with verified API snippets:
 
 - Which endpoint returns the account list?
 - Which header/cookie authenticates the call?
@@ -130,6 +196,11 @@ connection file with verified snippets:
 
 The durable recipe should record endpoints and auth patterns, not Agent Browser
 refs such as `@e6`, because refs are page-instance specific.
+
+Escalate to a custom Playwright/CDP script only for stable repetitive extraction,
+batch work, scheduled monitoring, or a UI limitation Agent Browser cannot
+handle. The existence of a browser-only workflow is not by itself a reason to
+write custom code.
 
 ---
 
@@ -146,3 +217,15 @@ For UI reconnaissance, write down:
 For connection work, transfer only durable findings into
 `connection-{auth-method}.md`: endpoint paths, auth method, payload shapes,
 read/write approval boundaries, and known limitations.
+
+## This Is Working If
+
+- Connections use supported APIs where available.
+- Browser-only tools default to Agent Browser instead of one-off Playwright
+  code.
+- Agents reuse existing `~/.browser_automation/*_cdp_profile` sessions (especially
+  `google_ai_mode_cdp_profile` for Google SSO) before creating empty profiles.
+- Feed/list reads return compact structured candidates, not page dumps.
+- Custom browser scripts exist only for demonstrated repetitive or deterministic
+  needs.
+- Approved writes are verified with a direct result URL.

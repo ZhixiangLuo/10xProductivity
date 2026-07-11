@@ -24,6 +24,9 @@ Your laptop is the platform. The agent is just a smarter version of you running 
 **2. Security by locality**
 The threat model is identical to you doing it manually. Nothing new is exposed. No cloud service sits between you and your tools holding your credentials. The only trust you extend is to the agent runtime itself (Cursor, Claude Code, Codex, Copilot, etc.) — which you've already decided to trust.
 
+**2b. Agent automation, not mass scraping**
+Connections target **daily agent-driven use** — read context, draft, act with approval — not bulk harvesting or high-frequency unattended scraping. When evaluating a connector, prioritize whether it works, whether it exfiltrates data, and write-approval gates; do not treat generic bot-ban warnings (meant for scrapers at scale) as the default reason to reject a viable path. See `add-new-tool.md` → **Operating context**.
+
 **3. Identity = accountability**
 Your personal token. Your name on every action. This is a stronger audit trail than most enterprise automation, where actions are taken by service accounts with shared credentials. The agent acts *as you*: you get the credit, you get the blame, and the audit log is already there in every system you use.
 

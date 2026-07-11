@@ -20,16 +20,51 @@ Turn "I want my agent to access Tool X" into a working, verified connection file
 
 ---
 
+## Operating context
+
+Connections here automate **daily personal and professional workflows** through the coding agent — check messages, read feeds, look up context, draft replies, file tickets, and similar one-off tasks. They are **not** for mass scraping, bulk harvesting, high-frequency unattended polling, or simulating heavy human usage at scale.
+
+When researching and choosing a connection method:
+
+- **Do not overweight generic bot-detection or account-ban warnings** aimed at scrapers, growth bots, or commercial automation. That is not this repo's threat model.
+- **Do prioritize:**
+  1. **Feasibility** — does the method work for this account/instance? (e.g. Web WeChat login allowed, API reachable)
+  2. **Privacy** — does the connector or its dependencies send data to third parties? Review source before run.
+  3. **Write safety** — preview + explicit user approval before every outbound action (post, send, delete, purchase, etc.)
+  4. **Proportionate use** — on-demand or modest polling while the agent is working; not continuous bulk export
+- **Still stop** when a platform **hard-blocks** the auth path. Treat that as a feasibility gate, not a lecture about account safety.
+- **Document** technical constraints the agent must implement correctly — session TTL, calls that must run inside a browser context, rate limits, instance policy — as facts, not as reasons to abandon the connection without trying.
+
+Dedicated automation accounts (separate from day-to-day personal use) are acceptable when a platform allows it.
+
+---
+
 ## Non-negotiable rules
 
 1. **`TENX_PRIVATE_DIR/personal/` first, always.** All work — new tools, improvements to existing connections, new auth variants, fixes — starts in `TENX_PRIVATE_DIR/personal/`. Never edit `tool_connections/` directly. `TENX_PRIVATE_DIR/personal/` lives outside the public repo and is safe for your email, org URLs, tokens, and company-specific details. Nothing leaves `TENX_PRIVATE_DIR/personal/` until it is verified, scrubbed, and promoted via `staging/` → PR. This applies to improvements just as much as new tools.
-2. **Research viability first.** Before asking the user for anything, determine what auth methods exist for this tool. If no viable method exists (no public API, no session-based workaround, no OAuth path), stop — there is nothing to build.
+2. **Research viability first.** Before asking the user for anything, determine what auth methods exist for this tool. Prefer a supported API. If no suitable API exists, treat Agent Browser over an authenticated browser session as the default operational fallback; do not jump straight to a custom Playwright/CDP script.
 3. **Ask only what the auth method actually needs.** The credential ask must be proportional to the auth method: SSO/browser-session → ask for nothing (just a URL to confirm the instance); API token → ask for the token and where to generate it; username+password → ask for both. Never ask vague questions the user can't answer.
 4. **A URL is your best minimal input.** If you need to confirm an instance, ask for any URL from that tool (profile page, dashboard, ticket). It reveals the base URL, regional variant, and proves the user has access — without requiring them to know anything about auth.
 5. **Run before you write.** Every snippet must be code you actually executed and saw succeed against a live instance. No copy-paste from docs. No illustrative output. The reason you haven't run them does not matter — unverified snippets do not belong in a connection file.
 6. **Write for the next agent.** Strip session-specific IDs, one-time URLs, org-specific data. Document the pattern, not the artifact.
 7. **Nothing broken.** If an endpoint didn't work, cut it. One working snippet beats five broken ones.
 8. **Python SSL: use `urlopen()`, never roll `ssl.CERT_NONE`.** Managed laptops may run Zscaler, which can intercept HTTPS traffic. `from tool_connections.shared_utils.browser import urlopen` tries normal TLS verification first, then retries only SSL failures with the Zscaler-compatible context. Do not copy-paste `ssl.CERT_NONE` blocks — they break on machines without Zscaler and hide real certificate problems.
+
+---
+
+## Safety gate before third-party code
+
+Before cloning third-party repos, running install scripts, installing packages,
+or executing a local bridge/binary, run the Genesis package safety review:
+
+`$GENESIS_DIRECTORY/.genesis/skills/package-safety-review/SKILL.md`
+
+If `GENESIS_DIRECTORY` is unset, use `/Users/zhixiangluo/git_repos/the-genesis`.
+
+The safety review must classify provenance, source/binary availability, data
+egress, locality, and write-safety before moving from source review to download,
+install, or execution. Do not run `curl | bash`; download and inspect the script
+first, then ask for explicit approval.
 
 ---
 
@@ -45,22 +80,34 @@ Before asking the user for anything:
 
 **This repo's goal is zero-friction setup.** The user should never have to create an app, register OAuth credentials, or configure anything outside of this repo's own flow. Reject any auth approach that requires that — even if it's technically cleaner.
 
-**Auth method priority order:**
+**Connection-method priority order:**
 
 
 | Priority | Auth method                                      | User friction                                    | Ask the user for                   |
 | -------- | ------------------------------------------------ | ------------------------------------------------ | ---------------------------------- |
-| 1        | **API token**                                    | Near-zero — generate in tool settings (~30s)     | The token + where to generate it   |
-| 2        | **Browser session (SSO, one-time capture)**      | Near-zero — run `sso.py` once, cached days/weeks | A URL from the tool — nothing else |
-| 3        | **Browser session (per operation)**              | Low but costly — Playwright runs on every call   | A URL from the tool — nothing else |
-| 4        | **Username + password**                          | Low — but only for legacy tools                  | Username and password              |
+| 1        | **Supported API token / preconfigured OAuth**    | Near-zero — token or authorize click             | Only what the supported flow needs |
+| 2        | **Agent Browser + existing browser session**     | Near-zero — reuse authenticated browser state    | Usually nothing                    |
+| 3        | **Agent Browser + one-time browser login**       | Low — user signs in once, session persists       | A URL from the tool                |
+| 4        | **Custom CDP/Playwright automation**             | Higher maintenance — tool-specific code          | A URL from the tool                |
+| 5        | **Username + password**                          | Low — but only for legacy tools                  | Username and password              |
 | ✗        | **OAuth requiring user to create their own app** | High — stop, do not use                          | N/A                                |
 
 
-**On browser automation cost:** distinguish setup cost from per-operation cost.
+**Browser fallback rule:** when no suitable API is available, use Agent Browser
+as the default browser interface. It provides compact accessibility snapshots,
+semantic interaction, existing-session reuse, and action-time confirmation
+without requiring a connector-specific script.
 
-- *SSO capture (Priority 2)* — Playwright runs once. Session is saved to disk and reused. This is acceptable and often the only option for SSO tools (Slack, Teams, Google Workspace).
-- *Per-operation browser (Priority 3)* — Playwright launches on every `search()`, `read()`, or `list()` call. Only accept this if there is genuinely no API or export endpoint. Document it explicitly in the connection file.
+Escalate from Agent Browser to custom CDP/Playwright only when at least one is
+true:
+
+- a stable structured read runs repeatedly and a script materially reduces cost;
+- deterministic batch processing, monitoring, or scheduling is required;
+- Agent Browser cannot expose the needed UI surface reliably;
+- traffic capture is needed to discover a replayable API.
+
+Do not create custom browser code merely to open, inspect, click, draft, or
+submit through a normal authenticated UI.
 
 **On OAuth:** OAuth is acceptable *only* when the repo ships pre-configured client credentials (the user just clicks "Authorize" in their browser — zero app creation). OAuth that requires the user to create a Google Cloud project, register a redirect URI, or configure a consent screen is **not acceptable** — the friction cost makes it worse than a browser session.
 
@@ -72,9 +119,16 @@ Before asking the user for anything:
 2. Document the refresh command in the connection file: `python3 "${TENX_PRIVATE_DIR:-$HOME/.10xProductivity}/personal/{tool-name}/sso.py"` — the agent cannot self-refresh without the user present.
 3. Document the token TTL (usually ~8h) — so the user knows when to expect re-authentication prompts.
 
-**Use Agent Browser for interactive reconnaissance.** Before heavier traffic capture, use `workflows/discover-ui-surface/agent-browser.md` when you need the agent to open a page, inspect visible UI, click through a read-only flow, or confirm what the user can see. Keep this generic: named sessions and profile paths are fine, but machine-specific CDP ports are runtime-only and must not be written into recipes.
+**Use Agent Browser for browser-backed operation as well as reconnaissance.**
+Read `workflows/discover-ui-surface/agent-browser.md` when you need the agent to
+open a page, inspect visible UI, use a personalized feed, click through a flow,
+draft content, or perform an approved action. Keep recipes generic:
+machine-specific CDP ports are runtime-only and must not be written into them.
 
-**The browser is a traffic sniffer, not the durable automation target.** Use browser automation to discover and validate the surface — then call the REST API directly for subsequent operations whenever a replayable API exists. If you find yourself using browser clicks or DOM reads for regular operations, document that explicitly as a limitation and confirm no usable API endpoint exists.
+**Prefer replayable APIs when they exist; keep browser operation when the UI is
+the product surface.** Personalized feeds, recommendations, chat, and UI-only
+workflows may remain browser-backed by design. Document the limitation and the
+reason. Do not reverse-engineer private endpoints solely to avoid Agent Browser.
 
 **Use `tool_connections/shared_utils/traffic_sniffer.py`** — a ready-to-run generic sniffer. It attaches a context-level listener before any page loads (catches service workers and background frames that `page.on` misses), opens the persistent profile, and records all matching traffic to a JSONL file while the user performs actions manually. Response bodies are **off by default** (LinkedIn and other heavy SPAs: reading large bodies in the sync handler can stall the driver and drop most later traffic); pass `--capture-bodies` only when you need response payloads.
 
@@ -146,7 +200,9 @@ Sites redirect. Confirm the real base URL before researching. Note any site-vari
 1. Official docs (`docs.tool.com/api` or `developer.tool.com`)
 2. OpenAPI/Swagger spec (`/api/swagger.json`, `/openapi.json`)
 3. GitHub code search — working callers are more accurate than docs
-4. **Agent Browser reconnaissance** — when the UI is unfamiliar: read `workflows/discover-ui-surface/agent-browser.md`, open the page, inspect `snapshot -i`, and confirm labels, redirects, and read-only visible state with minimal token cost.
+4. **Agent Browser operation/reconnaissance** — when the UI is the required
+   surface: read `workflows/discover-ui-surface/agent-browser.md`, inspect
+   compact snapshots, and use semantic interactions.
 5. **Browser traffic capture** — when docs are missing or incomplete and you need replayable endpoints: run `tool_connections/shared_utils/traffic_sniffer.py` (see above), ask the user to perform the target action, and read the JSONL output. The URL, headers, and body are everything you need to replay the call directly.
 
 **Collect before moving on:**
@@ -182,6 +238,13 @@ TOOL_BASE_URL=https://api.tool.com
 ### Step 4: Validate against the live instance
 
 **Do not use dev environments.** Validate on the actual production endpoint.
+
+Choose the validation track selected in Step 0:
+
+- **API track:** validate auth plus at least two real read endpoints.
+- **Agent Browser track:** validate at least two real read surfaces and one
+  interaction flow up to—but not through—its final write action. For a write,
+  execute only after explicit approval, then verify the result URL.
 
 #### 4a. Connectivity (no auth)
 
@@ -398,15 +461,21 @@ If the tool is commercial/publicly available and you want to share the connectio
 - Asked user only for what the auth method actually requires
 - Base URL confirmed (not guessed)
 - Auth mechanism identified and tested on production
-- At least 2 read endpoints run, real output recorded
-- At least one failure case documented (4xx, deprecated endpoint, permission error, or explicit "no search API" note)
-- Native search API tested — verified snippet recorded, or explicitly noted as absent
-- AI/chat API checked — verified snippet recorded, or explicitly noted as unavailable/paywalled
+- API track: at least 2 read endpoints run, real output recorded
+- Agent Browser track: at least 2 read surfaces verified with compact output
+- Agent Browser track: one interaction flow verified; writes require approval
+- API track: at least one failure case documented (4xx, deprecated endpoint, or
+  permission error)
+- Search capability tested through the selected track, or explicitly noted as
+  absent
+- AI/chat capability checked through the selected track, or explicitly noted as
+  unavailable/paywalled
 - `verified: YYYY-MM` filled in (blank = not ready)
 - `TENX_PRIVATE_DIR/.env` updated with new credentials
 - `TENX_PRIVATE_DIR/personal/{tool-name}/connection-{auth-method}.md` written with only verified snippets
 - Python snippets use `urlopen()` from `tool_connections.shared_utils.browser` — not hand-rolled `ssl.CERT_NONE`
-- `sniffer:` frontmatter block added to connection file (profile, url, filter)
+- API-discovery track: `sniffer:` frontmatter block added when traffic capture
+  was used
 - `## Agent behavior` section written (read vs write approval rules, error URL)
 - `## Typical actions to capture` section written
 - `TENX_PRIVATE_DIR/personal/{tool-name}/setup.md` written (what to ask, `.env` entries, verify snippet)
