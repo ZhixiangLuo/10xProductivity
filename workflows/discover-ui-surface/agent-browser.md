@@ -87,7 +87,7 @@ agent-browser find placeholder "Search" type "invoice"
 ## Session persistence — reuse existing CDP profiles first
 
 **Default:** Before creating a new empty profile under
-`~/.browser_automation/`, check whether the coach already has a **logged-in CDP
+`~/.browser_automation/`, check whether the user already has a **logged-in CDP
 profile** for that identity or site class. Reuse it with Agent Browser instead of
 starting from a blank profile or raw headless Playwright (many SaaS signup pages
 block headless automation).
@@ -96,17 +96,17 @@ Read `~/.10xProductivity/verified_connections.md` and list
 `~/.browser_automation/*_cdp_profile` when the task needs Google, Drive, or
 another tool that already has a dedicated profile.
 
-### Coach CDP profiles (reuse map)
+### CDP profile reuse map
 
-| Need | Profile directory | CDP port (when launched via tool SSO) | Refresh session |
+| Need | Profile directory | CDP port | Refresh session |
 |------|-------------------|---------------------------------------|-----------------|
-| **Google account / SSO** (“Continue with Google”, Gmail, Google sign-in) | `$HOME/.browser_automation/google_ai_mode_cdp_profile` | `9236` | `~/git_repos/10xProductivity/.venv/bin/python3 tool_connections/google-ai-mode/sso.py` |
-| Google Drive / Docs / Sheets UI read | `$HOME/.browser_automation/gdrive_cdp_profile` | `9223` (default `GDRIVE_CDP_PORT`) | `tool_connections/google-drive/sso.py --force` + gdrive daemon |
-| Site-specific (Reddit, Medium, …) | `$HOME/.browser_automation/<tool>_cdp_profile` | discover at runtime | that tool’s `sso.py` if present |
+| Google account / SSO ("Continue with Google", Gmail, Google sign-in) | `$HOME/.browser_automation/<google-sso-profile>` | discover at runtime | the tool's documented SSO command |
+| Google Drive / Docs / Sheets UI read | `$HOME/.browser_automation/<google-drive-profile>` | discover at runtime | the Google Drive setup command |
+| Site-specific saved session | `$HOME/.browser_automation/<tool>_cdp_profile` | discover at runtime | that tool's `sso.py` if present |
 
-**Examples:** Airtable signup with “Continue with Google”, new SaaS OAuth, or
-third-party admin UIs that accept Google SSO → start with
-`google_ai_mode_cdp_profile`, not a new `airtable_profile`.
+**Examples:** SaaS signups with "Continue with Google", new OAuth flows, or
+third-party admin UIs that accept Google SSO -> start with an existing signed-in
+Google SSO profile, not a new empty tool-specific profile.
 
 ### Pattern A — `--profile` (same user-data dir)
 
@@ -118,29 +118,30 @@ Agent Browser launches Chrome for Testing with that directory as user-data-dir.
 source "$HOME/.nvm/nvm.sh" && nvm use 24
 
 agent-browser --session my-task \
-  --profile "$HOME/.browser_automation/google_ai_mode_cdp_profile" \
-  open --headed "https://airtable.com/signup"
+  --profile "$HOME/.browser_automation/<google-sso-profile>" \
+  open --headed "https://example.com/signup"
 agent-browser --session my-task snapshot -i -u
 ```
 
 ### Pattern B — `--cdp` (attach to running real Chrome)
 
 Preferred when the tool’s SSO script already launched signed-in Chrome. Ports are
-**runtime discovery** — do not hard-code in durable recipes except the table
-above for this coach’s known Google profiles.
+**runtime discovery** — do not hard-code machine-specific ports in durable
+recipes.
 
 ```bash
 # Ensure Google session (opens Chrome only if needed)
 cd ~/git_repos/10xProductivity
-.venv/bin/python3 tool_connections/google-ai-mode/sso.py
+.venv/bin/python3 tool_connections/<tool>/sso.py
 
 source "$HOME/.nvm/nvm.sh" && nvm use 24
-agent-browser --session my-task --cdp 9236 open --headed "https://airtable.com/signup"
+agent-browser --session my-task --cdp <port> open --headed "https://example.com/signup"
 agent-browser --session my-task snapshot -i -u
 ```
 
 To find a port when unsure: check the launcher (`sso.py`, `gdrive_server.py`) or
-`curl -s "http://127.0.0.1:<port>/json/version"` on likely ports (`9236`, `9223`).
+probe a candidate port with
+`curl -s "http://127.0.0.1:<port>/json/version"`.
 
 ### Named session only (no auth)
 
@@ -156,10 +157,10 @@ agent-browser --session my-tool snapshot -i
 ### Anti-patterns
 
 - Blank `--profile "$HOME/.browser_automation/new_empty_profile"` for flows that
-  need Google SSO when `google_ai_mode_cdp_profile` exists.
+  need Google SSO when a signed-in Google SSO profile exists.
 - Headless Playwright without profile on signup/login pages (bot walls).
-- Documenting CDP port numbers in connection recipes — use SSO scripts + session
-  attach; ports stay in the agent-browser skill table for this environment only.
+- Documenting machine-specific CDP port numbers in connection recipes — use SSO
+  scripts + runtime session attach instead.
 
 ---
 
@@ -223,8 +224,8 @@ read/write approval boundaries, and known limitations.
 - Connections use supported APIs where available.
 - Browser-only tools default to Agent Browser instead of one-off Playwright
   code.
-- Agents reuse existing `~/.browser_automation/*_cdp_profile` sessions (especially
-  `google_ai_mode_cdp_profile` for Google SSO) before creating empty profiles.
+- Agents reuse existing `~/.browser_automation/*_cdp_profile` sessions before
+  creating empty profiles.
 - Feed/list reads return compact structured candidates, not page dumps.
 - Custom browser scripts exist only for demonstrated repetitive or deterministic
   needs.

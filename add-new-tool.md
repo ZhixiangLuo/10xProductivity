@@ -59,7 +59,8 @@ or executing a local bridge/binary, run the Genesis package safety review:
 
 `$GENESIS_DIRECTORY/.genesis/skills/package-safety-review/SKILL.md`
 
-If `GENESIS_DIRECTORY` is unset, use `/Users/zhixiangluo/git_repos/the-genesis`.
+If `GENESIS_DIRECTORY` is unset, use the local Genesis checkout for this
+machine, for example `$HOME/git_repos/the-genesis`.
 
 The safety review must classify provenance, source/binary availability, data
 egress, locality, and write-safety before moving from source review to download,

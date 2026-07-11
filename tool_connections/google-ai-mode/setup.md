@@ -69,9 +69,10 @@ Verified scrubbed output:
 ```
 
 If Chrome routes a new query into `chrome://contextual-tasks`, the query command
-automatically recovers the matching embedded webview. Requested follow-ups use
-the contextual-task host page's native composer, so they remain visible in the
-same saved Google thread.
+automatically recovers the matching embedded webview for reading. Treat
+contextual-task follow-up submission as unverified unless a fresh live run
+captures scrubbed evidence for that path. The verified multi-turn example below
+covers the normal AI Mode search-page path.
 
 Multi-turn:
 
