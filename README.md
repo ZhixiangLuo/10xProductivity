@@ -10,11 +10,13 @@ If this saves you time, consider giving it a star. It helps others discover the 
 
 ## Star History
 
+## Star History
+
 <a href="https://www.star-history.com/?repos=ZhixiangLuo%2F10xProductivity&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ZhixiangLuo/10xProductivity&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ZhixiangLuo/10xProductivity&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ZhixiangLuo/10xProductivity&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ZhixiangLuo/10xProductivity&type=date&theme=dark&legend=top-left&sealed_token=QfW1emsXrddzjk2Yk4Oq2wVOHeQCCxXeGnIQpTkCYF3NNXVoQUmQzruCIgo6bi1vdVBHsmF8x-0_OPo3QHotCGURIy_ErDTb5Q2aRLJHM6iHzxMJiGwUkmkqxSKGSYPiyUaUWfDthv8UanPpIB8UCxBftdlFBH_ceUZEVG0KDpFXuWF1Qb0DPYhNkUp4" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ZhixiangLuo/10xProductivity&type=date&legend=top-left&sealed_token=QfW1emsXrddzjk2Yk4Oq2wVOHeQCCxXeGnIQpTkCYF3NNXVoQUmQzruCIgo6bi1vdVBHsmF8x-0_OPo3QHotCGURIy_ErDTb5Q2aRLJHM6iHzxMJiGwUkmkqxSKGSYPiyUaUWfDthv8UanPpIB8UCxBftdlFBH_ceUZEVG0KDpFXuWF1Qb0DPYhNkUp4" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ZhixiangLuo/10xProductivity&type=date&legend=top-left&sealed_token=QfW1emsXrddzjk2Yk4Oq2wVOHeQCCxXeGnIQpTkCYF3NNXVoQUmQzruCIgo6bi1vdVBHsmF8x-0_OPo3QHotCGURIy_ErDTb5Q2aRLJHM6iHzxMJiGwUkmkqxSKGSYPiyUaUWfDthv8UanPpIB8UCxBftdlFBH_ceUZEVG0KDpFXuWF1Qb0DPYhNkUp4" />
  </picture>
 </a>
 
