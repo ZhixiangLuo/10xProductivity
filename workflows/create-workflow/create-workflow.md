@@ -252,7 +252,7 @@ For each block, in dependency order:
 
    Surface types to identify:
    - **Network first** — perform the action manually while watching DevTools Network tab (or run `observe_session.py`). Look for a clean XHR/fetch call returning structured JSON. If found, document the endpoint, headers, and payload shape — this is your implementation path.
-   - **Internal API** — if no public API exists but a clean internal endpoint appears in the traffic capture, you can call it directly (replaying the same auth headers/cookies). Document it in the connection file; note that internal APIs may change without notice.
+   - **Internal API** — if no public API exists but a clean internal endpoint appears in the traffic capture, replay it with [`session_request.py`](../../tool_connections/shared_utils/session_request.py) (Playwright persistent profile — cookies and CSRF handled automatically). Document the endpoint in the connection file; note that internal APIs may change without notice.
    - **DOM selectors** — if no usable API exists, drive the UI. Use `discover-ui-surface` to capture which button triggers which call and what ARIA/`data-*` selectors are durable. Prefer: ARIA roles/labels → visible text → `data-*` attributes → semantic CSS classes. Generated class names are always last resort.
    - **Hybrid** — many modern apps split IDs and structured data across network responses and human-visible DOM. Plan to combine both channels (e.g. response listeners for IDs + `page.evaluate` for copy). See [Observable surfaces](#observable-surfaces-browser-and-hybrid-uis).
    - Record which surface you chose and why. This decision belongs in the connection or block doc.

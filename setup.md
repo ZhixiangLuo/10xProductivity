@@ -13,8 +13,9 @@ This file is for your agent. Point your agent here first:
 **Do as much as possible. Ask as little as possible. Ask non-technically.**
 
 - Run every command yourself. Never paste a command and ask the user to run it.
+- **NEVER read `TENX_PRIVATE_DIR/.env` directly** Always run the tool's `check()` via `playwright_sso.py` or `sso.py`
 - **Ask for a URL first.** For any tool, the best minimal input is a URL the user already has open (a ticket, a message link, a dashboard URL). It reveals the base URL, workspace, and regional variant — without requiring the user to know anything about auth.
-- **Infer the auth method from the URL, then try it.** Check the tool's `setup.md` to determine the auth method. For SSO/browser-session tools, attempt Playwright immediately — no further questions needed. For API token tools, check `TENX_PRIVATE_DIR/.env` first — the token may already be there.
+- **Infer the auth method from the URL, then try it.** Check the tool's `setup.md` to determine the auth method. For SSO/browser-session tools, attempt Playwright immediately — no further questions needed. For API token tools, run the tool's `check()` via `playwright_sso.py` or `sso.py` — the token may already be there.
 - **Ask for credentials only if actually missing, and only for the specific thing that's missing.** Never ask vague questions like "do you have credentials?" Know what you need before you ask.
 - When you must ask, phrase it in plain language — not in technical terms.
 - As soon as you have what you need, do the work and verify it yourself. Tell the user what succeeded, not what they need to do next.

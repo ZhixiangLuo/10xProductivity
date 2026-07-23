@@ -20,8 +20,12 @@ Workflow:
   3. Perform target actions in the browser (see connection file for suggestions)
   4. Close the browser or Ctrl+C
   5. Inspect the JSONL output — every URL, header, and body is there
-  6. Replay interesting calls via REST; document verified ones in the
-     connection file.
+  6. Replay interesting calls with session_request.py (cookies/tokens from the
+     persistent profile — no manual copy-paste):
+     python3 tool_connections/shared_utils/session_request.py \\
+         --tool <name> --method GET --url '<captured-url>' --json
+     Or with explicit profile: --profile ~/.browser_automation/<tool>_profile
+     Document verified endpoints in the connection file.
 
 --tool shortcut:
   If the tool's connection file has a sniffer: block in its frontmatter,
